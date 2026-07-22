@@ -58,13 +58,17 @@
   header{display:flex;align-items:baseline;justify-content:space-between;gap:24px;
     padding:32px 0 14px;border-bottom:1px solid var(--ink);flex-wrap:wrap}
   .brand{font-size:29px;font-weight:400;letter-spacing:-.01em;line-height:1}
-  nav{display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;
-      scrollbar-width:none;max-width:100%}
-  nav::-webkit-scrollbar{display:none}
-  /* a soft fade on the right edge, so it reads as "there is more this way" */
+  nav{display:flex;gap:0;max-width:100%;flex-wrap:wrap}
+  /* On a phone the six tabs did not fit and half the site sat off-screen behind
+     a scroll nobody would find. They wrap into a grid instead, so every tab is
+     visible without moving. */
   @media(max-width:760px){
-    nav{-webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%);
-        mask-image:linear-gradient(to right,#000 82%,transparent 100%)}
+    nav{display:grid;grid-template-columns:repeat(3,1fr);width:100%;
+        border-top:1px solid var(--rule);margin-top:4px}
+    nav button{padding:11px 4px;text-align:center;font-size:9px;letter-spacing:.12em;
+      border-bottom:1px solid var(--rule)}
+    nav button[aria-current="page"]{background:var(--mount)}
+    nav button[aria-current="page"]::after{display:none}
   }
   nav button{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
     background:none;border:none;color:var(--ink3);padding:7px 12px;cursor:pointer;white-space:nowrap}
@@ -300,8 +304,14 @@
     .tablewrap tr{border-bottom:1px solid var(--rule);padding:13px 0}
     .tablewrap tr:last-child{border-bottom:none}
     .tablewrap td{display:block;border:none;padding:1px 0;font-size:15px}
-    .tablewrap td:first-child{font-weight:700;font-size:16px;margin-bottom:3px}
-    .tablewrap td:not(:first-child){color:var(--ink2)}
+    .tablewrap td:first-child{font-weight:700;font-size:16px;margin-bottom:5px}
+    .tablewrap td:not(:first-child){color:var(--ink2);padding-left:0}
+    /* Stacking a table drops the header row, so each value has to carry its own
+       label or the rows read as a list of unrelated sentences. */
+    .tablewrap td[data-label]::before{
+      content:attr(data-label);display:block;font-family:var(--mono);font-size:9px;
+      letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);
+      margin:9px 0 2px}
   }
   @media(max-width:640px){
     .wrap{padding:0 16px 84px}
@@ -427,13 +437,17 @@
       <thead><tr><th>Channel</th><th>Measures</th><th>To raise it</th></tr></thead>
       <tbody>
         <tr><td><span class="swatch" style="background:var(--vel)"></span>Red</td>
-            <td>How many times it has sold</td><td>Trade often</td></tr>
+            <td data-label="Measures">How many times it has sold</td>
+            <td data-label="To raise it">Trade often</td></tr>
         <tr><td><span class="swatch" style="background:var(--rhy)"></span>Green</td>
-            <td>How uneven the gaps between sales are</td><td>Trade unpredictably</td></tr>
+            <td data-label="Measures">How uneven the gaps between sales are</td>
+            <td data-label="To raise it">Trade unpredictably</td></tr>
         <tr><td><span class="swatch" style="background:var(--pat)"></span>Blue</td>
-            <td>Longest unbroken hold, including the one running now</td><td>Out-hold everyone else</td></tr>
+            <td data-label="Measures">Longest unbroken hold, including the one running now</td>
+            <td data-label="To raise it">Out-hold everyone else</td></tr>
         <tr><td><span class="swatch" style="background:#fff"></span>White</td>
-            <td>Never sold</td><td>Never sell</td></tr>
+            <td data-label="Measures">Never sold</td>
+            <td data-label="To raise it">Never sell</td></tr>
       </tbody>
     </table></div>
 
@@ -451,7 +465,12 @@
        before launch and revealed only when the total reaches it — the canvas sets forever. The sale
        that reaches it is the last sale. The canvas mints as a single artwork and opens at 1 ETH with
        no deadline. Proceeds split equally across all 4,096 pixels, paid to whoever held each one at
-       that block. The buyer receives the painting and every royalty it earns from then on, permanently.</p>
+       that block.</p>
+    <p><strong>The winner inherits the royalties.</strong> From the moment the auction settles, the
+       5% royalty on every pixel sale in the collection is paid to whoever holds the canvas — not to
+       the creator, and not to the holders. It follows the artwork: hold the canvas and you collect,
+       sell it and the income passes to the next owner with it. That is what is actually being
+       auctioned. Not just a picture, but every trade the collection ever makes afterward.</p>
     <p><strong>The sealed number may never be reached.</strong> There is no time limit and no backstop.
        If the total never reaches the sealed number, the painting is never finished. That outcome is accepted and
        it is part of the work.</p>
@@ -692,7 +711,7 @@ ever sold end up a different colour, whether or not their owner did anything.</d
   </section>
 
   <p class="foot">
-    4096 &nbsp;·&nbsp; Ethereum &nbsp;·&nbsp; fully on-chain &nbsp;·&nbsp; <span id="addr">not yet deployed</span>
+    4096 &nbsp;·&nbsp; fully on-chain<span id="addr"></span>
   </p>
 </div>
 
@@ -1490,12 +1509,47 @@ async function ensureChain(provider){
   }
 }
 
+// Safari on iOS has no injected wallet, and installing MetaMask on the phone
+// does not change that: its provider only exists inside MetaMask's own browser.
+// So on mobile the honest move is to offer to reopen this page there, rather
+// than report "no wallet" to somebody who is looking at the app on their
+// homescreen.
+function mobileWalletPrompt(){
+  const url = location.host + location.pathname + location.search;
+  const back = document.createElement("div");
+  back.style.cssText="position:fixed;inset:0;background:rgba(238,238,234,.94);z-index:60;"+
+    "display:flex;align-items:center;justify-content:center;padding:22px";
+  back.innerHTML=`<div style="background:#fff;border:1px solid var(--ink);max-width:340px;width:100%;padding:22px">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+                color:var(--ink3);margin-bottom:12px">Connect on mobile</div>
+    <p style="font-size:15px;margin:0 0 14px">A phone browser cannot see your wallet. Open this page
+       inside your wallet's own browser and it will connect straight away.</p>
+    <a href="https://metamask.app.link/dapp/${url}" style="display:block;text-align:center;
+       background:var(--ink);color:var(--paper);text-decoration:none;padding:13px;
+       font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase">
+       Open in MetaMask</a>
+    <a href="https://link.trustwallet.com/open_url?url=https://${url}" style="display:block;text-align:center;
+       border:1px solid var(--rule);color:var(--ink);text-decoration:none;padding:13px;margin-top:8px;
+       font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase">
+       Open in Trust Wallet</a>
+    <button id="mwClose" style="display:block;width:100%;margin-top:8px;background:none;
+       border:none;color:var(--ink3);font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+       text-transform:uppercase;padding:10px;cursor:pointer">Not now</button>
+    <p style="font-size:12.5px;color:var(--ink3);margin:12px 0 0">You only need a wallet to mint,
+       bid or claim. Everything else on this page works without one.</p>
+  </div>`;
+  back.querySelector("#mwClose").onclick=()=>back.remove();
+  back.addEventListener("click",e=>{ if(e.target===back) back.remove(); });
+  document.body.appendChild(back);
+}
+
 async function connectWallet(){
   const w=await chooseWallet();
   if(!w){
-    if(DEMO){
-      toast("No wallet detected — using a demo address so you can look around.");
-      return "0x"+Array.from({length:40},()=>"0123456789abcdef"[Math.floor(Math.random()*16)]).join("");
+    // no injected provider at all
+    if(TOUCH || /iPhone|iPad|Android/i.test(navigator.userAgent)){
+      mobileWalletPrompt();
+      return null;
     }
     toast("No Ethereum wallet found in this browser.");
     return null;
@@ -1528,7 +1582,11 @@ async function loadMintPrice(){
 const pad32 = n => n.toString(16).padStart(64,"0");
 async function sendMint(qty){
   if(DEMO){ toast("Demo mode — no transaction sent."); return; }
-  if(!PROVIDER||!ACCOUNT){ toast("Connect a wallet first."); return; }
+  if(!PROVIDER||!ACCOUNT){
+    if(TOUCH || /iPhone|iPad|Android/i.test(navigator.userAgent)) mobileWalletPrompt();
+    else toast("Connect a wallet first.");
+    return;
+  }
   if(!(await ensureChain(PROVIDER))) return;
   const wei = MINT_PRICE_WEI * BigInt(qty);   // exact, from the contract
   try{
@@ -1689,7 +1747,9 @@ function drawPlate(){
   drawMint();
   drawPixels();
   if(!DEMO) document.getElementById("demoBanner").remove();
-  if(CONTRACT) document.getElementById("addr").textContent=CONTRACT;
+  if(CONTRACT) document.getElementById("addr").innerHTML=
+    ' \u00b7 <a href="https://etherscan.io/address/'+CONTRACT+'" target="_blank" rel="noopener">'+
+    CONTRACT.slice(0,6)+'\u2026'+CONTRACT.slice(-4)+'</a>';
 })();
 </script>
 </body>
