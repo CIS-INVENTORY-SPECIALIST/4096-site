@@ -59,13 +59,19 @@
   /* ---- masthead ---- */
   header{display:flex;align-items:baseline;justify-content:space-between;gap:24px;
     padding:32px 0 14px;border-bottom:1px solid var(--ink);flex-wrap:wrap}
-  .brand{font-size:29px;font-weight:400;letter-spacing:-.01em;line-height:1}
-  /* the mark states the system: velocity, rhythm, patience, untouched */
-  .brand i{font-style:normal}
-  .brand .c1{color:var(--vel)}
-  .brand .c2{color:var(--rhy)}
-  .brand .c3{color:var(--pat)}
-  .brand .c4{color:var(--mount);-webkit-text-stroke:1px var(--ink3)}
+  /* The mark is four squares: velocity, rhythm, patience, and untouched. It
+     sits beside the wordmark rather than inside it, so it can travel alone as
+     an avatar or a favicon, and so white does not have to survive on paper as
+     a letterform. */
+  .brand{font-size:29px;font-weight:400;letter-spacing:-.01em;line-height:1;
+    display:inline-flex;align-items:center;gap:.34em}
+  .brandmark{display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;
+    width:.62em;height:.62em;flex:none}
+  .brandmark span{display:block}
+  .bm1{background:var(--vel)}
+  .bm2{background:var(--rhy)}
+  .bm3{background:var(--pat)}
+  .bm4{background:var(--mount);box-shadow:inset 0 0 0 1px var(--rule)}
   nav{display:flex;gap:0;max-width:100%;flex-wrap:wrap}
   /* On a phone the six tabs did not fit and half the site sat off-screen behind
      a scroll nobody would find. They wrap into a grid instead, so every tab is
@@ -361,7 +367,12 @@
 <div class="wrap">
 
   <header>
-    <div class="brand"><i class="c1">4</i><i class="c2">0</i><i class="c3">9</i><i class="c4">6</i></div>
+    <div class="brand">
+        <span class="brandmark" aria-hidden="true">
+          <span class="bm1"></span><span class="bm2"></span>
+          <span class="bm3"></span><span class="bm4"></span>
+        </span>4096
+      </div>
     <nav id="nav">
       <button data-tab="canvas" aria-current="page">Canvas</button>
       <button data-tab="pixels">Your pixels</button>
