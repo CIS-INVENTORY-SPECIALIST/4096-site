@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4096 — a painting made by its own market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#eeeeea;      /* cool grey stock */
+    --mount:#ffffff;      /* the plate the canvas sits on */
+    --ink:#1b1b19;
+    --ink2:#494943;
+    --ink3:#8e8e86;
+    --rule:#d2d2ca;
+    --rule2:#e3e3dd;
+    --vel:#a02f1c;
+    --rhy:#2c6338;
+    --pat:#283a86;
+    --warn:#856012;
+    --serif:"Libre Baskerville",Georgia,"Times New Roman",serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  /* Baskerville has a large x-height and runs wide, so it wants a smaller size
+     and more leading than a modern screen serif would. */
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:var(--serif); font-size:15.5px; font-weight:400; line-height:1.75;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  a{color:inherit}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 28px 100px}
+
+  /* ---- masthead ---- */
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:24px;
+    padding:32px 0 14px;border-bottom:1px solid var(--ink);flex-wrap:wrap}
+  .brand{font-size:29px;font-weight:400;letter-spacing:-.01em;line-height:1}
+  nav{display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;
+      scrollbar-width:none;max-width:100%}
+  nav::-webkit-scrollbar{display:none}
+  nav button{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+    background:none;border:none;color:var(--ink3);padding:7px 12px;cursor:pointer;white-space:nowrap}
+  nav button[aria-current="page"]{color:var(--ink)}
+  nav button[aria-current="page"]::after{content:"";display:block;height:1px;
+    background:var(--ink);margin-top:6px}
+  nav button:hover{color:var(--ink)}
+  nav button:focus-visible{outline:1px solid var(--ink);outline-offset:2px}
+  /* No uppercase here: it would mangle a hex address into 0XF60D. */
+  .wallet{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+    border:1px solid var(--rule);background:var(--mount);color:var(--ink2);padding:9px 13px;cursor:pointer}
+  .wallet[data-state="idle"]{text-transform:uppercase}
+  .wallet:hover{border-color:var(--ink);color:var(--ink)}
+
+  /* ---- type ---- */
+  .eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--ink3);margin:0 0 18px}
+  h2{font-size:23px;font-weight:400;letter-spacing:-.012em;margin:0 0 14px;line-height:1.35}
+  p{margin:0 0 17px;max-width:60ch}
+  .muted{color:var(--ink2)}
+  .small{font-size:13.5px;line-height:1.65}
+  strong,b{font-weight:700}
+  em{font-style:italic}
+
+  section{display:none;padding-top:40px}
+  section[data-active]{display:block}
+
+  /* ---- the plate ---- */
+  .searchrow{display:flex;justify-content:center;margin-bottom:20px}
+  .stage2col{display:grid;grid-template-columns:minmax(0,auto) 320px;gap:34px;align-items:start;
+    justify-content:center}
+  @media(max-width:1000px){.stage2col{grid-template-columns:1fr;justify-items:center}}
+  .sidebar{display:flex;flex-direction:column;gap:0;width:100%;max-width:340px}
+  /* the ledger sits under the mint panel so the column reads as one object */
+  .sidebar .counter{grid-template-columns:1fr;margin-top:-1px;border-top:none}
+  .sidebar .counter div{border-right:none;padding:12px 24px;display:flex;
+    justify-content:space-between;align-items:baseline;gap:12px}
+  .sidebar .counter .v{font-size:19px;margin-top:0}
+  .stagewrap{display:flex;flex-direction:column;align-items:center;gap:18px}
+  .frame{border:1px solid var(--ink);padding:13px;background:var(--mount);
+    line-height:0;position:relative}
+  #overlay{position:absolute;left:13px;top:13px;pointer-events:none}
+  #canvas{display:block;image-rendering:pixelated;cursor:crosshair}
+  .readout{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;
+    font-family:var(--mono);font-size:11px;color:var(--ink2);
+    font-variant-numeric:tabular-nums;min-height:20px;letter-spacing:.02em}
+  .readout b{color:var(--ink);font-weight:500}
+  .swatch{display:inline-block;width:10px;height:10px;border:1px solid var(--rule);
+    vertical-align:-1px;margin-right:6px}
+
+  /* ---- search ---- */
+  .searchwrap{position:relative;width:100%;max-width:390px;margin:0 auto}
+  .searchwrap input{width:100%;font-family:var(--mono);font-size:12px;padding:10px 13px;
+    border:1px solid var(--rule);background:var(--mount);color:var(--ink)}
+  .searchwrap input::placeholder{color:var(--ink3)}
+  .searchwrap input:focus{outline:none;border-color:var(--ink)}
+  .results{position:absolute;left:0;right:0;top:100%;background:var(--mount);
+    border:1px solid var(--ink);border-top:none;z-index:20;max-height:270px;overflow:auto}
+  .results button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;
+    font-family:var(--mono);font-size:11.5px;background:none;border:none;
+    border-bottom:1px solid var(--rule2);padding:10px 13px;cursor:pointer;color:var(--ink)}
+  .results button:hover{background:var(--paper)}
+  .results .cnt{color:var(--ink3);font-size:10.5px;white-space:nowrap}
+  .hlbar{display:flex;gap:9px;align-items:center;justify-content:center;flex-wrap:wrap;
+    font-family:var(--mono);font-size:11px}
+  .ghost{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--mount);border:1px solid var(--rule);color:var(--ink2);padding:9px 13px;cursor:pointer}
+  .ghost:hover{border-color:var(--ink);color:var(--ink)}
+  .ghost[aria-pressed="true"]{border-color:var(--ink);color:var(--ink)}
+
+  /* ---- ledger of figures ---- */
+  .counter{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+    border-top:1px solid var(--ink);margin-top:44px;background:var(--mount)}
+  .counter div{border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);padding:15px 17px}
+  .counter div:last-child{border-right:none}
+  .counter .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--ink3)}
+  .counter .v{font-size:23px;font-weight:400;font-variant-numeric:tabular-nums;
+    margin-top:5px;letter-spacing:-.015em}
+
+  /* ---- mint ---- */
+  .mint{border:1px solid var(--ink);padding:24px 24px 26px;background:var(--mount);
+    display:block;width:100%;max-width:360px}
+  .mint h3{font-size:19px;font-weight:400;margin:0 0 6px;letter-spacing:-.01em}
+  .mint .price{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink3);margin-bottom:16px}
+  .progwrap{margin:0 0 18px}
+  .progtop{display:flex;justify-content:space-between;align-items:baseline;
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink3);margin-bottom:7px}
+  .progtop b{font-family:var(--serif);font-size:19px;font-weight:400;color:var(--ink);
+    letter-spacing:-.01em;text-transform:none}
+  .progbar{height:7px;background:var(--rule2);border:1px solid var(--rule);position:relative}
+  .progfill{height:100%;background:var(--ink);transition:width .4s ease}
+  .progfoot{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:6px;
+    display:flex;justify-content:space-between}
+  .reserve{font-size:12.5px;color:var(--ink3);line-height:1.55;margin-top:16px;
+    padding-top:14px;border-top:1px solid var(--rule2)}
+  .qty{display:flex;align-items:center;border:1px solid var(--rule)}
+  .qty button{font-family:var(--mono);font-size:15px;background:none;border:none;
+    color:var(--ink2);width:38px;height:42px;cursor:pointer}
+  .qty button:hover{color:var(--ink)}
+  .qty span{min-width:46px;text-align:center;font-family:var(--mono);font-weight:500;
+    font-variant-numeric:tabular-nums}
+  .cta{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    background:var(--ink);color:var(--mount);border:1px solid var(--ink);padding:13px 24px;cursor:pointer}
+  .cta:hover{background:#000}
+  .cta[disabled]{background:none;color:var(--ink3);border-color:var(--rule);cursor:not-allowed}
+  .mintrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+  /* ---- pixel cards ---- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:16px;margin-top:10px}
+  .card{border:1px solid var(--rule);padding:16px;background:var(--mount);cursor:pointer}
+  .card:hover{border-color:var(--ink)}
+  .cardtop{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+  .chip{width:38px;height:38px;border:1px solid var(--rule);flex:none}
+  .cardid{font-size:17px;font-weight:400;line-height:1.2}
+  .cardpos{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:3px}
+  .bar{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-top:7px}
+  .bar .lab{width:54px;flex:none}
+  .track{flex:1;height:4px;background:var(--rule2)}
+  .fill{height:4px}
+  .bar .num{width:20px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .cardfoot{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule2);
+    font-size:12.5px;color:var(--ink3);line-height:1.6}
+
+  /* ---- tables ---- */
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;margin-top:8px;background:var(--mount)}
+  th,td{text-align:left;padding:12px 12px;border-bottom:1px solid var(--rule);
+    font-size:14px;vertical-align:top;line-height:1.6}
+  th{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink3);font-weight:500;border-bottom:1px solid var(--ink)}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+
+  /* ---- disclosure ---- */
+  details{border:1px solid var(--rule);margin-top:12px;background:var(--mount)}
+  details[open]{border-color:var(--ink)}
+  summary{cursor:pointer;padding:15px 17px;font-size:15px;list-style:none;
+    display:flex;justify-content:space-between;align-items:center;gap:14px}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"read";font-family:var(--mono);font-size:9px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink3)}
+  details[open] summary::after{content:"close"}
+  summary:hover{background:var(--paper)}
+  .code{padding:0 17px 17px;font-family:var(--mono);font-size:11.5px;line-height:1.85;
+    color:var(--ink2);white-space:pre-wrap;border-top:1px solid var(--rule2);padding-top:15px}
+  .code b{color:var(--ink);font-weight:500}
+
+  /* ---- richter plate ---- */
+  .plate{display:grid;grid-template-columns:repeat(16,1fr);width:100%;max-width:390px;
+    margin:12px 0 8px;line-height:0;border:1px solid var(--rule)}
+  .plate i{display:block;padding-bottom:100%}
+
+  /* ---- auction ---- */
+  .auctionwrap{display:flex;flex-direction:column;align-items:center;gap:20px}
+  .miniframe{border:1px solid var(--ink);padding:11px;background:var(--mount);line-height:0}
+  #auctionCanvas{display:block;image-rendering:pixelated;width:244px;height:244px}
+  .boxes{display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:530px;
+    border:1px solid var(--rule);background:var(--mount)}
+  @media(max-width:560px){.boxes{grid-template-columns:1fr}}
+  .box{padding:20px 22px;border-right:1px solid var(--rule)}
+  .box:last-child{border-right:none}
+  .box .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--ink3)}
+  .box .v{font-size:27px;font-weight:400;font-variant-numeric:tabular-nums;
+    margin-top:7px;letter-spacing:-.02em}
+  .box .sub{font-size:12.5px;color:var(--ink3);margin-top:7px;line-height:1.55}
+  .bidrow{display:flex;gap:10px;width:100%;max-width:530px;flex-wrap:wrap}
+  .bidrow input{flex:1;min-width:150px;font-family:var(--mono);font-size:14px;
+    padding:12px 13px;border:1px solid var(--rule);background:var(--mount)}
+  .split{width:100%;max-width:530px;border-top:1px solid var(--rule);padding-top:26px;margin-top:10px}
+  .claimrow{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+
+  /* ---- misc ---- */
+  .notice{border:1px solid var(--rule);background:var(--mount);padding:20px 22px;
+    color:var(--ink2);font-size:15px}
+  .notice.live{border-color:var(--ink);color:var(--ink)}
+  .foot{margin-top:70px;padding-top:18px;border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink3)}
+  .banner{background:#e6e4dc;border:1px solid var(--rule);color:#5f5c4e;padding:11px 15px;
+    font-family:var(--mono);font-size:11px;margin-top:18px}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);
+    color:var(--mount);font-family:var(--mono);font-size:11px;padding:12px 18px;z-index:50;
+    opacity:0;pointer-events:none;transition:opacity .18s}
+  .toast.on{opacity:1}
+  svg{display:block;width:100%;height:auto}
+
+  /* ---- phone ---- */
+  @media(max-width:640px){
+    .wrap{padding:0 16px 84px}
+    body{font-size:15px;line-height:1.7}
+    header{padding:22px 0 12px;gap:14px}
+    .brand{font-size:24px}
+    .frame{padding:8px}
+    #overlay{left:8px;top:8px}
+    h2{font-size:20px}
+    p{margin-bottom:15px}
+    .tablewrap table{min-width:460px}
+    .counter .v{font-size:20px}
+    .box .v{font-size:24px}
+    .cta,.ghost,.wallet{min-height:44px}
+    .qty button{width:44px;height:44px}
+    .readout{gap:14px}
+    .code{font-size:11px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">4096</div>
+    <nav id="nav">
+      <button data-tab="canvas" aria-current="page">Canvas</button>
+      <button data-tab="pixels">Your pixels</button>
+      <button data-tab="about">About</button>
+      <button data-tab="method">Method</button>
+      <button data-tab="richter">Richter</button>
+      <button data-tab="auction">Auction</button>
+    </nav>
+    <button class="wallet" id="wallet" data-state="idle">Connect wallet</button>
+  </header>
+
+  <div class="banner" id="demoBanner">
+    Demo data. Contract not deployed — every read is simulated locally. Set <code>CONTRACT</code> in the source to go live.
+  </div>
+
+  <!-- ============ CANVAS ============ -->
+  <section data-tab="canvas" data-active>
+    <div class="searchrow">
+      <div class="searchwrap">
+        <input id="search" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Find a collector by ENS or address">
+        <div class="results" id="results" hidden></div>
+      </div>
+    </div>
+
+    <div class="stage2col">
+    <div class="stagewrap">
+      <div class="frame"><canvas id="canvas" width="64" height="64"></canvas><canvas id="overlay"></canvas></div>
+      <div class="readout" id="readout"><span class="muted">Hover a pixel. Click to open it on OpenSea.</span></div>
+      <p class="small muted" id="stateNote" style="max-width:52ch;text-align:center;margin:0"></p>
+      <div class="hlbar">
+        <button class="ghost" id="hlMine" aria-pressed="false">Highlight my pixels</button>
+        <button class="ghost" id="hlClear" hidden>Clear highlight</button>
+        <span id="hlNote" class="muted"></span>
+      </div>
+    </div>
+
+      <div class="sidebar">
+      <div class="mint" id="mintBox">
+        <h3>Mint a pixel</h3>
+        <div class="price">0.005 ETH · max 10 per wallet</div>
+
+        <div class="progwrap">
+          <div class="progtop"><span>Minted</span><b id="progCount">—</b></div>
+          <div class="progbar"><div class="progfill" id="progFill" style="width:0%"></div></div>
+          <div class="progfoot"><span id="progPct">0%</span><span>4,096</span></div>
+        </div>
+
+        <div class="mintrow">
+          <div class="qty">
+            <button id="qMinus" aria-label="Fewer">−</button>
+            <span id="qty">1</span>
+            <button id="qPlus" aria-label="More">+</button>
+          </div>
+          <button class="cta" id="mintBtn">Mint</button>
+        </div>
+        <div class="small muted" id="mintNote" style="margin-top:10px"></div>
+
+        <p class="reserve">
+          150 pixels, 3.7% of the collection, were minted to the creator in the deploy
+          transaction, before the public mint opened. They take their colour from trading
+          like every other pixel, and they claim the same 1/4096 share at the auction.
+        </p>
+      </div>
+      <div class="counter" id="counter"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ YOUR PIXELS ============ -->
+  <section data-tab="pixels">
+    <p class="eyebrow">Your pixels</p>
+    <div id="pixelsBody"></div>
+  </section>
+
+  <!-- ============ ABOUT ============ -->
+  <section data-tab="about">
+    <p class="eyebrow">About</p>
+    <h2>A painting made by its own market</h2>
+    <p>4,096 tokens. Each one owns a single pixel on a single 64×64 canvas. No pixel has a colour
+       at mint. Every one starts white.</p>
+    <p>Colour comes only from what happens to a token afterward: how often it sells, how erratically,
+       how long it rests. Nobody picks it. Nobody can see the finished image, including the person
+       who deployed it.</p>
+
+    <h2 style="margin-top:30px">The three channels</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Channel</th><th>Measures</th><th>To raise it</th></tr></thead>
+      <tbody>
+        <tr><td><span class="swatch" style="background:var(--vel)"></span>Red</td>
+            <td>How many times it has sold</td><td>Trade often</td></tr>
+        <tr><td><span class="swatch" style="background:var(--rhy)"></span>Green</td>
+            <td>How uneven the gaps between sales are</td><td>Trade unpredictably</td></tr>
+        <tr><td><span class="swatch" style="background:var(--pat)"></span>Blue</td>
+            <td>Longest unbroken hold, including the one running now</td><td>Out-hold everyone else</td></tr>
+        <tr><td><span class="swatch" style="background:#fff"></span>White</td>
+            <td>Never sold</td><td>Never sell</td></tr>
+      </tbody>
+    </table></div>
+
+    <p class="small"><button class="wallet" onclick="document.querySelector('nav button[data-tab=method]').click()">Read the exact algorithm</button></p>
+
+    <h2 style="margin-top:30px">Colour is a rank</h2>
+    <p>Each channel is ranked across the whole collection and split into sixteen tones.
+       Your pixel's colour describes where it stands against every other pixel, not an absolute
+       number. It moves when other people trade, even if you do nothing.</p>
+    <p>That means holding is never passive. Roughly nine in ten pixels change colour over any
+       meaningful stretch of trading, because a tone gained by one pixel is a tone lost by another.</p>
+
+    <h2 style="margin-top:30px">The last sale</h2>
+    <p>The total climbs with every sale. At a hidden target — the sealed number, committed as a hash
+       before launch and revealed only when the total reaches it — the canvas sets forever. The sale
+       that reaches it is the last sale. The canvas mints as a single artwork and opens at 1 ETH with
+       no deadline. Proceeds split equally across all 4,096 pixels, paid to whoever held each one at
+       that block. The buyer receives the painting and every royalty it earns from then on, permanently.</p>
+    <p><strong>The sealed number may never be reached.</strong> There is no time limit and no backstop.
+       If the total never reaches the sealed number, the painting is never finished. That outcome is accepted and
+       it is part of the work.</p>
+
+    <h2 style="margin-top:30px">What cannot change</h2>
+    <p>No admin key, no upgrade path, no pause, no server, no indexer. The colour rules, the auction
+       terms and the royalty destination are fixed at deploy. This site is a convenience: everything
+       it shows is read straight from the contract, and if it disappears the artwork is unaffected.</p>
+    <p class="small muted">One exception, stated plainly: because the sealed number is hidden, the contract
+       cannot check a number it does not know, so the last sale is triggered by a transaction from the
+       deployer. That transaction cannot end it early or at a different number — the contract verifies
+       the revealed number against the hash committed at deploy, and checks the sale count really has
+       crossed it.</p>
+  </section>
+
+
+  <section data-tab="method">
+    <p class="eyebrow">Method</p>
+    <h2>Everything, in the open</h2>
+    <p>These are the exact rules the contract runs. Nothing here is simplified for the page.
+       If you want to try to game a channel, this is what you would be gaming, and knowing it
+       will not make it cheap.</p>
+
+    <details>
+      <summary><span><span class="swatch" style="background:var(--vel)"></span>Red — how often it sells</span></summary>
+      <div class="code"><b>What is measured</b>
+Total sales. A sale is any transfer where the caller is not the sender, which is
+what a marketplace fill looks like. Moving a token between your own wallets does
+not count. Gifts do not count. The mint does not count.
+
+<b>How it becomes a number</b>
+    <b>key_velocity = min(sales, 1023)</b>
+The sale count maps straight to a key. No scaling. An earlier version divided by
+supply, which crushed everything under five sales into one bucket and left most
+of the range unreachable.
+
+<b>How it becomes a colour</b>
+Every pixel that has ever sold is ranked by that key. The ranking is split into
+sixteen equal groups. Equal counts share a tone, so if four hundred pixels all
+have two sales, all four hundred share a tone.
+
+<b>What this means for you</b>
+Red is buyable. Roughly six dollars of gas per trade, and the price of the pixel
+barely matters because you set it yourself in a private sale. What you cannot
+buy is a tone when nobody is standing near you: climbing from a crowded part of
+the distribution is cheap, climbing from a sparse part is not.</div>
+    </details>
+
+    <details>
+      <summary><span><span class="swatch" style="background:var(--rhy)"></span>Green — how uneven the gaps are</span></summary>
+      <div class="code"><b>What is measured</b>
+The population standard deviation of the intervals between consecutive sales.
+Steady cadence scores low. A flurry, then years of silence, then another flurry
+scores high.
+
+<b>How it is computed</b>
+The contract keeps two running totals, updated on every sale:
+    <b>gapSum   += gap</b>
+    <b>gapSumSq += gap x gap</b>
+Then, with <b>n = sales - 1</b> gaps:
+    <b>mean     = gapSum / n</b>
+    <b>meanSq   = gapSumSq / n</b>
+    <b>variance = meanSq - mean x mean</b>       (floored at 0)
+    <b>rhythm   = sqrt(variance)</b>            in seconds
+Quantised on a log scale so a gap of minutes and a gap of decades fit one axis:
+    <b>e    = floor(log2(v))</b>
+    <b>key  = e x 32 + ((v - 2^e) x 32) / 2^e</b>, capped at 1023
+
+<b>Below three sales it does not exist</b>
+One sale has no gap at all. Two sales have a single gap, whose spread is
+trivially zero. Neither is low rhythm, both are no rhythm, so those pixels sit
+at the midpoint, tone 8, and are left out of the ranking entirely.
+
+<b>What this means for you</b>
+Green cannot be bought quickly. Its whole substance is duration, and you cannot
+manufacture a two year gap in an afternoon. The only way to score high is to
+have actually traded unpredictably across real time.</div>
+    </details>
+
+    <details>
+      <summary><span><span class="swatch" style="background:var(--pat)"></span>Blue — longest unbroken hold</span></summary>
+      <div class="code"><b>What is measured</b>
+    <b>open = now - lastSale</b>
+    <b>hold = max(open, longestGap)</b>
+    <b>key  = qLog(hold)</b>          same log quantiser as rhythm
+The longest stretch without selling, including the one running right now.
+Absolute seconds, never a ratio.
+
+<b>Why absolute and not a share of its life</b>
+An earlier version measured the hold as a fraction of the pixel's life. That
+fails: as a pixel sits unsold, the hold and the life converge, so the ratio
+marches toward one for everybody at once and the channel stops telling pixels
+apart. Absolute holds grow at the same rate for everyone, so the distance
+between two holders never blurs.
+
+<b>What this means for you</b>
+Blue is the one channel where doing nothing is the action. It rises on its own
+every day you hold, and it resets the moment you sell. It is also the only
+channel that changes without any transaction anywhere in the collection.</div>
+    </details>
+
+    <details>
+      <summary><span>Removing the overlap between channels</span></summary>
+      <div class="code"><b>The problem</b>
+A pixel that trades constantly is, almost by definition, also trading
+erratically. Left alone, red and green measure much the same thing, colours
+collapse onto a diagonal, and most of the cube goes unused. Before this step was
+added there was not one pure red pixel on the canvas.
+
+<b>The correction</b>
+Least squares slopes across the defined population, with n tokens:
+    <b>den = n x Svv - Sv x Sv</b>
+    <b>m1  = (n x Svg - Sv x Sg) / den</b>      red out of green
+    <b>m2  = (n x Svb - Sv x Sb) / den</b>      red out of blue
+Residuals, then blue out of green:
+    <b>rb  = patience - m2 x velocity</b>
+    <b>rg  = rhythm - m1 x velocity - m3 x rb</b>
+What survives in green is not "how erratic is this pixel" but "how erratic
+compared to others that traded about as much."
+
+<b>The arithmetic</b>
+A slope is a fraction and Solidity has no fractions, so a naive integer divide
+rounds m1 and m2 to zero and the correction silently does nothing. Every slope is
+therefore held in fixed point:
+    <b>S = 1,000,000</b>
+    <b>m = (numerator x S) / denominator</b>
+and unwound by S wherever it is applied. If den is 0, which happens when every
+token has identical velocity, the slope is set to 0 rather than dividing.
+
+<b>Honesty about the result</b>
+Measured pairwise correlation afterwards is around minus 0.21, minus 0.20 and
+zero. Not perfect. Linear regression removes a linear relationship and what
+remains between these measures is not linear.</div>
+    </details>
+
+    <details>
+      <summary><span>From rank to colour</span></summary>
+      <div class="code"><b>Sixteen tones</b>
+Each channel is ranked and split into sixteen:
+    <b>tone = floor(rank x 16 / population)</b>, capped at 15
+    <b>channel = tone x 17</b>            gives 0, 17, 34 ... 255
+    <b>colour = (R x 65536) + (G x 256) + B</b>
+Sixteen cubed is 4,096 possible colours, from 4,096 pixels. Sixteen cubed is 4,096 possible colours, from 4,096 pixels.
+
+<b>Ties</b>
+Equal measurements share a tone, always. That means the sixteen tones are
+approximately, not exactly, equal in size, and the low end of red will always be
+lumpy because sale counts are whole numbers.
+
+<b>White</b>
+A pixel that has never sold renders pure white, identical for every untraded
+pixel, with no tiebreaking. Pure white is reserved: a pixel at the maximum of all
+three channels would otherwise compute to the same value, so it renders one shade
+below instead.
+
+<b>Everything moves</b>
+Because colour is a rank, a tone gained by one pixel is a tone lost by another.
+Across any meaningful stretch of trading, roughly nine in ten pixels that have
+ever sold end up a different colour, whether or not their owner did anything.</div>
+    </details>
+
+    <p class="small muted" style="margin-top:20px">The contract is the specification. This page describes
+       it; if the two ever disagree, the contract is right and this page is wrong.</p>
+  </section>
+
+  <section data-tab="richter">
+    <p class="eyebrow">Inspiration</p>
+    <h2>4096 Farben, Gerhard Richter, 1974</h2>
+    <p>In 1974 Gerhard Richter finished a painting of 4,096 coloured squares on a square canvas.
+       It was the last work in a series he had been circling since 1966, and it ended the series
+       so completely that he did not return to colour charts for twenty five years.</p>
+
+    <div class="plate" id="plate"></div>
+    <p class="small muted" style="margin-top:0">Not his painting — a 16&times;16 sketch of the method:
+       64 systematic tones, each repeated four times, placed by lottery.
+       <a href="https://www.sothebys.com/en/articles/4096-farben" target="_blank" rel="noopener">See the original at Sotheby's&nbsp;&rarr;</a></p>
+    <p class="small muted">The original 4096 Farben sold at Sotheby's in May 2023 for
+       <b>$21.8 million</b>.</p>
+
+    <h2 style="margin-top:30px">How he made it</h2>
+    <p>Richter wanted to leave artistic feeling behind entirely, so he turned to math. He worked out
+       exactly 1,024 unique tones by grading the primaries against greys with a fixed system, made
+       four copies of each, and then ran a random lottery to decide where all 4,096 squares would land.
+       He painted none of the decisions himself. In the earliest colour charts he even had a friend
+       call the colours out loud, so the selection was not his either.</p>
+    <p>What he was after, in his own words, was <em>a diffuse, undifferentiated overall effect</em> —
+       a field rather than a picture. The grid, he noted, stops shapes forming, although you can find
+       them if you insist on looking.</p>
+    <p>The part that gets us: he painted this in 1974, and it looks exactly like modern digital pixels.
+       Decades before computers were on every desk, a math experiment on pure colour quietly predicted
+       the world we now live in. That is a genuinely cool way to have arrived at the grid.</p>
+
+    <h2 style="margin-top:30px">Why it matters here</h2>
+    <p>Richter was refusing authorship. Not by making random marks, but by building a system strict
+       enough that his taste could not get into it, and then letting the system decide. The painting
+       is his and the colours are not.</p>
+    <p>4096 borrows that structure and swaps the system. Where Richter used arithmetic and slips of
+       paper, this uses a market. Nobody picks the colours here either. They are produced by
+       thousands of people trading, none of whom can see what they are painting.</p>
+    <p>Here is how we think about our own role in it. Richter was the hand that held the brush while a
+       system decided the colours. We are not even the hand. We wrote the math and then stepped back.
+       The market is the brush, every trade is a stroke, and the people making those strokes cannot see
+       the canvas they are painting. We do not get to choose the ending any more than you do. We built
+       the instrument and let go of it, and that letting go is the whole point.</p>
+    <p>The differences are as instructive as the similarities. His painting resolved in a studio over
+       weeks; this one resolves over years and might never resolve at all. His palette was complete
+       by construction; this one is only as rich as the market that makes it. He knew what his
+       painting looked like when he finished it. Nobody will know what this one looks like until it
+       stops.</p>
+
+    <h2 style="margin-top:30px">The system, in his words</h2>
+    <p>Richter described how he built the palette by repeated multiplication:
+       <em>"4 x 4 = 16 x 4 = 64 x 4 = 256 x 4 = 1024,"</em> he wrote, keeping the image size, the
+       square size and the number of squares in constant proportion.
+       <span class="small muted">(Palais des Beaux-Arts catalogue, Brussels, 1974)</span></p>
+    <p>That stepwise, multiply-by-four structure is the same shape our own tones sit on: sixteen
+       gradations per channel, spaced so a difference near the bottom and a difference near the top
+       feel like the same size of interval. He arrived at it with a pencil. We arrived at it because a
+       market needs a scale that survives a token trading twice or two hundred times.</p>
+
+    <h2 style="margin-top:30px">One thing he said that is worth sitting with</h2>
+    <p>Richter thought 4,096 was probably too many. Past a thousand or so tones, he reasoned, the
+       difference between one shade and the next stops being visible, and the extra precision buys
+       nothing the eye can use.</p>
+    <p>That is true here as well. Sixteen tones per channel is a coarse instrument, and it is coarse
+       on purpose. A pixel does not need to be uniquely identifiable. It needs to be somewhere in a
+       field, and the field needs to hold together.</p>
+
+    <p class="small muted" style="margin-top:26px">4096 is an independent work. It is not affiliated
+       with, endorsed by, or connected to Gerhard Richter or his estate. The reference is a citation,
+       not a claim.</p>
+  </section>
+
+  <!-- ============ AUCTION ============ -->
+  <section data-tab="auction">
+    <p class="eyebrow">Auction and claim</p>
+    <div id="auctionBody"></div>
+  </section>
+
+  <p class="foot">
+    4096 &nbsp;·&nbsp; Ethereum &nbsp;·&nbsp; fully on-chain &nbsp;·&nbsp; <span id="addr">not yet deployed</span>
+  </p>
+</div>
+
+<script>
+/* ---------------------------------------------------------------
+   CONTRACT WIRING
+   Set CONTRACT to the deployed address and DEMO to false.
+   Every function in `chain` is the only place the site touches the
+   chain — swap the bodies for real calls and nothing else changes.
+   --------------------------------------------------------------- */
+const CONTRACT = null;
+const RENDERER = null;
+const DEMO = CONTRACT === null;
+
+const SUPPLY = 4096, GRID = 64, PER_WALLET = 10;
+const MINT_PRICE_ETH = 0.005;
+
+/* ---------- demo state: a plausible market, generated once ---------- */
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd = mulberry(40961);
+
+const demo = (()=>{
+  const sales=new Array(SUPPLY), first=new Array(SUPPLY), last=new Array(SUPPLY),
+        longest=new Array(SUPPLY), gs=new Array(SUPPLY), gq=new Array(SUPPLY);
+  const now = Math.floor(Date.now()/1000);
+  const start = now - 3600*24*420;
+  let total=0;
+  for(let i=0;i<SUPPLY;i++){
+    const r=rnd();
+    let n = r<0.30 ? 0 : r<0.72 ? 1+Math.floor(rnd()*4) : r<0.94 ? 5+Math.floor(rnd()*14) : 20+Math.floor(rnd()*70);
+    sales[i]=n; total+=n;
+    if(!n){first[i]=0;last[i]=0;longest[i]=0;gs[i]=0;gq[i]=0;continue}
+    let t = start + Math.floor(rnd()*3600*24*120);
+    first[i]=t; let lg=0,sum=0,sq=0;
+    for(let k=1;k<n;k++){
+      const gap = Math.floor((600 + rnd()*rnd()*3600*24*160));
+      t+=gap; if(t>now){t-=gap;break}
+      if(gap>lg)lg=gap; sum+=gap; sq+=gap*gap;
+    }
+    last[i]=t; longest[i]=lg; gs[i]=sum; gq[i]=sq;
+  }
+  // positions: a shuffle
+  const pos=[...Array(SUPPLY).keys()];
+  for(let i=SUPPLY-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[pos[i],pos[j]]=[pos[j],pos[i]]}
+  return {sales,first,last,longest,gs,gq,pos,total,now};
+})();
+
+/* ---------- the colour rules, mirroring Renderer4096 ---------- */
+function measures(i){
+  const s=demo.sales[i];
+  if(!s) return null;
+  const gaps=s-1;
+  let rhythm=0;
+  if(gaps>=1){
+    const mean=demo.gs[i]/gaps, meanSq=demo.gq[i]/gaps;
+    rhythm=Math.sqrt(Math.max(0,meanSq-mean*mean));
+  }
+  const open=Math.max(0,demo.now-demo.last[i]);
+  const hold=Math.max(open,demo.longest[i]);
+  const life=Math.max(0,demo.now-demo.first[i]);
+  return {sales:s,rhythm,hold,life};
+}
+function qlog(v){ if(v<=0)return 0; const e=Math.floor(Math.log2(v)); const b=2**e;
+  return Math.min(1023, e*32 + Math.floor((v-b)*32/b)); }
+
+let STEPS=null;
+function computeSteps(){
+  const DEFINED=3, N=SUPPLY;
+  const kv=new Array(N).fill(0), kg=new Array(N).fill(0), kb=new Array(N).fill(0);
+  const traded=new Array(N).fill(false), def=new Array(N).fill(false);
+  let n=0;
+  for(let i=0;i<N;i++){
+    const m=measures(i); if(!m) continue;
+    traded[i]=true; n++;
+    kv[i]=Math.min(1023,m.sales);
+    kb[i]=qlog(m.hold);
+    if(m.sales>=DEFINED){ def[i]=true; kg[i]=qlog(m.rhythm); }
+  }
+  const rank=(keys,mask)=>{
+    const idx=[]; for(let i=0;i<N;i++) if(mask[i]) idx.push(i);
+    const cnt=idx.length; if(!cnt) return new Array(N).fill(8);
+    const sorted=idx.map(i=>keys[i]).sort((a,b)=>a-b);
+    const out=new Array(N).fill(8);
+    for(const i of idx){
+      let lo=0,hi=sorted.length;
+      while(lo<hi){const m=(lo+hi)>>1; sorted[m]<keys[i]?lo=m+1:hi=m}
+      out[i]=Math.min(15,Math.floor(lo*16/cnt));
+    }
+    return out;
+  };
+  const R=rank(kv,traded), G=rank(kg,def), B=rank(kb,traded);
+  for(let i=0;i<N;i++) if(traded[i]&&!def[i]) G[i]=8;
+  return {R,G,B,traded,n};
+}
+function colourOf(i){
+  if(!STEPS.traded[i]) return "#ffffff";
+  const h=v=>(v*17).toString(16).padStart(2,"0");
+  const c="#"+h(STEPS.R[i])+h(STEPS.G[i])+h(STEPS.B[i]);
+  return c==="#ffffff" ? "#fefefe" : c;
+}
+
+/* ---------- the only chain-facing layer ---------- */
+const chain = {
+  async totalSales(){ return DEMO_MINTED >= SUPPLY ? demo.total : 0 },
+  async positionsAssigned(){
+    if(!DEMO) return (await rpc("eth_call",[{to:CONTRACT,data:"0x57e6c4a4"},"latest"])) !== "0x";
+    return DEMO_MINTED >= SUPPLY;
+  },
+  async minted(){
+    if(!DEMO) return Number(await rpc("eth_call",[{to:CONTRACT,data:"0x4f02c420"},"latest"]));
+    return DEMO_MINTED;
+  },
+  async frozen(){ return false },
+  async auctionOpen(){ return false },
+  async highBid(){ return 0 },
+  async allColours(){ return Array.from({length:SUPPLY},(_,i)=>colourOf(i)) },
+  async positionOf(i){ const g=demo.pos[i]; return {x:g%GRID,y:Math.floor(g/GRID)} },
+  async pixelOf(i){
+    const m=measures(i);
+    return { id:i, traded:!!m, sales:m?m.sales:0,
+             rhythm:m?m.rhythm:0, hold:m?m.hold:0, life:m?m.life:0,
+             R:STEPS.R[i], G:STEPS.G[i], B:STEPS.B[i],
+             colour:colourOf(i), ...await chain.positionOf(i) };
+  },
+  async tokensOf(addr){
+    if(DEMO){
+      const seed=mulberry(parseInt(addr.slice(-6),16)||7);
+      const out=new Set();
+      const k=3+Math.floor(seed()*6);
+      while(out.size<k) out.add(Math.floor(seed()*SUPPLY));
+      return [...out];
+    }
+    return tokensOfOnChain(addr);
+  },
+  async connect(){ return connectWallet(); }
+};
+
+/* ---------- opensea + toast ---------- */
+const openseaURL = id => CONTRACT ? `https://opensea.io/assets/ethereum/${CONTRACT}/${id}` : null;
+let toastTimer;
+function toast(msg){
+  let el=document.getElementById("toast");
+  if(!el){el=document.createElement("div");el.id="toast";el.className="toast";document.body.appendChild(el)}
+  el.textContent=msg; el.classList.add("on");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("on"),2600);
+}
+function openPixel(id){
+  const u=openseaURL(id);
+  if(u) window.open(u,"_blank","noopener");
+  else toast(`Pixel #${id} — the OpenSea link goes live once the contract is deployed.`);
+}
+
+/* ---------- demo collectors, so search has something to find ---------- */
+const HOLDERS = (()=>{
+  const names=["vaultkeeper.eth","onchainmaria.eth","tenfin9ers.eth","greyscale.eth","pixelmonk.eth",
+    "sundaypainter.eth","richterfan.eth","0xquiet.eth","longhold.eth","chartreuse.eth",
+    "thecurator.eth","noflip.eth","farben.eth","slowhands.eth","gridlocked.eth",
+    "minimalist.eth","cadmium.eth","patience.eth","fourzero.eth","untouched.eth"];
+  const rr=mulberry(90210);
+  const owned=new Map(); const out=[];
+  for(const n of names){
+    const addr="0x"+Array.from({length:40},()=>"0123456789abcdef"[Math.floor(rr()*16)]).join("");
+    const k=2+Math.floor(rr()*14); const ids=new Set();
+    let guard=0;
+    while(ids.size<k && guard++<400){
+      const id=Math.floor(rr()*SUPPLY);
+      if(!owned.has(id)){ owned.set(id,n); ids.add(id); }
+    }
+    out.push({name:n, addr, ids:[...ids]});
+  }
+  return out;
+})();
+
+// demo only: a mint in progress, so the progress bar has something to show
+let DEMO_MINTED = 2847;
+
+let HIGHLIGHT=null;      // Set of token ids, or null
+let HL_LABEL="";
+
+/* ---------- rendering ---------- */
+let COLOURS=null, POSOF=null;
+const cv=document.getElementById("canvas"), ctx=cv.getContext("2d");
+
+let CELL=10;
+function sizeCanvas(){
+  // In two-column mode the canvas has to leave room for the sidebar, or it
+  // overflows the grid and the sidebar lands on top of it.
+  const SIDEBAR=320, GAP=34, PAD=56;
+  const twoCol=window.innerWidth>1000;
+  const content=Math.min(1160, window.innerWidth)-PAD;
+  const avail=twoCol ? content-SIDEBAR-GAP : Math.min(window.innerWidth-46, 760);
+  CELL=Math.max(5,Math.min(12,Math.floor(avail/GRID)));
+  cv.style.width=(CELL*GRID)+"px"; cv.style.height=(CELL*GRID)+"px";
+  const ov=document.getElementById("overlay");
+  if(ov){
+    ov.width=CELL*GRID; ov.height=CELL*GRID;
+    ov.style.width=(CELL*GRID)+"px"; ov.style.height=(CELL*GRID)+"px";
+    drawOverlay();
+  }
+}
+
+// Highlighted pixels get an actual ring. Fading the rest is not enough: an
+// untouched pixel is #ffffff and vanishes into a faded background, which made
+// highlights silently under-report.
+// Corner crop-marks, not a ring. A ring at these cell sizes covers most of the
+// pixel it is meant to point at; marks sit in the corners and leave the colour
+// readable.
+function drawOverlay(){
+  const ov=document.getElementById("overlay"); if(!ov) return;
+  const o=ov.getContext("2d");
+  o.clearRect(0,0,ov.width,ov.height);
+  if(!HIGHLIGHT) return;
+  return;   // marks removed: highlighting is done purely by fading the rest
+  /* eslint-disable no-unreachable */
+  const L=Math.max(2,Math.round(CELL*0.34));
+  for(const pass of [0,1]){
+    o.strokeStyle = pass ? "#111111" : "#ffffff";
+    o.lineWidth   = pass ? 1 : 2.5;
+    o.beginPath();
+    for(const id of HIGHLIGHT){
+      const g=demo.pos[id]; if(g===undefined) continue;
+      const x=(g%GRID)*CELL+0.5, y=Math.floor(g/GRID)*CELL+0.5, C=CELL-1;
+      o.moveTo(x,y+L);        o.lineTo(x,y);        o.lineTo(x+L,y);
+      o.moveTo(x+C-L,y);      o.lineTo(x+C,y);      o.lineTo(x+C,y+L);
+      o.moveTo(x+C,y+C-L);    o.lineTo(x+C,y+C);    o.lineTo(x+C-L,y+C);
+      o.moveTo(x+L,y+C);      o.lineTo(x,y+C);      o.lineTo(x,y+C-L);
+    }
+    o.stroke();
+  }
+}
+let IMGDATA=null, ASSIGNED=true;
+async function drawCanvas(){
+  ASSIGNED = await chain.positionsAssigned();
+
+  // Before the shuffle runs there is no layout: positions are only assigned once
+  // minting closes. Showing a scattered painting now would be inventing one.
+  // Instead the grid fills in token order as pixels are minted, all of them white,
+  // because nothing has been traded yet.
+  if(!ASSIGNED){
+    const minted=await chain.minted();
+    const img0=ctx.createImageData(GRID,GRID);
+    POSOF=new Array(SUPPLY);
+    for(let i=0;i<SUPPLY;i++){
+      POSOF[i]=i;
+      // Minted pixels are white, which is the truth, but white on a white mount
+      // is invisible. The unminted remainder is pulled well down so the filled
+      // area actually reads as filling.
+      const o=i*4, on=i<minted;
+      img0.data[o]=on?255:214; img0.data[o+1]=on?255:213; img0.data[o+2]=on?255:205;
+      img0.data[o+3]=255;
+    }
+    ctx.putImageData(img0,0,0);
+    IMGDATA=img0;
+    sizeCanvas();
+    const ro=document.getElementById("readout");
+    if(ro) ro.innerHTML='<span class="muted">Hover a pixel to see its number.</span>';
+    const cap=document.getElementById("stateNote");
+    if(cap) cap.textContent =
+      `${minted.toLocaleString()} of 4,096 minted. Grid positions are shuffled when minting closes, `+
+      `so this is token order, not the layout. Every pixel is white until it sells.`;
+    return;
+  }
+  const cap=document.getElementById("stateNote"); if(cap) cap.textContent="";
+
+  if(!COLOURS) COLOURS=await chain.allColours();
+  POSOF=new Array(SUPPLY);
+  const img=ctx.createImageData(GRID,GRID);
+  for(let i=0;i<GRID*GRID;i++){img.data[i*4]=255;img.data[i*4+1]=255;img.data[i*4+2]=255;img.data[i*4+3]=255}
+  for(let i=0;i<SUPPLY;i++){
+    const g=demo.pos[i]; POSOF[g]=i;
+    const c=COLOURS[i], o=g*4;
+    let R=parseInt(c.slice(1,3),16), G2=parseInt(c.slice(3,5),16), B=parseInt(c.slice(5,7),16);
+    if(HIGHLIGHT && !HIGHLIGHT.has(i)){
+      // Filtered pixels drop to greyscale, then fade. Desaturating first means a
+      // saturated red and a saturated blue both read as "not selected" instead of
+      // competing with the highlighted set for attention.
+      const lum = 0.299*R + 0.587*G2 + 0.114*B;
+      const V=230, k=0.55;                       // then lift toward paper grey
+      const g = Math.round(lum + (V-lum)*k);
+      R=g; G2=g; B=g;
+    }
+    img.data[o]=R; img.data[o+1]=G2; img.data[o+2]=B; img.data[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  IMGDATA=img;
+  sizeCanvas();
+  drawOverlay();
+  const note=document.getElementById("hlNote");
+  const clear=document.getElementById("hlClear");
+  if(note){
+    if(!HIGHLIGHT) note.textContent="";
+    else{
+      let white=0;
+      for(const id of HIGHLIGHT) if(COLOURS[id]==="#ffffff") ++white;
+      note.textContent = `${HIGHLIGHT.size} pixel${HIGHLIGHT.size===1?"":"s"} held by ${HL_LABEL}`
+        + (white ? ` · ${white} still untouched` : "");
+    }
+  }
+  if(clear) clear.hidden = !HIGHLIGHT;
+}
+function setHighlight(ids,label){
+  HIGHLIGHT = ids && ids.length ? new Set(ids) : null;
+  HL_LABEL = label||"";
+  drawCanvas();
+}
+let HOVER_ID=null, TAP_ID=null;
+cv.addEventListener("click",async()=>{
+  if(HOVER_ID===null) return;
+  if(!ASSIGNED && HOVER_ID >= await chain.minted()){ toast("That pixel has not been minted yet."); return; }
+  openPixel(HOVER_ID);
+});
+
+function pixelAt(clientX, clientY){
+  const r=cv.getBoundingClientRect();
+  const x=Math.floor((clientX-r.left)/r.width*GRID), y=Math.floor((clientY-r.top)/r.height*GRID);
+  if(x<0||y<0||x>=GRID||y>=GRID) return null;
+  const id=POSOF[y*GRID+x];
+  return id===undefined ? null : {id,x,y};
+}
+cv.addEventListener("touchstart",e=>{
+  const t=e.touches[0]; const hit=pixelAt(t.clientX,t.clientY);
+  if(!hit) return;
+  e.preventDefault();
+  showReadout(hit.id,hit.x,hit.y);
+  if(TAP_ID===hit.id){ openPixel(hit.id); TAP_ID=null; }
+  else TAP_ID=hit.id;
+},{passive:false});
+cv.addEventListener("mousemove",e=>{
+  const r=cv.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/r.width*GRID), y=Math.floor((e.clientY-r.top)/r.height*GRID);
+  if(x<0||y<0||x>=GRID||y>=GRID) return;
+  const id=POSOF[y*GRID+x]; if(id===undefined) return;
+  HOVER_ID=id;
+  showReadout(id,x,y);
+});
+function showReadout(id,x,y){
+  if(!ASSIGNED){
+    document.getElementById("readout").innerHTML =
+      `<span><b>#${id}</b></span><span>not yet placed</span>`+
+      `<span class="muted">positions are shuffled when minting closes</span>`;
+    return;
+  }
+  const c=COLOURS[id], m=measures(id);
+  document.getElementById("readout").innerHTML =
+    `<span><span class="swatch" style="background:${c}"></span><b>#${id}</b></span>`+
+    `<span>x ${x} · y ${y}</span>`+
+    `<span>${c}</span>`+
+    (m ? `<span>sales <b>${m.sales}</b></span><span>tones <b>${STEPS.R[id]}/${STEPS.G[id]}/${STEPS.B[id]}</b></span>`
+       : `<span class="muted">never sold</span>`);
+}
+cv.addEventListener("mouseleave",()=>{
+  HOVER_ID=null;
+  document.getElementById("readout").innerHTML='<span class="muted">Hover a pixel. Click to open it on OpenSea.</span>';
+});
+window.addEventListener("resize",sizeCanvas);
+
+/* ---------- counter ---------- */
+async function drawMintProgress(){
+  const m=await chain.minted();
+  const pct=Math.min(100,(m/SUPPLY)*100);
+  const c=document.getElementById("progCount"); if(!c) return;
+  c.textContent=m.toLocaleString();
+  document.getElementById("progFill").style.width=pct.toFixed(2)+"%";
+  document.getElementById("progPct").textContent=pct.toFixed(1)+"%";
+  const box=document.getElementById("mintBox");
+  if(m>=SUPPLY && box){
+    document.getElementById("mintBtn").disabled=true;
+    document.getElementById("mintBtn").textContent="Sold out";
+    document.getElementById("mintNote").textContent="Every pixel is minted. The painting starts now.";
+  }
+}
+async function drawCounter(){
+  const [ts,mint,frozen,assigned]=await Promise.all([
+    chain.totalSales(),chain.minted(),chain.frozen(),chain.positionsAssigned()]);
+  // Only count untouched among pixels that actually exist. Counting all 4,096
+  // during the mint would report unminted pixels as "still white", which is a
+  // different thing entirely.
+  let untouched=0;
+  for(let i=0;i<mint;i++) if(!STEPS.traded[i]) ++untouched;
+  // During the mint the progress bar already shows the count, so the ledger
+  // reports what the progress bar cannot, rather than repeating it or printing
+  // dashes for figures that do not exist yet.
+  const tiles = assigned
+    ? [["Total sales", ts.toLocaleString()],
+       ["Untouched", untouched.toLocaleString()],
+       ["Canvas", frozen ? "Set" : "Painting"]]
+    : [["Canvas", "Minting"],
+       ["Remaining", (SUPPLY-mint).toLocaleString()],
+       ["Creator reserve", "150"]];
+  document.getElementById("counter").innerHTML=tiles
+    .map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
+
+/* ---------- mint ---------- */
+let qty=1;
+function drawMint(){
+  document.getElementById("qty").textContent=qty;
+  document.getElementById("mintNote").textContent =
+    `${(qty*MINT_PRICE_ETH).toFixed(3)} ETH total`;
+}
+document.getElementById("qMinus").onclick=()=>{qty=Math.max(1,qty-1);drawMint()};
+document.getElementById("qPlus").onclick=()=>{qty=Math.min(PER_WALLET,qty+1);drawMint()};
+document.getElementById("mintBtn").onclick=async()=>{ await sendMint(qty); drawMintProgress(); };
+
+/* ---------- your pixels ---------- */
+let ACCOUNT=null;
+function fmtDur(s){
+  if(!s) return "—";
+  const d=Math.floor(s/86400);
+  if(d>=365) return (d/365).toFixed(1)+" yr";
+  if(d>=1) return d+" d";
+  return Math.floor(s/3600)+" h";
+}
+async function drawPixels(){
+  const body=document.getElementById("pixelsBody");
+  if(!ACCOUNT){
+    body.innerHTML=`<div class="notice">Connect a wallet to see your pixels, their colour, and why they are that colour.</div>`;
+    return;
+  }
+  const ids=await chain.tokensOf(ACCOUNT);
+  if(!ids.length){ body.innerHTML=`<div class="notice">No pixels in this wallet.</div>`; return; }
+  const cards=await Promise.all(ids.map(i=>chain.pixelOf(i)));
+  const chans=[["Velocity","R","var(--vel)"],["Rhythm","G","var(--rhy)"],["Patience","B","var(--pat)"]];
+  body.onclick=e=>{const c=e.target.closest(".card"); if(c) openPixel(+c.dataset.id)};
+  body.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){const c=e.target.closest(".card"); if(c){e.preventDefault();openPixel(+c.dataset.id)}}};
+  body.innerHTML =
+    `<p class="small muted">${ids.length} pixel${ids.length>1?"s":""}. Tones are out of 16 and shift whenever anyone trades.</p>`+
+    `<div class="grid">`+cards.map(p=>`
+      <div class="card" role="button" tabindex="0" data-id="${p.id}"
+           title="Open pixel #${p.id} on OpenSea">
+        <div class="cardtop">
+          <div class="chip" style="background:${p.colour}"></div>
+          <div><div class="cardid">#${p.id}</div><div class="cardpos">x ${p.x} · y ${p.y} · ${p.colour}</div></div>
+        </div>
+        ${chans.map(([lab,key,col])=>`
+          <div class="bar"><span class="lab">${lab}</span>
+            <span class="track"><span class="fill" style="width:${(p[key]/15)*100}%;background:${col}"></span></span>
+            <span class="num">${p[key]}</span></div>`).join("")}
+        <div class="cardfoot">
+          ${p.traded ? `${p.sales} sale${p.sales>1?"s":""} · longest hold ${fmtDur(p.hold)} · alive ${fmtDur(p.life)}`
+                     : "Never sold. Pure white, and it stays that way until it is."}
+        </div>
+      </div>`).join("")+`</div>`;
+}
+
+/* ---------- auction and claim ---------- */
+async function drawAuction(){
+  const [frozen,open,bid]=await Promise.all([chain.frozen(),chain.auctionOpen(),chain.highBid()]);
+  const ts=await chain.totalSales();
+  const body=document.getElementById("auctionBody");
+  const live = frozen && open;
+
+  body.innerHTML=`
+    <div class="auctionwrap">
+      <div class="miniframe"><canvas id="auctionCanvas" width="64" height="64"></canvas></div>
+      <p class="small muted" style="text-align:center;max-width:46ch;margin:0">
+        ${live ? "The canvas is set. This is the finished painting, on auction now."
+               : "The canvas as it stands today. It is still being painted, and this is not yet the finished work."}
+      </p>
+
+      <div class="boxes">
+        <div class="box">
+          <div class="k">${live?"Current bid":"Reserve"}</div>
+          <div class="v">${live? bid+" ETH" : "1.00 ETH"}</div>
+          <div class="sub">${live?"minimum increment 0.05 ETH":"the auction opens here, with no deadline"}</div>
+        </div>
+        <div class="box">
+          <div class="k">Time remaining</div>
+          <div class="v" id="clock">24:00:00</div>
+          <div class="sub">${live?"each bid adds 5 minutes":"the clock starts on the first bid"}</div>
+        </div>
+      </div>
+
+      <div class="bidrow">
+        <input id="bidAmount" type="text" inputmode="decimal" value="1.00" ${live?"":"disabled"}>
+        <button class="cta" id="bidBtn" ${live?"":"disabled"}>${live?"Place bid":"Auction not open"}</button>
+      </div>
+      <p class="small muted" style="max-width:52ch;margin:2px 0 0">
+        ${live ? "Outbid bidders withdraw their own funds; nothing is pushed automatically."
+               : "Bidding unlocks the moment the total reaches the sealed number. Until then this is inert."}
+      </p>
+
+      <div class="split">
+        <p class="eyebrow" style="margin-bottom:8px">Holder claim</p>
+        <div class="claimrow">
+          <div>
+            <div class="small muted">Your share, if the canvas sold at 1 ETH</div>
+            <div style="font-size:19px;font-variant-numeric:tabular-nums">
+              0.000244 ETH <span class="small muted">per pixel · 1/4096 each</span>
+            </div>
+          </div>
+          <button class="ghost" id="claimBtn" disabled>Claim your share</button>
+        </div>
+        <p class="small muted" style="margin-top:12px;max-width:56ch">
+          Proceeds split equally across all 4,096 pixels and are paid to whoever held each one at
+          the last-sale block. Payment is pulled, not pushed: this button becomes live once the
+          auction settles, and it stays available indefinitely. Selling a pixel afterward does not
+          transfer the claim.
+        </p>
+      </div>
+
+      ${live ? "" : `
+      <div class="split">
+        <p class="eyebrow" style="margin-bottom:8px">Where the total stands</p>
+        <div class="small muted" style="max-width:56ch">
+          <b style="color:var(--ink);font-size:16px">${ts.toLocaleString()}</b> sales so far. The sealed
+          number is committed as a hash and is not public, so nobody knows how close this is —
+          including us, until we reveal it. It may never be reached.
+        </div>
+      </div>`}
+    </div>`;
+
+  // paint the small canvas from the same data
+  const ac=document.getElementById("auctionCanvas");
+  if(ac && IMGDATA) ac.getContext("2d").putImageData(IMGDATA,0,0);
+
+  const bb=document.getElementById("bidBtn");
+  if(bb && !bb.disabled) bb.onclick=()=>toast("Demo mode — no transaction sent.");
+}
+
+/* ---------- wallets: EIP-6963 discovery ---------------------------------
+   Every modern injected wallet announces itself on this event, so the site can
+   list them all instead of racing for window.ethereum. window.ethereum stays as
+   a fallback for older wallets. WalletConnect needs a project id and its own
+   library; add it here when you have one.                                    */
+const WALLETS=new Map();
+window.addEventListener("eip6963:announceProvider", e=>{
+  const {info,provider}=e.detail;
+  WALLETS.set(info.uuid,{info,provider});
+});
+window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+let PROVIDER=null;
+const CHAIN_ID="0x1";                     // Ethereum mainnet
+
+function walletList(){
+  const out=[...WALLETS.values()];
+  if(!out.length && window.ethereum){
+    out.push({info:{uuid:"injected",name:"Browser wallet",icon:""},provider:window.ethereum});
+  }
+  return out;
+}
+
+function chooseWallet(){
+  const list=walletList();
+  if(!list.length) return Promise.resolve(null);
+  if(list.length===1) return Promise.resolve(list[0]);
+  return new Promise(resolve=>{
+    const back=document.createElement("div");
+    back.style.cssText="position:fixed;inset:0;background:rgba(255,255,255,.86);z-index:60;"+
+      "display:flex;align-items:center;justify-content:center;padding:20px";
+    back.innerHTML=`<div style="background:#fff;border:1px solid var(--ink);max-width:340px;width:100%">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--rule);font-size:11px;
+                  letter-spacing:.18em;text-transform:uppercase;color:var(--ink3)">Choose a wallet</div>
+      <div id="wl"></div></div>`;
+    const wl=back.querySelector("#wl");
+    list.forEach(w=>{
+      const b=document.createElement("button");
+      b.style.cssText="display:flex;align-items:center;gap:10px;width:100%;text-align:left;"+
+        "font-family:inherit;font-size:13.5px;background:none;border:none;"+
+        "border-bottom:1px solid var(--rule);padding:13px 16px;cursor:pointer;min-height:48px";
+      b.innerHTML=(w.info.icon?`<img src="${w.info.icon}" alt="" style="width:22px;height:22px">`:"")+
+                  `<span>${w.info.name}</span>`;
+      b.onclick=()=>{back.remove();resolve(w)};
+      wl.appendChild(b);
+    });
+    back.addEventListener("click",e=>{ if(e.target===back){back.remove();resolve(null)} });
+    document.body.appendChild(back);
+  });
+}
+
+async function ensureChain(provider){
+  try{
+    const id=await provider.request({method:"eth_chainId"});
+    if(id===CHAIN_ID) return true;
+    await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID}]});
+    return true;
+  }catch(err){
+    toast("Switch your wallet to Ethereum mainnet to continue.");
+    return false;
+  }
+}
+
+async function connectWallet(){
+  const w=await chooseWallet();
+  if(!w){
+    if(DEMO){
+      toast("No wallet detected — using a demo address so you can look around.");
+      return "0x"+Array.from({length:40},()=>"0123456789abcdef"[Math.floor(Math.random()*16)]).join("");
+    }
+    toast("No Ethereum wallet found in this browser.");
+    return null;
+  }
+  PROVIDER=w.provider;
+  const accts=await PROVIDER.request({method:"eth_requestAccounts"});
+  if(!DEMO) await ensureChain(PROVIDER);
+  PROVIDER.on && PROVIDER.on("accountsChanged",a=>{
+    ACCOUNT=a[0]||null;
+    document.getElementById("wallet").textContent=
+      ACCOUNT ? ACCOUNT.slice(0,6)+"…"+ACCOUNT.slice(-4) : "Connect wallet";
+    drawPixels();
+  });
+  return accts[0];
+}
+
+/* ---------- minting for real ---------- */
+const SEL_MINT="0xa0712d68";                       // mint(uint256)
+const pad32 = n => n.toString(16).padStart(64,"0");
+async function sendMint(qty){
+  if(DEMO){ toast("Demo mode — no transaction sent."); return; }
+  if(!PROVIDER||!ACCOUNT){ toast("Connect a wallet first."); return; }
+  if(!(await ensureChain(PROVIDER))) return;
+  const wei = BigInt(Math.round(MINT_PRICE_ETH*1e6)) * BigInt(qty) * (10n**12n);
+  try{
+    const hash=await PROVIDER.request({method:"eth_sendTransaction",params:[{
+      from:ACCOUNT, to:CONTRACT, value:"0x"+wei.toString(16),
+      data:SEL_MINT+pad32(qty)
+    }]});
+    toast("Mint sent. "+hash.slice(0,10)+"…");
+  }catch(err){
+    toast(err && err.code===4001 ? "Cancelled in your wallet." : "Mint failed. Check your wallet.");
+  }
+}
+
+/* ---------- who owns what -----------------------------------------------
+   The contract is plain ERC-721, not Enumerable, so there is no on-chain call
+   that lists a wallet's tokens. Rather than add Enumerable - which would put a
+   storage write on every mint and every transfer, taxing the exact action the
+   artwork is made of - we read Transfer logs and confirm each candidate with
+   ownerOf. Works against any RPC, needs no server and no third-party index.  */
+const TRANSFER_TOPIC="0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const SEL_OWNER_OF="0x6352211e";
+const topicAddr = a => "0x"+a.toLowerCase().replace(/^0x/,"").padStart(64,"0");
+
+async function rpc(method,params){
+  if(!PROVIDER) throw new Error("no provider");
+  return PROVIDER.request({method,params});
+}
+
+async function tokensOfOnChain(addr){
+  // every token that ever arrived at this address
+  const logs=await rpc("eth_getLogs",[{
+    address:CONTRACT, fromBlock:"0x0", toBlock:"latest",
+    topics:[TRANSFER_TOPIC, null, topicAddr(addr)]
+  }]);
+  const seen=new Set();
+  for(const l of logs){
+    if(!l.topics || l.topics.length<4) continue;
+    const id=BigInt(l.topics[3]);
+    if(id < BigInt(SUPPLY)) seen.add(Number(id));
+  }
+  // confirm current ownership; a token may have moved on since
+  const want=addr.toLowerCase();
+  const owned=[];
+  for(const id of seen){
+    try{
+      const res=await rpc("eth_call",[{to:CONTRACT,data:SEL_OWNER_OF+pad32(id)},"latest"]);
+      if(("0x"+res.slice(-40)).toLowerCase()===want) owned.push(id);
+    }catch(_){}
+  }
+  return owned.sort((a,b)=>a-b);
+}
+
+/* ---------- search ---------- */
+const searchEl=document.getElementById("search"), resEl=document.getElementById("results");
+function renderResults(q){
+  q=q.trim().toLowerCase();
+  if(!q){ resEl.hidden=true; resEl.innerHTML=""; return; }
+  const hits=HOLDERS.filter(h=>h.name.toLowerCase().includes(q)||h.addr.toLowerCase().includes(q)).slice(0,8);
+  if(!hits.length){
+    resEl.innerHTML=`<button type="button" disabled style="color:var(--ink3);cursor:default">No collector found</button>`;
+    resEl.hidden=false; return;
+  }
+  resEl.innerHTML=hits.map(h=>
+    `<button type="button" data-addr="${h.addr}">
+       <span>${h.name}<br><span class="cnt">${h.addr.slice(0,10)}…${h.addr.slice(-4)}</span></span>
+       <span class="cnt">${h.ids.length} pixel${h.ids.length===1?"":"s"}</span>
+     </button>`).join("");
+  resEl.hidden=false;
+}
+searchEl.addEventListener("input",e=>renderResults(e.target.value));
+searchEl.addEventListener("focus",e=>renderResults(e.target.value));
+resEl.addEventListener("click",e=>{
+  const b=e.target.closest("button[data-addr]"); if(!b) return;
+  const h=HOLDERS.find(x=>x.addr===b.dataset.addr);
+  setHighlight(h.ids,h.name);
+  searchEl.value=h.name; resEl.hidden=true;
+  document.getElementById("hlMine").setAttribute("aria-pressed","false");
+});
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".searchwrap")) resEl.hidden=true;
+});
+
+document.getElementById("hlMine").onclick=async(e)=>{
+  if(!ASSIGNED){ toast("Pixels take their places when minting closes."); return; }
+  if(!ACCOUNT){ toast("Connect a wallet first."); return; }
+  const on=e.currentTarget.getAttribute("aria-pressed")==="true";
+  if(on){ setHighlight(null); e.currentTarget.setAttribute("aria-pressed","false"); return; }
+  const ids=await chain.tokensOf(ACCOUNT);
+  setHighlight(ids,"you");
+  e.currentTarget.setAttribute("aria-pressed","true");
+  searchEl.value="";
+};
+document.getElementById("hlClear").onclick=()=>{
+  setHighlight(null);
+  document.getElementById("hlMine").setAttribute("aria-pressed","false");
+  searchEl.value="";
+};
+
+/* ---------- wallet + tabs ---------- */
+document.getElementById("wallet").onclick=async()=>{
+  const a=await chain.connect();
+  if(!a) return;
+  ACCOUNT=a;
+  const wb=document.getElementById("wallet");
+  wb.removeAttribute("data-state");
+  wb.textContent=a.slice(0,6)+"…"+a.slice(-4);
+  drawPixels();
+};
+document.getElementById("nav").addEventListener("click",e=>{
+  const t=e.target.dataset.tab; if(!t) return;
+  document.querySelectorAll("nav button").forEach(b=>b.removeAttribute("aria-current"));
+  e.target.setAttribute("aria-current","page");
+  document.querySelectorAll("section").forEach(s=>s.removeAttribute("data-active"));
+  document.querySelector(`section[data-tab="${t}"]`).setAttribute("data-active","");
+  if(t==="pixels") drawPixels();
+  if(t==="auction") drawAuction();
+  if(t==="richter") drawPlate();
+});
+
+/* ---------- richter plate ---------- */
+function drawPlate(){
+  const el=document.getElementById("plate"); if(!el||el.childElementCount) return;
+  // 64 systematic tones, each repeated four times, then placed by lottery.
+  // 64 x 4 = 256 fills the 16x16 grid, mirroring his 1,024 x 4 = 4,096.
+  const base=[];
+  for(let r=0;r<4;r++)for(let g=0;g<4;g++)for(let b=0;b<4;b++)
+    base.push(`rgb(${r*85},${g*85},${b*85})`);
+  const cols=[...base,...base,...base,...base];
+  const rr=mulberry(4096);
+  for(let i=cols.length-1;i>0;i--){const j=Math.floor(rr()*(i+1));[cols[i],cols[j]]=[cols[j],cols[i]]}
+  el.innerHTML=cols.map(c=>`<i style="background:${c}"></i>`).join("");
+}
+
+/* ---------- boot ---------- */
+(async()=>{
+  STEPS=computeSteps();
+  await drawCanvas();
+  await drawCounter();
+  await drawMintProgress();
+  drawMint();
+  drawPixels();
+  if(!DEMO) document.getElementById("demoBanner").remove();
+  if(CONTRACT) document.getElementById("addr").textContent=CONTRACT;
+})();
+</script>
+</body>
+</html>
