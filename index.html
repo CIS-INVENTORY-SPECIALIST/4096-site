@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>4096 — a painting made by its own market</title>
+<meta name="description" content="4,096 pixels, one canvas. Every pixel starts white and takes its colour from how it is traded. Nobody chooses, including us.">
+<meta name="theme-color" content="#eeeeea">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%23fff'/%3E%3Crect x='1' y='1' width='2' height='2' fill='%23a02f1c'/%3E%3Crect x='5' y='2' width='2' height='2' fill='%232c6338'/%3E%3Crect x='2' y='5' width='2' height='2' fill='%23283a86'/%3E%3C/svg%3E">
+<!-- Set OG_IMAGE below to an absolute https URL of a rendered canvas before launch.
+     Without it, every share of this link is a bare grey rectangle. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="4096 — a painting made by its own market">
+<meta property="og:description" content="4,096 pixels, one canvas. Colour comes only from how each pixel is traded. Nobody chooses it, including us.">
+<meta property="og:image" content="">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="4096 — a painting made by its own market">
+<meta name="twitter:description" content="4,096 pixels, one canvas. Colour comes only from how each pixel is traded.">
+<meta name="twitter:image" content="">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -91,8 +104,13 @@
   .sidebar .counter .v{font-size:19px;margin-top:0}
   .stagewrap{display:flex;flex-direction:column;align-items:center;gap:18px}
   .frame{border:1px solid var(--ink);padding:13px;background:var(--mount);
-    line-height:0;position:relative}
-  #overlay{position:absolute;left:13px;top:13px;pointer-events:none}
+    line-height:0;position:relative;overflow:hidden}
+  .zoomstage{position:relative;transform-origin:0 0;touch-action:none;line-height:0;
+    will-change:transform}
+  #overlay{position:absolute;left:0;top:0;pointer-events:none}
+  .zoomreset{position:absolute;right:9px;bottom:9px;z-index:5;font-family:var(--mono);
+    font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;background:var(--mount);
+    border:1px solid var(--ink);color:var(--ink);padding:7px 11px;cursor:pointer;line-height:1}
   #canvas{display:block;image-rendering:pixelated;cursor:crosshair}
   .readout{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;
     font-family:var(--mono);font-size:11px;color:var(--ink2);
@@ -234,6 +252,12 @@
     font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink3)}
   .banner{background:#e6e4dc;border:1px solid var(--rule);color:#5f5c4e;padding:11px 15px;
     font-family:var(--mono);font-size:11px;margin-top:18px}
+  .loading{display:flex;align-items:center;justify-content:center;
+    min-height:200px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink3)}
+  .rpcfail{border:1px solid var(--warn);background:#fbf6ea;color:#6b5320;
+    padding:16px 18px;font-size:14px;margin-top:16px}
+  .rpcfail b{display:block;margin-bottom:5px}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);
     color:var(--mount);font-family:var(--mono);font-size:11px;padding:12px 18px;z-index:50;
     opacity:0;pointer-events:none;transition:opacity .18s}
@@ -260,7 +284,6 @@
     header{padding:22px 0 12px;gap:14px}
     .brand{font-size:24px}
     .frame{padding:7px}
-    #overlay{left:7px;top:7px}
     .searchwrap{max-width:none}
     .stagewrap{width:100%}
     h2{font-size:20px}
@@ -310,7 +333,13 @@
 
     <div class="stage2col">
     <div class="stagewrap">
-      <div class="frame"><canvas id="canvas" width="64" height="64"></canvas><canvas id="overlay"></canvas></div>
+      <div class="frame">
+        <div class="loading" id="canvasLoading">reading the chain</div>
+        <div class="zoomstage" id="zoomstage">
+          <canvas id="canvas" width="64" height="64"></canvas><canvas id="overlay"></canvas>
+        </div>
+        <button class="zoomreset" id="zoomReset" hidden>Reset</button>
+      </div>
       <div class="readout" id="readout"><span class="muted" id="hint">Hover a pixel. Click to open it on OpenSea.</span></div>
       <p class="small muted" id="stateNote" style="max-width:52ch;text-align:center;margin:0"></p>
       <div class="hlbar">
@@ -651,36 +680,73 @@ ever sold end up a different colour, whether or not their owner did anything.</d
    --------------------------------------------------------------- */
 const CONTRACT = null;
 const RENDERER = null;
+
+// Reads must work for someone with no wallet, which is most visitors and nearly
+// everyone on a phone. A wallet is only needed to mint, bid or claim.
+//
+// Put your Alchemy mainnet URL first. It is fine for this key to be public - it
+// is read-only - but lock it down in the Alchemy dashboard anyway: set the app
+// to Ethereum mainnet only and add your domain to the allowlist, or someone
+// will point their own project at your quota.
+//
+// The public fallbacks keep the canvas readable if your key is rate limited or
+// the dashboard is misconfigured. They restrict eth_getLogs ranges, so "Your
+// pixels" may not work on them - everything else will.
+const RPC_ENDPOINTS = [
+  "https://eth-mainnet.g.alchemy.com/v2/alch_3fiqFg8RuxP3NIcBqSEz5",
+  "https://cloudflare-eth.com",
+  "https://eth.llamarpc.com"
+];
 const DEMO = CONTRACT === null;
 
 const SUPPLY = 4096, GRID = 64, PER_WALLET = 10;
-const MINT_PRICE_ETH = 0.005;
+// Fallback only. The live price is read from mintPrice() before any mint,
+// because the contract demands the exact wei and reverts on any mismatch,
+// including overpayment. A stale constant here would fail every transaction.
+let MINT_PRICE_ETH = 0.005;
+let MINT_PRICE_WEI = 5000000000000000n;
 
 /* ---------- demo state: a plausible market, generated once ---------- */
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const rnd = mulberry(40961);
 
 const demo = (()=>{
+  // Each pixel gets an independent trading STYLE as well as a sale count.
+  // The earlier generator derived a pixel's rest period straight from how often
+  // it sold, which welded blue to red before any maths ran and made the preview
+  // far more correlated than the contract's own measurements.
   const sales=new Array(SUPPLY), first=new Array(SUPPLY), last=new Array(SUPPLY),
         longest=new Array(SUPPLY), gs=new Array(SUPPLY), gq=new Array(SUPPLY);
   const now = Math.floor(Date.now()/1000);
-  const start = now - 3600*24*420;
+  const life = 3600*24*900;
+  const start = now - life;
   let total=0;
   for(let i=0;i<SUPPLY;i++){
     const r=rnd();
-    let n = r<0.30 ? 0 : r<0.72 ? 1+Math.floor(rnd()*4) : r<0.94 ? 5+Math.floor(rnd()*14) : 20+Math.floor(rnd()*70);
+    let n = r<0.30 ? 0 : r<0.72 ? 1+Math.floor(rnd()*4)
+                       : r<0.94 ? 5+Math.floor(rnd()*14) : 20+Math.floor(rnd()*70);
     sales[i]=n; total+=n;
     if(!n){first[i]=0;last[i]=0;longest[i]=0;gs[i]=0;gq[i]=0;continue}
-    let t = start + Math.floor(rnd()*3600*24*120);
-    first[i]=t; let lg=0,sum=0,sq=0;
+
+    // style: how evenly this pixel spaces its trades, and how much of its life
+    // it spends resting. Independent of n.
+    const evenness = rnd();          // 0 = wildly bursty, 1 = metronome
+    const restBias = rnd();          // 0 = trades to the last day, 1 = long final rest
+    const active = life * (0.25 + 0.7*(1-restBias));
+
+    let t = start + Math.floor(rnd()*(life-active));
+    first[i]=t;
+    let lg=0,sum=0,sq=0;
+    const even = active/Math.max(1,n);
     for(let k=1;k<n;k++){
-      const gap = Math.floor((600 + rnd()*rnd()*3600*24*160));
-      t+=gap; if(t>now){t-=gap;break}
+      const jitter = Math.pow(rnd(), 1 + evenness*6);   // evenness -> tighter spread
+      const gap = Math.max(600, Math.floor(even*(0.15 + 1.85*jitter)));
+      if(t+gap > now) break;
+      t+=gap;
       if(gap>lg)lg=gap; sum+=gap; sq+=gap*gap;
     }
     last[i]=t; longest[i]=lg; gs[i]=sum; gq[i]=sq;
   }
-  // positions: a shuffle
   const pos=[...Array(SUPPLY).keys()];
   for(let i=SUPPLY-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[pos[i],pos[j]]=[pos[j],pos[i]]}
   return {sales,first,last,longest,gs,gq,pos,total,now};
@@ -729,7 +795,46 @@ function computeSteps(){
     }
     return out;
   };
-  const R=rank(kv,traded), G=rank(kg,def), B=rank(kb,traded);
+  // --- orthogonalisation, mirroring Renderer4096 -------------------------
+  // Without this the demo lies. A pixel that trades constantly also trades
+  // erratically and rests less, so red, green and blue all measure roughly the
+  // same thing, colours collapse onto a diagonal and most of the cube goes
+  // unused. The contract removes red's influence from green and blue by least
+  // squares, then blue's residual influence from green. The demo has to do the
+  // same or it shows a more correlated painting than the real one.
+  let m={n:0,v:0,g:0,b:0,vv:0,bb:0,vg:0,vb:0,gb:0};
+  for(let i=0;i<N;i++){
+    if(!def[i]) continue;
+    const v=kv[i], g=kg[i], b=kb[i];
+    m.n++; m.v+=v; m.g+=g; m.b+=b;
+    m.vv+=v*v; m.bb+=b*b; m.vg+=v*g; m.vb+=v*b; m.gb+=g*b;
+  }
+  let m1=0,m2=0,m3=0;
+  if(m.n>1){
+    const den=m.n*m.vv-m.v*m.v;
+    if(den!==0){
+      m1=(m.n*m.vg-m.v*m.g)/den;      // red out of green
+      m2=(m.n*m.vb-m.v*m.b)/den;      // red out of blue
+    }
+    // blue's residual influence on green, after red is removed from both
+    let sbb=0,sgb=0;
+    for(let i=0;i<N;i++){
+      if(!def[i]) continue;
+      const rb=kb[i]-m2*kv[i];
+      const rg=kg[i]-m1*kv[i];
+      sbb+=rb*rb; sgb+=rg*rb;
+    }
+    if(sbb!==0) m3=sgb/sbb;
+  }
+  // residuals become the ranking keys
+  const rgKey=new Array(N).fill(0), rbKey=new Array(N).fill(0);
+  for(let i=0;i<N;i++){
+    if(!traded[i]) continue;
+    rbKey[i]=kb[i]-m2*kv[i];
+    rgKey[i]=kg[i]-m1*kv[i]-m3*rbKey[i];
+  }
+
+  const R=rank(kv,traded), G=rank(rgKey,def), B=rank(rbKey,traded);
   for(let i=0;i<N;i++) if(traded[i]&&!def[i]) G[i]=8;
   return {R,G,B,traded,n};
 }
@@ -845,6 +950,7 @@ function sizeCanvas(){
     ov.style.width=(CELL*GRID)+"px"; ov.style.height=(CELL*GRID)+"px";
     drawOverlay();
   }
+  clampZoom();
 }
 
 // Highlighted pixels get an actual ring. Fading the rest is not enough: an
@@ -877,8 +983,30 @@ function drawOverlay(){
   }
 }
 let IMGDATA=null, ASSIGNED=true;
+function _loading(on){
+  const l=document.getElementById("canvasLoading"), z=document.getElementById("zoomstage");
+  if(l) l.style.display = on ? "flex" : "none";
+  if(z) z.style.display = on ? "none" : "block";
+}
+function _rpcFailed(err){
+  _loading(false);
+  const w=document.querySelector('section[data-tab="canvas"] .stagewrap');
+  if(!w || document.getElementById("rpcfail")) return;
+  const d=document.createElement("div");
+  d.id="rpcfail"; d.className="rpcfail";
+  d.innerHTML="<b>Could not reach the chain.</b>The canvas lives in the contract, not on this page, "+
+    "so nothing is lost. Reload, or read it directly on Etherscan. "+
+    "<span class=\"small muted\">("+(err && err.message ? err.message : "network error")+")</span>";
+  w.appendChild(d);
+}
+
 async function drawCanvas(){
-  ASSIGNED = await chain.positionsAssigned();
+  // allColours is a heavy read on mainnet - several seconds is normal - so say
+  // something rather than showing an empty frame.
+  _loading(true);
+  try{
+    ASSIGNED = await chain.positionsAssigned();
+  }catch(e){ _rpcFailed(e); return; }
 
   // Before the shuffle runs there is no layout: positions are only assigned once
   // minting closes. Showing a scattered painting now would be inventing one.
@@ -899,6 +1027,7 @@ async function drawCanvas(){
     }
     ctx.putImageData(img0,0,0);
     IMGDATA=img0;
+    _loading(false);
     sizeCanvas();
     const ro=document.getElementById("readout");
     if(ro) ro.innerHTML=`<span class="muted">${HINT_MINTING}</span>`;
@@ -911,7 +1040,9 @@ async function drawCanvas(){
   const cap=document.getElementById("stateNote"); if(cap) cap.textContent="";
   const h0=document.getElementById("hint"); if(h0) h0.textContent=HINT_BROWSE;
 
-  if(!COLOURS) COLOURS=await chain.allColours();
+  try{
+    if(!COLOURS) COLOURS=await chain.allColours();
+  }catch(e){ _rpcFailed(e); return; }
   POSOF=new Array(SUPPLY);
   const img=ctx.createImageData(GRID,GRID);
   for(let i=0;i<GRID*GRID;i++){img.data[i*4]=255;img.data[i*4+1]=255;img.data[i*4+2]=255;img.data[i*4+3]=255}
@@ -932,6 +1063,7 @@ async function drawCanvas(){
   }
   ctx.putImageData(img,0,0);
   IMGDATA=img;
+  _loading(false);
   sizeCanvas();
   drawOverlay();
   const note=document.getElementById("hlNote");
@@ -966,14 +1098,88 @@ function pixelAt(clientX, clientY){
   const id=POSOF[y*GRID+x];
   return id===undefined ? null : {id,x,y};
 }
-cv.addEventListener("touchstart",e=>{
-  const t=e.touches[0]; const hit=pixelAt(t.clientX,t.clientY);
+/* ---------- pinch to zoom, drag to pan ----------------------------------
+   The canvas is 64 cells across, so on a phone one pixel is about five points
+   and effectively untappable. Zooming is what makes an individual pixel
+   reachable at all. Hit testing keeps working because getBoundingClientRect
+   already reports the transformed box.                                      */
+let Z=1, TX=0, TY=0;
+const MINZ=1, MAXZ=14;
+const stage=document.getElementById("zoomstage");
+const resetBtn=document.getElementById("zoomReset");
+
+function applyZoom(){
+  stage.style.transform=`translate(${TX}px,${TY}px) scale(${Z})`;
+  if(resetBtn) resetBtn.hidden = Z<=1.01;
+}
+function clampZoom(){
+  const size=CELL*GRID;
+  if(Z<=1){ Z=1; TX=0; TY=0; applyZoom(); return; }
+  const span=size*Z;
+  TX=Math.min(0,Math.max(size-span,TX));
+  TY=Math.min(0,Math.max(size-span,TY));
+  applyZoom();
+}
+function zoomAt(px,py,factor){
+  const next=Math.min(MAXZ,Math.max(MINZ,Z*factor));
+  const k=next/Z;
+  TX = px - (px-TX)*k;
+  TY = py - (py-TY)*k;
+  Z = next;
+  clampZoom();
+}
+
+let pinchD0=0, panX=0, panY=0, moved=false, tStart=0;
+const dist=(a,b)=>Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+
+stage.addEventListener("touchstart",e=>{
+  moved=false; tStart=Date.now();
+  if(e.touches.length===2){
+    e.preventDefault();
+    pinchD0=dist(e.touches[0],e.touches[1]);
+  }else if(e.touches.length===1){
+    panX=e.touches[0].clientX; panY=e.touches[0].clientY;
+  }
+},{passive:false});
+
+stage.addEventListener("touchmove",e=>{
+  if(e.touches.length===2 && pinchD0){
+    e.preventDefault(); moved=true;
+    const d=dist(e.touches[0],e.touches[1]);
+    const r=stage.getBoundingClientRect();
+    const mx=(e.touches[0].clientX+e.touches[1].clientX)/2 - r.left + TX;
+    const my=(e.touches[0].clientY+e.touches[1].clientY)/2 - r.top  + TY;
+    zoomAt(mx,my,d/pinchD0);
+    pinchD0=d;
+  }else if(e.touches.length===1 && Z>1){
+    e.preventDefault(); moved=true;
+    TX += e.touches[0].clientX-panX;
+    TY += e.touches[0].clientY-panY;
+    panX=e.touches[0].clientX; panY=e.touches[0].clientY;
+    clampZoom();
+  }
+},{passive:false});
+
+stage.addEventListener("touchend",e=>{
+  pinchD0=0;
+  if(moved || Date.now()-tStart>400) return;
+  const t=e.changedTouches[0];
+  const hit=pixelAt(t.clientX,t.clientY);
   if(!hit) return;
-  e.preventDefault();
   showReadout(hit.id,hit.x,hit.y);
   if(TAP_ID===hit.id){ openPixel(hit.id); TAP_ID=null; }
   else TAP_ID=hit.id;
+});
+
+// trackpad and mouse wheel zoom on desktop
+stage.addEventListener("wheel",e=>{
+  if(!e.ctrlKey && Math.abs(e.deltaY)<2) return;
+  e.preventDefault();
+  const r=stage.getBoundingClientRect();
+  zoomAt(e.clientX-r.left+TX, e.clientY-r.top+TY, e.deltaY<0 ? 1.12 : 1/1.12);
 },{passive:false});
+
+if(resetBtn) resetBtn.onclick=()=>{ Z=1; TX=0; TY=0; clampZoom(); };
 cv.addEventListener("mousemove",e=>{
   const r=cv.getBoundingClientRect();
   const x=Math.floor((e.clientX-r.left)/r.width*GRID), y=Math.floor((e.clientY-r.top)/r.height*GRID);
@@ -1006,6 +1212,7 @@ window.addEventListener("resize",sizeCanvas);
 /* ---------- counter ---------- */
 async function drawMintProgress(){
   const m=await chain.minted();
+  REMAINING=SUPPLY-m;
   const pct=Math.min(100,(m/SUPPLY)*100);
   const c=document.getElementById("progCount"); if(!c) return;
   c.textContent=m.toLocaleString();
@@ -1041,14 +1248,24 @@ async function drawCounter(){
 }
 
 /* ---------- mint ---------- */
-let qty=1;
+let qty=1, REMAINING=SUPPLY;
+// The contract rejects a quantity larger than the remaining supply outright, so
+// letting someone ask for ten when three are left just buys them a failed
+// transaction at the busiest moment of the mint.
+function maxQty(){ return Math.max(1, Math.min(PER_WALLET, REMAINING)); }
 function drawMint(){
+  const cap=maxQty();
+  if(qty>cap) qty=cap;
   document.getElementById("qty").textContent=qty;
-  document.getElementById("mintNote").textContent =
-    `${(qty*MINT_PRICE_ETH).toFixed(3)} ETH total`;
+  const note=document.getElementById("mintNote");
+  note.textContent = REMAINING<=0
+    ? "Every pixel is minted."
+    : `${(qty*MINT_PRICE_ETH).toFixed(3)} ETH total`
+      + (REMAINING<PER_WALLET ? ` · only ${REMAINING} left` : "");
+  document.getElementById("qPlus").disabled = qty>=cap;
 }
 document.getElementById("qMinus").onclick=()=>{qty=Math.max(1,qty-1);drawMint()};
-document.getElementById("qPlus").onclick=()=>{qty=Math.min(PER_WALLET,qty+1);drawMint()};
+document.getElementById("qPlus").onclick=()=>{qty=Math.min(maxQty(),qty+1);drawMint()};
 document.getElementById("mintBtn").onclick=async()=>{ await sendMint(qty); drawMintProgress(); };
 
 /* ---------- your pixels ---------- */
@@ -1111,12 +1328,12 @@ async function drawAuction(){
         <div class="box">
           <div class="k">${live?"Current bid":"Reserve"}</div>
           <div class="v">${live? bid+" ETH" : "1.00 ETH"}</div>
-          <div class="sub">${live?"minimum increment 0.05 ETH":"the auction opens here, with no deadline"}</div>
+          <div class="sub">${live?"each bid must clear the last by 0.05 ETH":"where bidding starts. there is no ceiling and no closing date"}</div>
         </div>
         <div class="box">
           <div class="k">Time remaining</div>
           <div class="v" id="clock">24:00:00</div>
-          <div class="sub">${live?"each bid adds 5 minutes":"the clock starts on the first bid"}</div>
+          <div class="sub">${live?"every bid pushes this back five minutes":"nothing moves until someone bids"}</div>
         </div>
       </div>
 
@@ -1124,10 +1341,23 @@ async function drawAuction(){
         <input id="bidAmount" type="text" inputmode="decimal" value="1.00" ${live?"":"disabled"}>
         <button class="cta" id="bidBtn" ${live?"":"disabled"}>${live?"Place bid":"Auction not open"}</button>
       </div>
-      <p class="small muted" style="max-width:52ch;margin:2px 0 0">
-        ${live ? "Outbid bidders withdraw their own funds; nothing is pushed automatically."
+      <p class="small muted" style="max-width:54ch;margin:2px 0 0">
+        ${live ? "Outbid bidders withdraw their own funds. Nothing is ever pushed to anyone."
                : "Bidding unlocks the moment the total reaches the sealed number. Until then this is inert."}
       </p>
+
+      <div class="split" style="margin-top:14px;padding-top:22px">
+        <p class="eyebrow" style="margin-bottom:10px">How it ends</p>
+        <p style="max-width:56ch">There is no closing date. There is only a clock, and anyone
+           can push it back.</p>
+        <p style="max-width:56ch">The first bid starts twenty four hours. Every bid after it adds
+           five more minutes, whenever it lands — on the first morning or in the last thirty
+           seconds. The additions accumulate. A hundred bids add more than eight hours to the end,
+           even if they all arrive inside an hour.</p>
+        <p style="max-width:56ch">So a quiet auction closes in a day. A contested one runs for
+           days, and a genuinely fought one could run for weeks. The painting does not end when a
+           timer says so. It ends when people stop wanting it.</p>
+      </div>
 
       <div class="split">
         <p class="eyebrow" style="margin-bottom:8px">Holder claim</p>
@@ -1256,12 +1486,23 @@ async function connectWallet(){
 
 /* ---------- minting for real ---------- */
 const SEL_MINT="0xa0712d68";                       // mint(uint256)
+const SEL_PRICE="0x6817c76c";                      // mintPrice()
+
+async function loadMintPrice(){
+  if(DEMO) return;
+  try{
+    const hex=await rpc("eth_call",[{to:CONTRACT,data:SEL_PRICE},"latest"]);
+    MINT_PRICE_WEI=BigInt(hex);
+    MINT_PRICE_ETH=Number(MINT_PRICE_WEI)/1e18;
+    drawMint();
+  }catch(e){ console.warn("could not read mintPrice",e); }
+}
 const pad32 = n => n.toString(16).padStart(64,"0");
 async function sendMint(qty){
   if(DEMO){ toast("Demo mode — no transaction sent."); return; }
   if(!PROVIDER||!ACCOUNT){ toast("Connect a wallet first."); return; }
   if(!(await ensureChain(PROVIDER))) return;
-  const wei = BigInt(Math.round(MINT_PRICE_ETH*1e6)) * BigInt(qty) * (10n**12n);
+  const wei = MINT_PRICE_WEI * BigInt(qty);   // exact, from the contract
   try{
     const hash=await PROVIDER.request({method:"eth_sendTransaction",params:[{
       from:ACCOUNT, to:CONTRACT, value:"0x"+wei.toString(16),
@@ -1283,9 +1524,26 @@ const TRANSFER_TOPIC="0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4d
 const SEL_OWNER_OF="0x6352211e";
 const topicAddr = a => "0x"+a.toLowerCase().replace(/^0x/,"").padStart(64,"0");
 
+let RPC_ID = 0, RPC_INDEX = 0;
 async function rpc(method,params){
-  if(!PROVIDER) throw new Error("no provider");
-  return PROVIDER.request({method,params});
+  if(PROVIDER) return PROVIDER.request({method,params});
+  // walk the endpoint list rather than dying on the first failure
+  let lastErr;
+  for(let attempt=0; attempt<RPC_ENDPOINTS.length; attempt++){
+    const url = RPC_ENDPOINTS[(RPC_INDEX+attempt) % RPC_ENDPOINTS.length];
+    if(url.includes("YOUR_KEY_HERE")) continue;
+    try{
+      const res = await fetch(url,{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({jsonrpc:"2.0", id:++RPC_ID, method, params})
+      });
+      const j = await res.json();
+      if(j.error) throw new Error(j.error.message || "rpc error");
+      RPC_INDEX = (RPC_INDEX+attempt) % RPC_ENDPOINTS.length;   // stick with what worked
+      return j.result;
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error("no working rpc endpoint");
 }
 
 async function tokensOfOnChain(addr){
@@ -1399,6 +1657,7 @@ function drawPlate(){
   await drawCanvas();
   await drawCounter();
   await drawMintProgress();
+  await loadMintPrice();
   drawMint();
   drawPixels();
   if(!DEMO) document.getElementById("demoBanner").remove();
