@@ -42,6 +42,11 @@
   nav{display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;
       scrollbar-width:none;max-width:100%}
   nav::-webkit-scrollbar{display:none}
+  /* a soft fade on the right edge, so it reads as "there is more this way" */
+  @media(max-width:760px){
+    nav{-webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%);
+        mask-image:linear-gradient(to right,#000 82%,transparent 100%)}
+  }
   nav button{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
     background:none;border:none;color:var(--ink3);padding:7px 12px;cursor:pointer;white-space:nowrap}
   nav button[aria-current="page"]{color:var(--ink)}
@@ -74,6 +79,11 @@
     justify-content:center}
   @media(max-width:1000px){.stage2col{grid-template-columns:1fr;justify-items:center}}
   .sidebar{display:flex;flex-direction:column;gap:0;width:100%;max-width:340px}
+  @media(max-width:1000px){
+    .sidebar{max-width:none;width:100%}
+    .mint{max-width:none}
+    .stage2col{gap:26px}
+  }
   /* the ledger sits under the mint panel so the column reads as one object */
   .sidebar .counter{grid-template-columns:1fr;margin-top:-1px;border-top:none}
   .sidebar .counter div{border-right:none;padding:12px 24px;display:flex;
@@ -231,13 +241,28 @@
   svg{display:block;width:100%;height:auto}
 
   /* ---- phone ---- */
+  /* Tables become stacked records on a phone. Side-scrolling a table hides the
+     column that matters most and gives no sign it is hidden. */
+  @media(max-width:640px){
+    .tablewrap{overflow-x:visible}
+    .tablewrap table{min-width:0;display:block}
+    .tablewrap thead{display:none}
+    .tablewrap tbody,.tablewrap tr{display:block}
+    .tablewrap tr{border-bottom:1px solid var(--rule);padding:13px 0}
+    .tablewrap tr:last-child{border-bottom:none}
+    .tablewrap td{display:block;border:none;padding:1px 0;font-size:15px}
+    .tablewrap td:first-child{font-weight:700;font-size:16px;margin-bottom:3px}
+    .tablewrap td:not(:first-child){color:var(--ink2)}
+  }
   @media(max-width:640px){
     .wrap{padding:0 16px 84px}
     body{font-size:15px;line-height:1.7}
     header{padding:22px 0 12px;gap:14px}
     .brand{font-size:24px}
-    .frame{padding:8px}
-    #overlay{left:8px;top:8px}
+    .frame{padding:7px}
+    #overlay{left:7px;top:7px}
+    .searchwrap{max-width:none}
+    .stagewrap{width:100%}
     h2{font-size:20px}
     p{margin-bottom:15px}
     .tablewrap table{min-width:460px}
@@ -246,7 +271,10 @@
     .cta,.ghost,.wallet{min-height:44px}
     .qty button{width:44px;height:44px}
     .readout{gap:14px}
-    .code{font-size:11px}
+    /* pre-wrap plus source line breaks makes shredded text at this width.
+       Let the prose reflow and give each formula its own line instead. */
+    .code{font-size:12px;white-space:normal;line-height:1.7}
+    .code b{display:block;margin:9px 0;font-size:11.5px;overflow-wrap:anywhere}
   }
 </style>
 </head>
@@ -283,7 +311,7 @@
     <div class="stage2col">
     <div class="stagewrap">
       <div class="frame"><canvas id="canvas" width="64" height="64"></canvas><canvas id="overlay"></canvas></div>
-      <div class="readout" id="readout"><span class="muted">Hover a pixel. Click to open it on OpenSea.</span></div>
+      <div class="readout" id="readout"><span class="muted" id="hint">Hover a pixel. Click to open it on OpenSea.</span></div>
       <p class="small muted" id="stateNote" style="max-width:52ch;text-align:center;margin:0"></p>
       <div class="hlbar">
         <button class="ghost" id="hlMine" aria-pressed="false">Highlight my pixels</button>
@@ -790,6 +818,13 @@ let DEMO_MINTED = 2847;
 let HIGHLIGHT=null;      // Set of token ids, or null
 let HL_LABEL="";
 
+// Phones have no hover. Say what the device can actually do.
+const TOUCH = window.matchMedia("(hover: none)").matches;
+const HINT_BROWSE = TOUCH ? "Tap a pixel to see it. Tap again to open it on OpenSea."
+                          : "Hover a pixel. Click to open it on OpenSea.";
+const HINT_MINTING = TOUCH ? "Tap a pixel to see its number."
+                           : "Hover a pixel to see its number.";
+
 /* ---------- rendering ---------- */
 let COLOURS=null, POSOF=null;
 const cv=document.getElementById("canvas"), ctx=cv.getContext("2d");
@@ -866,7 +901,7 @@ async function drawCanvas(){
     IMGDATA=img0;
     sizeCanvas();
     const ro=document.getElementById("readout");
-    if(ro) ro.innerHTML='<span class="muted">Hover a pixel to see its number.</span>';
+    if(ro) ro.innerHTML=`<span class="muted">${HINT_MINTING}</span>`;
     const cap=document.getElementById("stateNote");
     if(cap) cap.textContent =
       `${minted.toLocaleString()} of 4,096 minted. Grid positions are shuffled when minting closes, `+
@@ -874,6 +909,7 @@ async function drawCanvas(){
     return;
   }
   const cap=document.getElementById("stateNote"); if(cap) cap.textContent="";
+  const h0=document.getElementById("hint"); if(h0) h0.textContent=HINT_BROWSE;
 
   if(!COLOURS) COLOURS=await chain.allColours();
   POSOF=new Array(SUPPLY);
@@ -963,7 +999,7 @@ function showReadout(id,x,y){
 }
 cv.addEventListener("mouseleave",()=>{
   HOVER_ID=null;
-  document.getElementById("readout").innerHTML='<span class="muted">Hover a pixel. Click to open it on OpenSea.</span>';
+  document.getElementById("readout").innerHTML=`<span class="muted">${HINT_BROWSE}</span>`;
 });
 window.addEventListener("resize",sizeCanvas);
 
@@ -1116,9 +1152,11 @@ async function drawAuction(){
       <div class="split">
         <p class="eyebrow" style="margin-bottom:8px">Where the total stands</p>
         <div class="small muted" style="max-width:56ch">
-          <b style="color:var(--ink);font-size:16px">${ts.toLocaleString()}</b> sales so far. The sealed
-          number is committed as a hash and is not public, so nobody knows how close this is —
-          including us, until we reveal it. It may never be reached.
+          ${ts > 0
+            ? `<b style="color:var(--ink);font-size:16px">${ts.toLocaleString()}</b> sales so far.`
+            : `Trading has not started. The total begins counting once the collection is minted out.`}
+          The sealed number is committed as a hash and is not public, so nobody knows how close this
+          is — including us, until we reveal it. It may never be reached.
         </div>
       </div>`}
     </div>`;
