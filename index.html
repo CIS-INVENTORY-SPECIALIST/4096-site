@@ -14,6 +14,8 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="4096 — a painting made by its own market">
 <meta property="og:description" content="4,096 pixels, one canvas. Colour comes only from how each pixel is traded. Nobody chooses it, including us.">
+<!-- These must be absolute for crawlers. Update BOTH when the domain changes;
+     a stale host here silently breaks every link preview. -->
 <meta property="og:url" content="https://cis-inventory-specialist.github.io/4096-site/">
 <meta property="og:image" content="https://cis-inventory-specialist.github.io/4096-site/og.png">
 <meta property="og:image:width" content="1200">
@@ -58,6 +60,12 @@
   header{display:flex;align-items:baseline;justify-content:space-between;gap:24px;
     padding:32px 0 14px;border-bottom:1px solid var(--ink);flex-wrap:wrap}
   .brand{font-size:29px;font-weight:400;letter-spacing:-.01em;line-height:1}
+  /* the mark states the system: velocity, rhythm, patience, untouched */
+  .brand i{font-style:normal}
+  .brand .c1{color:var(--vel)}
+  .brand .c2{color:var(--rhy)}
+  .brand .c3{color:var(--pat)}
+  .brand .c4{color:var(--mount);-webkit-text-stroke:1px var(--ink3)}
   nav{display:flex;gap:0;max-width:100%;flex-wrap:wrap}
   /* On a phone the six tabs did not fit and half the site sat off-screen behind
      a scroll nobody would find. They wrap into a grid instead, so every tab is
@@ -273,8 +281,15 @@
   .notice{border:1px solid var(--rule);background:var(--mount);padding:20px 22px;
     color:var(--ink2);font-size:15px}
   .notice.live{border-color:var(--ink);color:var(--ink)}
-  .foot{margin-top:70px;padding-top:18px;border-top:1px solid var(--rule);
-    font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink3)}
+  .foot{margin-top:70px;padding-top:20px;border-top:1px solid var(--rule)}
+  .footstate{font-size:15px;color:var(--ink2);max-width:52ch;margin:0 0 18px}
+  .footstate b{color:var(--ink);font-weight:400}
+  .footrow{display:flex;justify-content:space-between;align-items:baseline;
+    gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;
+    letter-spacing:.08em;color:var(--ink3)}
+  .footlinks{display:flex;gap:16px;flex-wrap:wrap}
+  .footlinks a{text-decoration:none;color:var(--ink3);letter-spacing:.14em;text-transform:uppercase}
+  .footlinks a:hover{color:var(--ink)}
   .banner{background:#e6e4dc;border:1px solid var(--rule);color:#5f5c4e;
     padding:9px 13px;font-family:var(--mono);font-size:10.5px;margin-top:14px;
     line-height:1.5}
@@ -297,12 +312,16 @@
   /* Tables become stacked records on a phone. Side-scrolling a table hides the
      column that matters most and gives no sign it is hidden. */
   @media(max-width:640px){
-    .tablewrap{overflow-x:visible}
-    .tablewrap table{min-width:0;display:block}
+    /* A stacked table is not a table any more, so stop pretending. Each row
+       becomes its own bordered card with air around it; sharing one slab with
+       hairlines between read as a single confused block. */
+    .tablewrap{overflow-x:visible;border:none;background:none;margin-top:12px}
+    .tablewrap table{min-width:0;display:block;background:none}
     .tablewrap thead{display:none}
-    .tablewrap tbody,.tablewrap tr{display:block}
-    .tablewrap tr{border-bottom:1px solid var(--rule);padding:13px 0}
-    .tablewrap tr:last-child{border-bottom:none}
+    .tablewrap tbody{display:flex;flex-direction:column;gap:10px}
+    .tablewrap tr{display:block;border:1px solid var(--rule);background:var(--mount);
+      padding:15px 16px}
+    .tablewrap tr:last-child{border-bottom:1px solid var(--rule)}
     .tablewrap td{display:block;border:none;padding:1px 0;font-size:15px}
     .tablewrap td:first-child{font-weight:700;font-size:16px;margin-bottom:5px}
     .tablewrap td:not(:first-child){color:var(--ink2);padding-left:0}
@@ -331,8 +350,10 @@
     .readout{gap:14px}
     /* pre-wrap plus source line breaks makes shredded text at this width.
        Let the prose reflow and give each formula its own line instead. */
-    .code{font-size:12px;white-space:normal;line-height:1.7}
-    .code b{display:block;margin:9px 0;font-size:11.5px;overflow-wrap:anywhere}
+    .code{font-size:12.5px;white-space:normal;line-height:1.75}
+    .code b{display:block;margin:11px 0;font-size:11px;overflow-wrap:anywhere;
+      background:var(--paper);border-left:2px solid var(--rule);
+      padding:8px 10px;font-weight:500}
   }
 </style>
 </head>
@@ -340,7 +361,7 @@
 <div class="wrap">
 
   <header>
-    <div class="brand">4096</div>
+    <div class="brand"><i class="c1">4</i><i class="c2">0</i><i class="c3">9</i><i class="c4">6</i></div>
     <nav id="nav">
       <button data-tab="canvas" aria-current="page">Canvas</button>
       <button data-tab="pixels">Your pixels</button>
@@ -377,6 +398,8 @@
       </div>
       <div class="readout" id="readout"><span class="muted" id="hint">Hover a pixel. Click to open it on OpenSea.</span></div>
       <p class="small muted" id="stateNote" style="max-width:52ch;text-align:center;margin:0"></p>
+      <p class="small muted" id="zoomHint" style="text-align:center;margin:0;display:none">
+        Pinch to zoom. One pixel is small on purpose.</p>
       <div class="hlbar">
         <button class="ghost" id="hlMine" aria-pressed="false">Highlight my pixels</button>
         <button class="ghost" id="hlClear" hidden>Clear highlight</button>
@@ -710,9 +733,18 @@ ever sold end up a different colour, whether or not their owner did anything.</d
     <div id="auctionBody"></div>
   </section>
 
-  <p class="foot">
-    4096 &nbsp;·&nbsp; fully on-chain<span id="addr"></span>
-  </p>
+  <div class="foot">
+    <p class="footstate" id="footState"></p>
+    <div class="footrow">
+      <span>4096 &nbsp;·&nbsp; fully on-chain<span id="addr"></span></span>
+      <span class="footlinks">
+        <a href="https://x.com/tenfin9ers" target="_blank" rel="noopener">X</a>
+        <a href="#" id="fOpensea" target="_blank" rel="noopener">OpenSea</a>
+        <a href="#" id="fEtherscan" target="_blank" rel="noopener">Etherscan</a>
+        <a href="https://econ101.online" target="_blank" rel="noopener">econ101</a>
+      </span>
+    </div>
+  </div>
 </div>
 
 <script src="config.js"></script>
@@ -893,28 +925,159 @@ function colourOf(i){
 }
 
 /* ---------- the only chain-facing layer ---------- */
+/* ---------- selectors ----------------------------------------------------
+   Reads split across two contracts: the collection holds the money and the
+   sale record, the renderer computes every colour. Both addresses live in
+   config.js.                                                              */
+const SEL = {
+  totalSales:        "0x6605ff66",
+  minted:            "0x4f02c420",
+  mintClosed:        "0xd663d370",
+  frozen:            "0x054f7d9c",
+  positionsAssigned: "0x5a9d4af1",
+  positionsPacked:   "0x57e6c4a4",
+  mintPrice:         "0x6817c76c",
+  highBid:           "0xb6cc986f",
+  highBidder:        "0x3ce123dc",
+  auctionEnd:        "0x2a24f46c",
+  auctionSettled:    "0xd3e761a4",
+  proceeds:          "0x55b5ec64",
+  sharePerToken:     "0xde7ecf87",
+  claimantOf:        "0x933f4f6f",
+  claimed:           "0xdbe7e3bd",
+  ownerOf:           "0x6352211e",
+  mint:              "0xa0712d68",
+  bid:               "0x1998aeef",
+  claim:             "0x6ba4c138",
+  // renderer
+  allColours:        "0xaef13273",
+  pixelOf:           "0xdec789c5"
+};
+
+const hexToBig = h => BigInt(h && h !== "0x" ? h : "0x0");
+const word = (hex, i) => "0x" + hex.slice(2 + i*64, 2 + (i+1)*64);
+
+async function callCollection(data){ return rpc("eth_call",[{to:CONTRACT, data},"latest"]); }
+async function callRenderer(data){   return rpc("eth_call",[{to:RENDERER, data},"latest"]); }
+async function readUint(sel){ return Number(hexToBig(await callCollection(sel))); }
+async function readBool(sel){ return hexToBig(await callCollection(sel)) !== 0n; }
+
+/* ---------- cache --------------------------------------------------------
+   allColours reads 4,096 pixels and is the heaviest call on the site. Without
+   a cache every tab switch would fire it again.                            */
+const CACHE = { colours:null, positions:null, at:0 };
+const CACHE_MS = 20000;
+function cacheStale(){ return Date.now() - CACHE.at > CACHE_MS; }
+function bustCache(){ CACHE.colours=null; CACHE.positions=null; CACHE.at=0; }
+
 const chain = {
-  async totalSales(){ return DEMO_MINTED >= SUPPLY ? demo.total : 0 },
-  async positionsAssigned(){
-    if(!DEMO) return (await rpc("eth_call",[{to:CONTRACT,data:"0x57e6c4a4"},"latest"])) !== "0x";
-    return DEMO_MINTED >= SUPPLY;
+  async totalSales(){
+    if(DEMO) return DEMO_MINTED >= SUPPLY ? demo.total : 0;
+    return readUint(SEL.totalSales);
   },
   async minted(){
-    if(!DEMO) return Number(await rpc("eth_call",[{to:CONTRACT,data:"0x4f02c420"},"latest"]));
-    return DEMO_MINTED;
+    if(DEMO) return DEMO_MINTED;
+    return readUint(SEL.minted);
   },
-  async frozen(){ return false },
-  async auctionOpen(){ return false },
-  async highBid(){ return 0 },
-  async allColours(){ return Array.from({length:SUPPLY},(_,i)=>colourOf(i)) },
-  async positionOf(i){ const g=demo.pos[i]; return {x:g%GRID,y:Math.floor(g/GRID)} },
+  async mintPrice(){
+    if(DEMO) return 5000000000000000n;
+    return hexToBig(await callCollection(SEL.mintPrice));
+  },
+  async positionsAssigned(){
+    if(DEMO) return DEMO_MINTED >= SUPPLY;
+    return readBool(SEL.positionsAssigned);
+  },
+  async frozen(){
+    if(DEMO) return false;
+    return readBool(SEL.frozen);
+  },
+  async auctionSettled(){
+    if(DEMO) return false;
+    return readBool(SEL.auctionSettled);
+  },
+  async auctionOpen(){
+    if(DEMO) return false;
+    // open once the canvas is set and before settlement
+    const [f,st] = await Promise.all([this.frozen(), this.auctionSettled()]);
+    return f && !st;
+  },
+  async highBid(){
+    if(DEMO) return 0;
+    return Number(hexToBig(await callCollection(SEL.highBid))) / 1e18;
+  },
+  async auctionEnd(){
+    if(DEMO) return 0;
+    return Number(hexToBig(await callCollection(SEL.auctionEnd)));
+  },
+  async sharePerToken(){
+    if(DEMO) return 0n;
+    return hexToBig(await callCollection(SEL.sharePerToken));
+  },
+
+  /// The canvas. Returns 4,096 hex colours.
+  async allColours(){
+    if(DEMO) return Array.from({length:SUPPLY},(_,i)=>colourOf(i));
+    if(CACHE.colours && !cacheStale()) return CACHE.colours;
+    // packed bytes: offset word, length word, then three bytes per pixel
+    const raw = await callRenderer(SEL.allColours);
+    const body = raw.slice(2 + 64 + 64);
+    const out = new Array(SUPPLY);
+    for(let i=0;i<SUPPLY;i++){
+      out[i] = "#" + body.slice(i*6, i*6+6);
+    }
+    CACHE.colours = out; CACHE.at = Date.now();
+    return out;
+  },
+
+  /// Sixteen grid positions per word, so one call places the whole canvas.
+  async positionsPacked(){
+    if(CACHE.positions && !cacheStale()) return CACHE.positions;
+    const raw = await callCollection(SEL.positionsPacked);
+    const pos = new Array(SUPPLY);
+    for(let w=0; w<256; w++){
+      const v = hexToBig(word(raw, w));
+      for(let k=0;k<16;k++){
+        pos[w*16+k] = Number((v >> BigInt(k*16)) & 0xFFFFn);
+      }
+    }
+    CACHE.positions = pos;
+    return pos;
+  },
+
+  async positionOf(i){
+    if(DEMO){ const g=demo.pos[i]; return {x:g%GRID,y:Math.floor(g/GRID)}; }
+    const pos = await this.positionsPacked();
+    const g = pos[i];
+    return {x: g%GRID, y: Math.floor(g/GRID)};
+  },
+
+  /// Everything about one pixel, in a single call. The struct is all static
+  /// members, so it decodes as eleven flat words.
   async pixelOf(i){
-    const m=measures(i);
-    return { id:i, traded:!!m, sales:m?m.sales:0,
-             rhythm:m?m.rhythm:0, hold:m?m.hold:0, life:m?m.life:0,
-             R:STEPS.R[i], G:STEPS.G[i], B:STEPS.B[i],
-             colour:colourOf(i), ...await chain.positionOf(i) };
+    if(DEMO){
+      const m=measures(i);
+      return { id:i, traded:!!m, sales:m?m.sales:0,
+               rhythm:m?m.rhythm:0, hold:m?m.hold:0, life:m?m.life:0,
+               R:STEPS.R[i], G:STEPS.G[i], B:STEPS.B[i],
+               colour:colourOf(i), ...await chain.positionOf(i) };
+    }
+    const data = SEL.pixelOf + i.toString(16).padStart(64,"0");
+    const raw = await callRenderer(data);
+    const n = k => Number(hexToBig(word(raw,k)));
+    const colour = n(8);
+    return {
+      id: i,
+      traded: hexToBig(word(raw,0)) !== 0n,
+      sales:  n(1),
+      rhythm: n(2),
+      hold:   n(3),
+      life:   n(4),
+      R: n(5), G: n(6), B: n(7),
+      colour: "#" + colour.toString(16).padStart(6,"0"),
+      x: n(9), y: n(10)
+    };
   },
+
   async tokensOf(addr){
     if(DEMO){
       const seed=mulberry(parseInt(addr.slice(-6),16)||7);
@@ -925,6 +1088,17 @@ const chain = {
     }
     return tokensOfOnChain(addr);
   },
+
+  async claimantOf(id){
+    if(DEMO) return null;
+    const raw = await callCollection(SEL.claimantOf + id.toString(16).padStart(64,"0"));
+    return "0x" + raw.slice(-40);
+  },
+  async claimed(id){
+    if(DEMO) return false;
+    return hexToBig(await callCollection(SEL.claimed + id.toString(16).padStart(64,"0"))) !== 0n;
+  },
+
   async connect(){ return connectWallet(); }
 };
 
@@ -939,6 +1113,7 @@ function toast(msg){
 }
 function openPixel(id){
   const u=openseaURL(id);
+  // new tab: opening in place loses your scroll position and your zoom
   if(u) window.open(u,"_blank","noopener");
   else toast(`Pixel #${id} — the OpenSea link goes live once the contract is deployed.`);
 }
@@ -1091,10 +1266,11 @@ async function drawCanvas(){
     if(!COLOURS) COLOURS=await chain.allColours();
   }catch(e){ _rpcFailed(e); return; }
   POSOF=new Array(SUPPLY);
+  const POS = DEMO ? demo.pos : await chain.positionsPacked();
   const img=ctx.createImageData(GRID,GRID);
   for(let i=0;i<GRID*GRID;i++){img.data[i*4]=255;img.data[i*4+1]=255;img.data[i*4+2]=255;img.data[i*4+3]=255}
   for(let i=0;i<SUPPLY;i++){
-    const g=demo.pos[i]; POSOF[g]=i;
+    const g=POS[i]; POSOF[g]=i;
     const c=COLOURS[i], o=g*4;
     let R=parseInt(c.slice(1,3),16), G2=parseInt(c.slice(3,5),16), B=parseInt(c.slice(5,7),16);
     if(HIGHLIGHT && !HIGHLIGHT.has(i)){
@@ -1113,6 +1289,8 @@ async function drawCanvas(){
   _loading(false);
   sizeCanvas();
   drawOverlay();
+  const zh=document.getElementById("zoomHint");
+  if(zh) zh.style.display = TOUCH ? "block" : "none";
   const note=document.getElementById("hlNote");
   const clear=document.getElementById("hlClear");
   if(note){
@@ -1235,20 +1413,24 @@ cv.addEventListener("mousemove",e=>{
   HOVER_ID=id;
   showReadout(id,x,y);
 });
-function showReadout(id,x,y){
+async function showReadout(id,x,y){
   if(!ASSIGNED){
     document.getElementById("readout").innerHTML =
       `<span><b>#${id}</b></span><span>not yet placed</span>`+
       `<span class="muted">positions are shuffled when minting closes</span>`;
     return;
   }
-  const c=COLOURS[id], m=measures(id);
-  document.getElementById("readout").innerHTML =
+  const c=COLOURS[id];
+  const el=document.getElementById("readout");
+  el.innerHTML =
     `<span><span class="swatch" style="background:${c}"></span><b>#${id}</b></span>`+
-    `<span>x ${x} · y ${y}</span>`+
-    `<span>${c}</span>`+
-    (m ? `<span>sales <b>${m.sales}</b></span><span>tones <b>${STEPS.R[id]}/${STEPS.G[id]}/${STEPS.B[id]}</b></span>`
-       : `<span class="muted">never sold</span>`);
+    `<span>x ${x} · y ${y}</span><span>${c}</span>`;
+  if(c==="#ffffff"){ el.innerHTML += `<span class="muted">never sold</span>`; return; }
+  try{
+    const p = await chain.pixelOf(id);
+    el.innerHTML += `<span>sales <b>${p.sales}</b></span>`+
+                    `<span>tones <b>${p.R}/${p.G}/${p.B}</b></span>`;
+  }catch(_){}
 }
 cv.addEventListener("mouseleave",()=>{
   HOVER_ID=null;
@@ -1279,7 +1461,8 @@ async function drawCounter(){
   // during the mint would report unminted pixels as "still white", which is a
   // different thing entirely.
   let untouched=0;
-  for(let i=0;i<mint;i++) if(!STEPS.traded[i]) ++untouched;
+  if(COLOURS){ for(let i=0;i<mint;i++) if(COLOURS[i]==="#ffffff") ++untouched; }
+  else if(DEMO){ for(let i=0;i<mint;i++) if(!STEPS.traded[i]) ++untouched; }
   // During the mint the progress bar already shows the count, so the ledger
   // reports what the progress bar cannot, rather than repeating it or printing
   // dashes for figures that do not exist yet.
@@ -1443,7 +1626,16 @@ async function drawAuction(){
   if(ac && IMGDATA) ac.getContext("2d").putImageData(IMGDATA,0,0);
 
   const bb=document.getElementById("bidBtn");
-  if(bb && !bb.disabled) bb.onclick=()=>toast("Demo mode — no transaction sent.");
+  if(bb && !bb.disabled) bb.onclick=()=>{
+    if(DEMO){ toast("Demo mode — no transaction sent."); return; }
+    sendBid(document.getElementById("bidAmount").value);
+  };
+  const cb=document.getElementById("claimBtn");
+  if(cb){
+    const settled = await chain.auctionSettled();
+    cb.disabled = !settled;
+    if(settled) cb.onclick=()=>DEMO ? toast("Demo mode.") : sendClaim();
+  }
 }
 
 /* ---------- wallets: EIP-6963 discovery ---------------------------------
@@ -1590,13 +1782,77 @@ async function sendMint(qty){
   if(!(await ensureChain(PROVIDER))) return;
   const wei = MINT_PRICE_WEI * BigInt(qty);   // exact, from the contract
   try{
+    document.getElementById("mintBtn").disabled=true;
+    document.getElementById("mintBtn").textContent="Confirm in wallet";
     const hash=await PROVIDER.request({method:"eth_sendTransaction",params:[{
       from:ACCOUNT, to:CONTRACT, value:"0x"+wei.toString(16),
-      data:SEL_MINT+pad32(qty)
+      data:SEL.mint+pad32(qty)
     }]});
-    toast("Mint sent. "+hash.slice(0,10)+"…");
+    document.getElementById("mintBtn").textContent="Minting…";
+    toast("Sent. Waiting for the block.");
+    await waitForTx(hash);
+    document.getElementById("mintBtn").textContent="Mint";
+    document.getElementById("mintBtn").disabled=false;
+    bustCache(); COLOURS=null;
+    await drawMintProgress(); await drawCounter(); await drawCanvas(); drawPixels();
+    toast("Minted. Welcome to the canvas.");
   }catch(err){
+    const b=document.getElementById("mintBtn");
+    if(b){ b.disabled=false; b.textContent="Mint"; }
     toast(err && err.code===4001 ? "Cancelled in your wallet." : "Mint failed. Check your wallet.");
+  }
+}
+
+/// Poll for the receipt so the interface can say "done" rather than "sent".
+async function waitForTx(hash, tries=60){
+  for(let i=0;i<tries;i++){
+    try{
+      const r = await rpc("eth_getTransactionReceipt",[hash]);
+      if(r && r.blockNumber){
+        if(hexToBig(r.status) === 0n) throw new Error("reverted");
+        return r;
+      }
+    }catch(e){ if(e.message==="reverted") throw e; }
+    await new Promise(r=>setTimeout(r,3000));
+  }
+  throw new Error("timed out waiting for the block");
+}
+
+/* ---------- bidding and claiming ---------------------------------------- */
+async function sendBid(eth){
+  if(!PROVIDER||!ACCOUNT){ toast("Connect a wallet first."); return; }
+  if(!(await ensureChain(PROVIDER))) return;
+  const wei = BigInt(Math.round(Number(eth)*1e6)) * (10n**12n);
+  try{
+    const hash=await PROVIDER.request({method:"eth_sendTransaction",params:[{
+      from:ACCOUNT, to:CONTRACT, value:"0x"+wei.toString(16), data:SEL.bid
+    }]});
+    toast("Bid sent. Waiting for the block.");
+    await waitForTx(hash);
+    toast("Bid confirmed.");
+    drawAuction();
+  }catch(err){
+    toast(err && err.code===4001 ? "Cancelled in your wallet." : "Bid failed.");
+  }
+}
+
+async function sendClaim(){
+  if(!PROVIDER||!ACCOUNT){ toast("Connect a wallet first."); return; }
+  if(!(await ensureChain(PROVIDER))) return;
+  const ids = await chain.tokensOf(ACCOUNT);
+  if(!ids.length){ toast("Nothing to claim from this wallet."); return; }
+  // uint256[] : offset, length, then the ids
+  const data = SEL.claim + pad32(32) + pad32(ids.length) + ids.map(i=>pad32(i)).join("");
+  try{
+    const hash=await PROVIDER.request({method:"eth_sendTransaction",params:[{
+      from:ACCOUNT, to:CONTRACT, data
+    }]});
+    toast("Claim sent. Waiting for the block.");
+    await waitForTx(hash);
+    toast("Claimed.");
+    drawAuction();
+  }catch(err){
+    toast(err && err.code===4001 ? "Cancelled in your wallet." : "Claim failed — you may have claimed already.");
   }
 }
 
@@ -1737,6 +1993,28 @@ function drawPlate(){
   el.innerHTML=cols.map(c=>`<i style="background:${c}"></i>`).join("");
 }
 
+/* ---------- keep it live -------------------------------------------------
+   Everything used to read once at boot, so a mint counter would sit frozen
+   while people watched it. Poll while the tab is visible, back off when it
+   is not, and bust the canvas cache so colours move too.                   */
+let POLL=null;
+function startPolling(){
+  if(DEMO || POLL) return;
+  POLL = setInterval(async ()=>{
+    if(document.hidden) return;
+    try{
+      await drawMintProgress();
+      await drawCounter();
+      if(cacheStale()){ bustCache(); COLOURS=null; await drawCanvas(); }
+      const t=document.querySelector('nav button[aria-current="page"]');
+      if(t && t.dataset.tab==="auction") await drawAuction();
+    }catch(_){}
+  }, 20000);
+}
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden && !DEMO){ bustCache(); }
+});
+
 /* ---------- boot ---------- */
 (async()=>{
   STEPS=computeSteps();
@@ -1746,7 +2024,23 @@ function drawPlate(){
   await loadMintPrice();
   drawMint();
   drawPixels();
+  startPolling();
   if(!DEMO) document.getElementById("demoBanner").remove();
+  // a footer that reports on the work rather than only linking away from it
+  (async()=>{
+    try{
+      const [ts,f] = await Promise.all([chain.totalSales(), chain.frozen()]);
+      const el=document.getElementById("footState");
+      if(!el) return;
+      el.innerHTML = f
+        ? `The canvas is set. It will never change again.`
+        : `The total stands at <b>${ts.toLocaleString()}</b>. The sealed number is not public, so nobody knows how close this is.`;
+    }catch(_){}
+  })();
+  if(CONTRACT){
+    document.getElementById("fOpensea").href="https://opensea.io/assets/ethereum/"+CONTRACT;
+    document.getElementById("fEtherscan").href="https://etherscan.io/address/"+CONTRACT;
+  }
   if(CONTRACT) document.getElementById("addr").innerHTML=
     ' \u00b7 <a href="https://etherscan.io/address/'+CONTRACT+'" target="_blank" rel="noopener">'+
     CONTRACT.slice(0,6)+'\u2026'+CONTRACT.slice(-4)+'</a>';
