@@ -6,17 +6,22 @@
 <title>4096 — a painting made by its own market</title>
 <meta name="description" content="4,096 pixels, one canvas. Every pixel starts white and takes its colour from how it is traded. Nobody chooses, including us.">
 <meta name="theme-color" content="#eeeeea">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%23fff'/%3E%3Crect x='1' y='1' width='2' height='2' fill='%23a02f1c'/%3E%3Crect x='5' y='2' width='2' height='2' fill='%232c6338'/%3E%3Crect x='2' y='5' width='2' height='2' fill='%23283a86'/%3E%3C/svg%3E">
-<!-- Set OG_IMAGE below to an absolute https URL of a rendered canvas before launch.
-     Without it, every share of this link is a bare grey rectangle. -->
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- Absolute URLs are required here: relative paths do not resolve for the
+     crawlers that build link previews. Update the domain when it changes. -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="4096 — a painting made by its own market">
 <meta property="og:description" content="4,096 pixels, one canvas. Colour comes only from how each pixel is traded. Nobody chooses it, including us.">
-<meta property="og:image" content="">
+<meta property="og:url" content="https://cis-inventory-specialist.github.io/4096-site/">
+<meta property="og:image" content="https://cis-inventory-specialist.github.io/4096-site/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="4096 — a painting made by its own market">
 <meta name="twitter:description" content="4,096 pixels, one canvas. Colour comes only from how each pixel is traded.">
-<meta name="twitter:image" content="">
+<meta name="twitter:image" content="https://cis-inventory-specialist.github.io/4096-site/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -46,6 +51,7 @@
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   }
   a{color:inherit}
+  ::selection{background:var(--ink);color:var(--paper)}
   .wrap{max-width:1160px;margin:0 auto;padding:0 28px 100px}
 
   /* ---- masthead ---- */
@@ -98,9 +104,12 @@
     .stage2col{gap:26px}
   }
   /* the ledger sits under the mint panel so the column reads as one object */
+  /* joins the mint panel above it, so they read as one object */
   .sidebar .counter{grid-template-columns:1fr;margin-top:-1px;border-top:none}
-  .sidebar .counter div{border-right:none;padding:12px 24px;display:flex;
-    justify-content:space-between;align-items:baseline;gap:12px}
+  .sidebar .counter div{border-right:none;border-bottom:1px solid var(--rule);
+    padding:12px 24px;display:flex;justify-content:space-between;
+    align-items:baseline;gap:12px}
+  .sidebar .counter div:last-child{border-bottom:none}
   .sidebar .counter .v{font-size:19px;margin-top:0}
   .stagewrap{display:flex;flex-direction:column;align-items:center;gap:18px}
   .frame{border:1px solid var(--ink);padding:13px;background:var(--mount);
@@ -140,9 +149,12 @@
   .ghost[aria-pressed="true"]{border-color:var(--ink);color:var(--ink)}
 
   /* ---- ledger of figures ---- */
+  /* A closed box: the container owns the outline, the cells own the dividers.
+     Previously the container drew only a top rule and each cell drew bottom and
+     right, so the ledger had no left or right edge and read as unfinished. */
   .counter{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
-    border-top:1px solid var(--ink);margin-top:44px;background:var(--mount)}
-  .counter div{border-bottom:1px solid var(--rule);border-right:1px solid var(--rule);padding:15px 17px}
+    border:1px solid var(--ink);margin-top:44px;background:var(--mount)}
+  .counter div{border-right:1px solid var(--rule);padding:15px 17px}
   .counter div:last-child{border-right:none}
   .counter .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;
     text-transform:uppercase;color:var(--ink3)}
@@ -186,7 +198,8 @@
   .cardtop{display:flex;align-items:center;gap:11px;margin-bottom:14px}
   .chip{width:38px;height:38px;border:1px solid var(--rule);flex:none}
   .cardid{font-size:17px;font-weight:400;line-height:1.2}
-  .cardpos{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:3px}
+  .cardpos{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:3px;
+    overflow-wrap:anywhere}
   .bar{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;
     letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-top:7px}
   .bar .lab{width:54px;flex:none}
@@ -197,16 +210,19 @@
     font-size:12.5px;color:var(--ink3);line-height:1.6}
 
   /* ---- tables ---- */
-  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{width:100%;border-collapse:collapse;margin-top:8px;background:var(--mount)}
-  th,td{text-align:left;padding:12px 12px;border-bottom:1px solid var(--rule);
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;
+    border:1px solid var(--rule);background:var(--mount);margin-top:10px}
+  table{width:100%;border-collapse:collapse;background:var(--mount)}
+  th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--rule);
     font-size:14px;vertical-align:top;line-height:1.6}
+  tr:last-child td{border-bottom:none}
   th{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
     color:var(--ink3);font-weight:500;border-bottom:1px solid var(--ink)}
   td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 
   /* ---- disclosure ---- */
-  details{border:1px solid var(--rule);margin-top:12px;background:var(--mount)}
+  details{border:1px solid var(--rule);margin-top:10px;background:var(--mount)}
+  details + details{margin-top:-1px}
   details[open]{border-color:var(--ink)}
   summary{cursor:pointer;padding:15px 17px;font-size:15px;list-style:none;
     display:flex;justify-content:space-between;align-items:center;gap:14px}
@@ -221,7 +237,8 @@
 
   /* ---- richter plate ---- */
   .plate{display:grid;grid-template-columns:repeat(16,1fr);width:100%;max-width:390px;
-    margin:12px 0 8px;line-height:0;border:1px solid var(--rule)}
+    margin:12px 0 8px;line-height:0;border:1px solid var(--rule);
+    padding:0;background:var(--mount)}
   .plate i{display:block;padding-bottom:100%}
 
   /* ---- auction ---- */
@@ -230,9 +247,13 @@
   #auctionCanvas{display:block;image-rendering:pixelated;width:244px;height:244px}
   .boxes{display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:530px;
     border:1px solid var(--rule);background:var(--mount)}
-  @media(max-width:560px){.boxes{grid-template-columns:1fr}}
   .box{padding:20px 22px;border-right:1px solid var(--rule)}
   .box:last-child{border-right:none}
+  @media(max-width:560px){
+    .boxes{grid-template-columns:1fr}
+    .box{border-right:none;border-bottom:1px solid var(--rule)}
+    .box:last-child{border-bottom:none}
+  }
   .box .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;
     text-transform:uppercase;color:var(--ink3)}
   .box .v{font-size:27px;font-weight:400;font-variant-numeric:tabular-nums;
@@ -250,8 +271,9 @@
   .notice.live{border-color:var(--ink);color:var(--ink)}
   .foot{margin-top:70px;padding-top:18px;border-top:1px solid var(--rule);
     font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink3)}
-  .banner{background:#e6e4dc;border:1px solid var(--rule);color:#5f5c4e;padding:11px 15px;
-    font-family:var(--mono);font-size:11px;margin-top:18px}
+  .banner{background:#e6e4dc;border:1px solid var(--rule);color:#5f5c4e;
+    padding:9px 13px;font-family:var(--mono);font-size:10.5px;margin-top:14px;
+    line-height:1.5}
   .loading{display:flex;align-items:center;justify-content:center;
     min-height:200px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
     text-transform:uppercase;color:var(--ink3)}
@@ -262,6 +284,9 @@
     color:var(--mount);font-family:var(--mono);font-size:11px;padding:12px 18px;z-index:50;
     opacity:0;pointer-events:none;transition:opacity .18s}
   .toast.on{opacity:1}
+  /* one visible focus ring for everything, not just the nav */
+  button:focus-visible, input:focus-visible, summary:focus-visible, .card:focus-visible{
+    outline:2px solid var(--ink); outline-offset:2px}
   svg{display:block;width:100%;height:auto}
 
   /* ---- phone ---- */
@@ -671,6 +696,7 @@ ever sold end up a different colour, whether or not their owner did anything.</d
   </p>
 </div>
 
+<script src="config.js"></script>
 <script>
 /* ---------------------------------------------------------------
    CONTRACT WIRING
@@ -678,8 +704,8 @@ ever sold end up a different colour, whether or not their owner did anything.</d
    Every function in `chain` is the only place the site touches the
    chain — swap the bodies for real calls and nothing else changes.
    --------------------------------------------------------------- */
-const CONTRACT = null;
-const RENDERER = null;
+const CONTRACT = (window.CONFIG && window.CONFIG.CONTRACT) || null;
+const RENDERER = (window.CONFIG && window.CONFIG.RENDERER) || null;
 
 // Reads must work for someone with no wallet, which is most visitors and nearly
 // everyone on a phone. A wallet is only needed to mint, bid or claim.
@@ -692,8 +718,10 @@ const RENDERER = null;
 // The public fallbacks keep the canvas readable if your key is rate limited or
 // the dashboard is misconfigured. They restrict eth_getLogs ranges, so "Your
 // pixels" may not work on them - everything else will.
-const RPC_ENDPOINTS = [
-  "https://eth-mainnet.g.alchemy.com/v2/alch_3fiqFg8RuxP3NIcBqSEz5",
+// Your key and contract address live in config.js, which sits next to this file
+// and is never overwritten when index.html is replaced. Edit that once and it
+// survives every future update to the site.
+const RPC_ENDPOINTS = (window.CONFIG && window.CONFIG.RPC_ENDPOINTS) || [
   "https://cloudflare-eth.com",
   "https://eth.llamarpc.com"
 ];
