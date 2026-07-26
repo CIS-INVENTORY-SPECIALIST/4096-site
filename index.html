@@ -96,6 +96,22 @@
     border:1px solid var(--rule);background:var(--mount);color:var(--ink2);padding:9px 13px;cursor:pointer}
   .wallet[data-state="idle"]{text-transform:uppercase}
   .wallet:hover{border-color:var(--ink);color:var(--ink)}
+  .navtoggle{display:none;flex-direction:column;gap:4px;background:none;border:none;
+    cursor:pointer;padding:8px}
+  .navtoggle span{display:block;width:22px;height:2px;background:var(--ink)}
+  @media(max-width:760px){
+    header{flex-wrap:wrap;align-items:center}
+    .brand{order:1}
+    .navtoggle{display:flex;order:2;margin-left:auto}
+    .wallet{order:3}
+    nav#nav{display:none !important;order:4;width:100%;margin-top:6px}
+    nav#nav.open{display:grid !important}
+    .sidebar{max-width:none !important;width:100% !important}
+    .mint{max-width:none !important;width:100% !important;box-sizing:border-box}
+    .counter{width:100% !important;box-sizing:border-box;
+      grid-template-columns:1fr !important}
+    .stage2col{width:100%;grid-template-columns:1fr !important}
+  }
 
   /* ---- type ---- */
   .eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;
@@ -373,6 +389,9 @@
           <span class="bm3"></span><span class="bm4"></span>
         </span>4096
       </div>
+    <button class="navtoggle" id="navToggle" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
     <nav id="nav">
       <button data-tab="canvas" aria-current="page">Canvas</button>
       <button data-tab="pixels">Your pixels</button>
@@ -1990,6 +2009,7 @@ document.getElementById("wallet").onclick=async()=>{
   drawPixels();
 };
 
+document.getElementById("navToggle").addEventListener("click",()=>{const n=document.getElementById("nav");n.classList.toggle("open");});
 document.getElementById("nav").addEventListener("click",e=>{
   const t=e.target.dataset.tab; if(!t) return;
   document.querySelectorAll("nav button").forEach(b=>b.removeAttribute("aria-current"));
