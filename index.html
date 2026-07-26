@@ -1662,7 +1662,7 @@ window.addEventListener("eip6963:announceProvider", e=>{
 window.dispatchEvent(new Event("eip6963:requestProvider"));
 
 let PROVIDER=null;
-const CHAIN_ID="0x1";                     // Ethereum mainnet
+const CHAIN_ID=(window.CONFIG && window.CONFIG.CHAIN_ID) || "0x1";                     // Ethereum mainnet
 
 function walletList(){
   const out=[...WALLETS.values()];
@@ -1878,8 +1878,8 @@ const SEL_OWNER_OF="0x6352211e";
 const topicAddr = a => "0x"+a.toLowerCase().replace(/^0x/,"").padStart(64,"0");
 
 let RPC_ID = 0, RPC_INDEX = 0;
-async function rpc(method,params){
-  if(PROVIDER) return PROVIDER.request({method,params});
+async function rpc(method,params,forceDirect){
+  if(PROVIDER && !forceDirect) return PROVIDER.request({method,params});
   // walk the endpoint list rather than dying on the first failure
   let lastErr;
   for(let attempt=0; attempt<RPC_ENDPOINTS.length; attempt++){
@@ -1904,7 +1904,7 @@ async function tokensOfOnChain(addr){
   const logs=await rpc("eth_getLogs",[{
     address:CONTRACT, fromBlock:"0x0", toBlock:"latest",
     topics:[TRANSFER_TOPIC, null, topicAddr(addr)]
-  }]);
+  }], true);
   const seen=new Set();
   for(const l of logs){
     if(!l.topics || l.topics.length<4) continue;
@@ -1971,14 +1971,24 @@ document.getElementById("hlClear").onclick=()=>{
 
 /* ---------- wallet + tabs ---------- */
 document.getElementById("wallet").onclick=async()=>{
+  const wb=document.getElementById("wallet");
+  // if already connected, this click disconnects
+  if(ACCOUNT){
+    ACCOUNT=null;
+    PROVIDER=null;
+    wb.setAttribute("data-state","idle");
+    wb.textContent="Connect wallet";
+    drawPixels();
+    return;
+  }
   const a=await chain.connect();
   if(!a) return;
   ACCOUNT=a;
-  const wb=document.getElementById("wallet");
   wb.removeAttribute("data-state");
   wb.textContent=a.slice(0,6)+"…"+a.slice(-4);
   drawPixels();
 };
+
 document.getElementById("nav").addEventListener("click",e=>{
   const t=e.target.dataset.tab; if(!t) return;
   document.querySelectorAll("nav button").forEach(b=>b.removeAttribute("aria-current"));
@@ -2026,6 +2036,32 @@ document.addEventListener("visibilitychange",()=>{
   if(!document.hidden && !DEMO){ bustCache(); }
 });
 
+async function restoreConnection(){
+  try{
+    let prov = null;
+    const list = walletList();
+    if(list.length) prov = list[0].provider;
+    else if(window.ethereum) prov = window.ethereum;
+    if(!prov) return;
+    PROVIDER = prov;
+    const accts = await prov.request({method:"eth_accounts"}); console.log("restore got accounts:", accts);
+    if(accts && accts[0]){
+      ACCOUNT = accts[0];
+      const wb = document.getElementById("wallet");
+      wb.removeAttribute("data-state");
+      wb.textContent = ACCOUNT.slice(0,6)+"…"+ACCOUNT.slice(-4);
+      prov.on && prov.on("accountsChanged", a=>{
+        ACCOUNT = a[0]||null;
+        const b=document.getElementById("wallet");
+        if(ACCOUNT){ b.removeAttribute("data-state"); b.textContent=ACCOUNT.slice(0,6)+"…"+ACCOUNT.slice(-4); }
+        else { b.setAttribute("data-state","idle"); b.textContent="Connect wallet"; }
+        drawPixels();
+      });
+    } else {
+      PROVIDER = null;
+    }
+  }catch(e){ console.log("restoreConnection:", e); }
+}
 /* ---------- boot ---------- */
 (async()=>{
   STEPS=computeSteps();
@@ -2034,6 +2070,7 @@ document.addEventListener("visibilitychange",()=>{
   await drawMintProgress();
   await loadMintPrice();
   drawMint();
+  await restoreConnection();
   drawPixels();
   startPolling();
   if(!DEMO) document.getElementById("demoBanner").remove();
