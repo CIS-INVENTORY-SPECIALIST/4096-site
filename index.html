@@ -77,7 +77,7 @@
      a scroll nobody would find. They wrap into a grid instead, so every tab is
      visible without moving. */
   @media(max-width:760px){
-    nav{display:grid;grid-template-columns:repeat(3,1fr);width:100%;
+    nav#nav{grid-template-columns:repeat(3,1fr);width:100%;
         border-top:1px solid var(--rule);margin-top:4px}
     nav button{padding:11px 4px;text-align:center;font-size:9px;letter-spacing:.12em;
       border-bottom:1px solid var(--rule)}
@@ -341,8 +341,7 @@
     .tablewrap table{min-width:0;display:block;background:none}
     .tablewrap thead{display:none}
     .tablewrap tbody{display:flex;flex-direction:column;gap:10px}
-    .tablewrap tr{display:block;border:1px solid var(--rule);background:var(--mount);
-      padding:15px 16px}
+    .tablewrap tr{display:block;border:1px solid var(--rule);background:var(--mount);box-sizing:border-box;width:100%;}
     .tablewrap tr:last-child{border-bottom:1px solid var(--rule)}
     .tablewrap td{display:block;border:none;padding:1px 0;font-size:15px}
     .tablewrap td:first-child{font-weight:700;font-size:16px;margin-bottom:5px}
@@ -1500,9 +1499,9 @@ async function drawCounter(){
     ? [["Total sales", ts.toLocaleString()],
        ["Untouched", untouched.toLocaleString()],
        ["Canvas", frozen ? "Set" : "Painting"]]
-    : [["Canvas", "Minting"],
+    : [["Minted", mint.toLocaleString()],
        ["Remaining", (SUPPLY-mint).toLocaleString()],
-       ["Creator reserve", "150"]];
+       ["Team", "150"]];
   document.getElementById("counter").innerHTML=tiles
     .map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 }
@@ -2103,7 +2102,7 @@ async function restoreConnection(){
       if(!el) return;
       el.innerHTML = f
         ? `The canvas is set. It will never change again.`
-        : `The total stands at <b>${ts.toLocaleString()}</b>. The sealed number is not public, so nobody knows how close this is.`;
+        : ``;
     }catch(_){}
   })();
   if(CONTRACT){
