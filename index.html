@@ -1974,6 +1974,7 @@ document.getElementById("wallet").onclick=async()=>{
   const wb=document.getElementById("wallet");
   // if already connected, this click disconnects
   if(ACCOUNT){
+    if(!confirm("Disconnect wallet?")) return;
     ACCOUNT=null;
     PROVIDER=null;
     wb.setAttribute("data-state","idle");
