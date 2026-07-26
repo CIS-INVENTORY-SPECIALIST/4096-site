@@ -343,7 +343,7 @@
     .tablewrap table{min-width:0;display:block;background:none}
     .tablewrap thead{display:none}
     .tablewrap tbody{display:flex;flex-direction:column;gap:10px}
-    .tablewrap tr{display:block;border:1px solid var(--rule);background:var(--mount);box-sizing:border-box;width:100%;}
+    .tablewrap tr{display:block;border:1px solid var(--rule);background:var(--mount);box-sizing:border-box;width:100%;padding:15px 18px}
     .tablewrap tr:last-child{border-bottom:1px solid var(--rule)}
     .tablewrap td{display:block;border:none;padding:1px 0;font-size:15px}
     .tablewrap td:first-child{font-weight:700;font-size:16px;margin-bottom:5px}
@@ -1253,10 +1253,10 @@ function _rpcFailed(err){
   w.appendChild(d);
 }
 
-async function drawCanvas(){
+async function drawCanvas(quiet){
   // allColours is a heavy read on mainnet - several seconds is normal - so say
   // something rather than showing an empty frame.
-  _loading(true);
+  if(!quiet) _loading(true);
   try{
     ASSIGNED = await chain.positionsAssigned();
   }catch(e){ _rpcFailed(e); return; }
@@ -2016,6 +2016,7 @@ document.getElementById("nav").addEventListener("click",e=>{
   document.querySelectorAll("nav button").forEach(b=>b.removeAttribute("aria-current"));
   e.target.setAttribute("aria-current","page");
   document.getElementById("nav").classList.remove("open");
+  history.replaceState(null,"","#"+t);
   document.querySelectorAll("section").forEach(s=>s.removeAttribute("data-active"));
   document.querySelector(`section[data-tab="${t}"]`).setAttribute("data-active","");
   if(t==="pixels") drawPixels();
@@ -2048,7 +2049,7 @@ function startPolling(){
     if(document.hidden) return;
     try{
       await drawMintProgress();
-      await drawCounter();
+      if(cacheStale()){ bustCache(); await drawCanvas(true); }
       if(cacheStale()){ bustCache(); COLOURS=null; await drawCanvas(); }
       const t=document.querySelector('nav button[aria-current="page"]');
       if(t && t.dataset.tab==="auction") await drawAuction();
@@ -2096,6 +2097,7 @@ async function restoreConnection(){
   await restoreConnection();
   drawPixels();
   startPolling();
+  if(location.hash){const tb=document.querySelector(`nav button[data-tab="${location.hash.slice(1)}"]`); if(tb) tb.click();}
   if(!DEMO) document.getElementById("demoBanner").remove();
   // a footer that reports on the work rather than only linking away from it
   (async()=>{
