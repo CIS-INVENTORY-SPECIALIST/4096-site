@@ -433,6 +433,7 @@
         Pinch to zoom. One pixel is small on purpose.</p>
       <div class="hlbar">
         <button class="ghost" id="hlMine" aria-pressed="false">Highlight my pixels</button>
+        <button class="ghost" id="exportBtn">Frame &amp; export</button>
         <button class="ghost" id="hlClear" hidden>Clear highlight</button>
         <span id="hlNote" class="muted"></span>
       </div>
@@ -2118,6 +2119,125 @@ async function restoreConnection(){
   if(CONTRACT) document.getElementById("addr").innerHTML=
     ' \u00b7 <a href="https://etherscan.io/address/'+CONTRACT+'" target="_blank" rel="noopener">'+
     CONTRACT.slice(0,6)+'\u2026'+CONTRACT.slice(-4)+'</a>';
+})();
+</script>
+<!-- ==== FRAME & EXPORT MODAL ==== -->
+<div id="exportModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(20,20,18,.55);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--paper,#eeeeea);max-width:560px;width:100%;max-height:92vh;overflow:auto;padding:28px 26px 32px;box-shadow:0 20px 60px rgba(0,0,0,.4);position:relative">
+    <button id="exportClose" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:24px;line-height:1;cursor:pointer;color:var(--ink3,#8a857b)">&times;</button>
+    <div style="font-family:'Courier New',monospace;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3,#8a857b);margin-bottom:4px">4096</div>
+    <div style="font-family:Georgia,serif;font-size:26px;margin-bottom:20px">frame &amp; export</div>
+    <div style="display:flex;justify-content:center;margin-bottom:22px;min-height:300px;align-items:center">
+      <div id="em_molding" style="display:inline-block;line-height:0">
+        <div id="em_mat" style="display:inline-block;background:#fff;line-height:0">
+          <canvas id="em_preview" width="300" height="300" style="display:block;width:300px;height:300px;image-rendering:pixelated;box-shadow:0 0 0 1px #3c3c3a"></canvas>
+        </div>
+        <div id="em_plaque" style="display:none;font-family:'Courier New',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2,#4a453d);text-align:center;padding-top:12px">4096 · block —</div>
+      </div>
+    </div>
+    <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3,#8a857b);margin-bottom:10px">choose a frame</div>
+    <div id="em_frames" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:20px"></div>
+    <div style="display:flex;gap:18px;justify-content:center;margin-bottom:22px;font-family:'Courier New',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2,#4a453d)">
+      <label style="cursor:pointer;display:flex;gap:6px;align-items:center"><input type="checkbox" id="em_matToggle" checked> white mat</label>
+      <label style="cursor:pointer;display:flex;gap:6px;align-items:center"><input type="checkbox" id="em_plaqueToggle" checked> block stamp</label>
+    </div>
+    <div style="text-align:center">
+      <button id="em_download" style="background:var(--ink,#1b1b19);color:var(--paper,#eeeeea);border:none;font-family:'Courier New',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;padding:13px 38px;cursor:pointer">download</button>
+    </div>
+    <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--ink3,#8a857b);font-style:italic">the live canvas as it looks right now. no wallet needed.</div>
+  </div>
+</div>
+<script>
+/* ==== FRAME & EXPORT ==== */
+(function(){
+  const GRID=64;
+  const FRAMES={
+    none:{label:'none',mold:{p:'0',bg:'transparent',sh:'none',br:'0'},mf:0,matDef:false,
+      paint:null},
+    thin:{label:'thin black',mold:{p:'10px',bg:'#1b1b19',sh:'0 4px 14px rgba(0,0,0,.2)',br:'0'},mf:0.03,matDef:true,
+      paint:(c,x,y,w,h)=>{c.fillStyle='#1b1b19';c.fillRect(x,y,w,h);}},
+    blackbox:{label:'black box',mold:{p:'34px',bg:'#141412',sh:'inset 0 0 0 2px #000,0 6px 20px rgba(0,0,0,.3)',br:'0'},mf:0.10,matDef:true,
+      paint:(c,x,y,w,h)=>{c.fillStyle='#141412';c.fillRect(x,y,w,h);c.strokeStyle='rgba(0,0,0,.6)';c.lineWidth=Math.max(2,w*0.003);c.strokeRect(x+w*0.02,y+w*0.02,w-w*0.04,h-w*0.04);}},
+    maple:{label:'maple',mold:{p:'26px',bg:'linear-gradient(135deg,#e8d3ad,#d8bd8f,#c9a86f)',sh:'inset 0 0 0 1px rgba(120,90,50,.35),0 6px 18px rgba(0,0,0,.18)',br:'1px'},mf:0.075,matDef:true,
+      paint:(c,x,y,w,h)=>{const g=c.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,'#e8d3ad');g.addColorStop(.5,'#d8bd8f');g.addColorStop(1,'#c9a86f');c.fillStyle=g;c.fillRect(x,y,w,h);c.strokeStyle='rgba(150,110,60,.18)';c.lineWidth=1;for(let i=0;i<8;i++){const yy=y+Math.random()*h;c.beginPath();c.moveTo(x,yy);c.lineTo(x+w,yy+(Math.random()*6-3));c.stroke();}}},
+    walnut:{label:'walnut',mold:{p:'30px',bg:'linear-gradient(135deg,#6d4a2b,#4e3319,#3a2512)',sh:'inset 0 0 0 2px rgba(0,0,0,.35),0 6px 20px rgba(0,0,0,.28)',br:'1px'},mf:0.09,matDef:true,
+      paint:(c,x,y,w,h)=>{const g=c.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,'#6d4a2b');g.addColorStop(.5,'#4e3319');g.addColorStop(1,'#3a2512');c.fillStyle=g;c.fillRect(x,y,w,h);c.strokeStyle='rgba(20,10,0,.3)';c.lineWidth=1;for(let i=0;i<10;i++){const yy=y+Math.random()*h;c.beginPath();c.moveTo(x,yy);c.lineTo(x+w,yy+(Math.random()*6-3));c.stroke();}}},
+    ornate:{label:'antique',mold:{p:'36px',bg:'linear-gradient(135deg,#5a5148,#3a342c,#2a251f)',sh:'inset 0 0 0 3px rgba(180,160,110,.25),inset 0 0 0 6px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35)',br:'2px'},mf:0.11,matDef:true,
+      paint:(c,x,y,w,h)=>{const g=c.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,'#5a5148');g.addColorStop(.5,'#3a342c');g.addColorStop(1,'#2a251f');c.fillStyle=g;c.fillRect(x,y,w,h);c.strokeStyle='rgba(190,165,110,.4)';c.lineWidth=Math.max(2,w*0.004);c.strokeRect(x+w*0.03,y+w*0.03,w-w*0.06,h-w*0.06);c.strokeStyle='rgba(0,0,0,.5)';c.lineWidth=Math.max(2,w*0.005);c.strokeRect(x+w*0.06,y+w*0.06,w-w*0.12,h-w*0.12);}}
+  };
+  let cur='blackbox', matOn=true, plaqueOn=true, curBlock=null;
+
+  const modal=document.getElementById('exportModal');
+  const molding=document.getElementById('em_molding');
+  const mat=document.getElementById('em_mat');
+  const prev=document.getElementById('em_preview');
+  const plaqueEl=document.getElementById('em_plaque');
+  const framesEl=document.getElementById('em_frames');
+  const matT=document.getElementById('em_matToggle');
+  const plaqueT=document.getElementById('em_plaqueToggle');
+
+  Object.keys(FRAMES).forEach(k=>{
+    const b=document.createElement('button');
+    b.textContent=FRAMES[k].label; b.dataset.k=k;
+    b.style.cssText="background:transparent;border:1px solid #3c3c3a;color:#1b1b19;font-family:'Courier New',monospace;font-size:11px;letter-spacing:.06em;padding:8px 12px;cursor:pointer";
+    b.onclick=()=>pick(k);
+    framesEl.appendChild(b);
+  });
+  function pick(k){cur=k;matOn=FRAMES[k].matDef;matT.checked=matOn;
+    [...framesEl.children].forEach(b=>{const on=b.dataset.k===k;b.style.background=on?'#1b1b19':'transparent';b.style.color=on?'#eee':'#1b1b19';});
+    draw();}
+  matT.onchange=()=>{matOn=matT.checked;draw();};
+  plaqueT.onchange=()=>{plaqueOn=plaqueT.checked;draw();};
+
+  function copyLive(){
+    const src=document.getElementById("canvas");
+    const p=prev.getContext("2d"); p.imageSmoothingEnabled=false;
+    try{
+      if(src){ p.clearRect(0,0,300,300); p.drawImage(src,0,0,src.width,src.height,0,0,300,300); window._emSrc=src; }
+    }catch(e){}
+  }
+  function compose(ctx2, OUT, srcImg){
+    const f=FRAMES[cur],mf=f.mf||0,matFrac=matOn?0.07:0;
+    if(f.paint){ f.paint(ctx2,0,0,OUT,OUT); } else { ctx2.clearRect(0,0,OUT,OUT); }
+    const mOff=Math.round(OUT*mf);
+    if(matOn){ ctx2.fillStyle="#fff"; ctx2.fillRect(mOff,mOff,OUT-mOff*2,OUT-mOff*2); }
+    const inset=mOff+Math.round(OUT*matFrac),art=OUT-inset*2;
+    ctx2.imageSmoothingEnabled=false;
+    if(srcImg)ctx2.drawImage(srcImg,0,0,srcImg.width,srcImg.height,inset,inset,art,art);
+    ctx2.strokeStyle="#3c3c3a";ctx2.lineWidth=Math.max(2,OUT*0.003);ctx2.strokeRect(inset,inset,art,art);
+    if(plaqueOn){
+      const bl=curBlock?("BLOCK "+curBlock.toLocaleString()):"";const dt=new Date().toISOString().slice(0,10);
+      const txt=("4096  \u00b7  "+(bl?bl+"  \u00b7  ":"")+dt).toUpperCase();
+      ctx2.textAlign="center";ctx2.textBaseline="middle";
+      if(matOn){ const artBottom=inset+art, matBottom=OUT-mOff, midY=(artBottom+matBottom)/2; ctx2.fillStyle="#4a453d"; ctx2.font=Math.round(OUT*0.017)+"px 'Courier New',monospace"; ctx2.fillText(txt,OUT/2,midY); }
+      else { ctx2.fillStyle=["walnut","ornate","blackbox","maple","thin"].includes(cur)?"#f0e8d8":"#4a453d"; ctx2.font=Math.round(OUT*0.019)+"px 'Courier New',monospace"; ctx2.fillText(txt,OUT/2,OUT-mOff/2); }
+    }
+  }
+  function draw(){
+    // hide the old css frame/mat/plaque, render everything into the preview canvas instead
+    molding.style.padding="0";molding.style.background="transparent";molding.style.boxShadow="none";
+    mat.style.padding="0";mat.style.background="transparent";
+    plaqueEl.style.display="none";
+    const P=380;
+    prev.width=P;prev.height=P;prev.style.width="300px";prev.style.height="300px";
+    const pc=prev.getContext("2d");pc.clearRect(0,0,P,P);
+    compose(pc,P,window._emSrc);
+  }
+
+  document.getElementById("exportBtn").addEventListener('click',async ()=>{
+    copyLive(); draw(); modal.style.display='flex';
+    try{const hex=await rpc("eth_blockNumber",[]);curBlock=parseInt(hex,16);draw();}catch(e){curBlock=null;draw();}
+  });
+  document.getElementById('exportClose').onclick=()=>modal.style.display='none';
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.style.display='none';});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')modal.style.display='none';});
+
+  document.getElementById("em_download").onclick=()=>{
+    const OUT=1200;
+    const cvs=document.createElement("canvas");cvs.width=OUT;cvs.height=OUT;
+    compose(cvs.getContext("2d"),OUT,window._emSrc);
+    const a=document.createElement("a");a.download="4096-block-"+(curBlock||new Date().toISOString().slice(0,10))+".png";a.href=cvs.toDataURL("image/png");a.click();
+  };
 })();
 </script>
 </body>
