@@ -1198,6 +1198,7 @@ function sizeCanvas(){
   const avail=twoCol ? content-SIDEBAR-GAP : Math.min(window.innerWidth-46, 760);
   CELL=Math.max(5,Math.min(12,Math.floor(avail/GRID)));
   cv.style.width=(CELL*GRID)+"px"; cv.style.height=(CELL*GRID)+"px";
+  const _ld=document.getElementById("canvasLoading"); if(_ld){ _ld.style.width=(CELL*GRID)+"px"; _ld.style.height=(CELL*GRID)+"px"; _ld.style.minHeight=(CELL*GRID)+"px"; }
   const ov=document.getElementById("overlay");
   if(ov){
     ov.width=CELL*GRID; ov.height=CELL*GRID;
@@ -2052,7 +2053,7 @@ function startPolling(){
     try{
       await drawMintProgress();
       if(cacheStale()){ bustCache(); await drawCanvas(true); }
-      if(cacheStale()){ bustCache(); COLOURS=null; await drawCanvas(); }
+      if(cacheStale()){ bustCache(); COLOURS=null; await drawCanvas(true); }
       const t=document.querySelector('nav button[aria-current="page"]');
       if(t && t.dataset.tab==="auction") await drawAuction();
     }catch(_){}
