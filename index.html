@@ -2232,11 +2232,23 @@ async function restoreConnection(){
   modal.addEventListener('click',e=>{if(e.target===modal)modal.style.display='none';});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')modal.style.display='none';});
 
-  document.getElementById("em_download").onclick=()=>{
+  document.getElementById("em_download").onclick=async ()=>{
     const OUT=1200;
     const cvs=document.createElement("canvas");cvs.width=OUT;cvs.height=OUT;
     compose(cvs.getContext("2d"),OUT,window._emSrc);
-    const a=document.createElement("a");a.download="4096-block-"+(curBlock||new Date().toISOString().slice(0,10))+".png";a.href=cvs.toDataURL("image/png");a.click();
+    const fname="4096-block-"+(curBlock||new Date().toISOString().slice(0,10))+".png";
+    const blob=await new Promise(res=>cvs.toBlob(res,"image/png"));
+    if(!blob){ const a=document.createElement("a");a.download=fname;a.href=cvs.toDataURL("image/png");a.click(); return; }
+    const file=new File([blob],fname,{type:"image/png"});
+    // mobile: use native share sheet (Save Image to Photos, or share anywhere)
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:"4096"}); return; }
+      catch(e){ if(e.name==="AbortError") return; }
+    }
+    // desktop: download the file
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.download=fname;a.href=url;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
   };
 })();
 </script>
