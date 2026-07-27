@@ -405,7 +405,7 @@
   </header>
 
   <div class="banner" id="demoBanner">
-    Demo data. Contract not deployed — every read is simulated locally. Set <code>CONTRACT</code> in the source to go live.
+    Live on Ethereum mainnet. Every read comes straight from the contract.
   </div>
 
   <!-- ============ CANVAS ============ -->
@@ -515,13 +515,13 @@
        meaningful stretch of trading, because a tone gained by one pixel is a tone lost by another.</p>
 
     <h2 style="margin-top:30px">The last sale</h2>
-    <p>The total climbs with every sale. At a hidden target — the sealed number, committed as a hash
-       before launch and revealed only when the total reaches it — the canvas sets forever. The sale
+    <p>The total climbs with every sale. At a hidden target, the sealed number, committed as a hash
+       before launch and revealed only when the total reaches it, the canvas sets forever. The sale
        that reaches it is the last sale. The canvas mints as a single artwork and opens at 1 ETH with
        no deadline. Proceeds split equally across all 4,096 pixels, paid to whoever held each one at
        that block.</p>
     <p><strong>The winner inherits the royalties.</strong> From the moment the auction settles, the
-       5% royalty on every pixel sale in the collection is paid to whoever holds the canvas — not to
+       5% royalty on every pixel sale in the collection is paid to whoever holds the canvas, not to
        the creator, and not to the holders. It follows the artwork: hold the canvas and you collect,
        sell it and the income passes to the next owner with it. That is what is actually being
        auctioned. Not just a picture, but every trade the collection ever makes afterward.</p>
@@ -535,7 +535,7 @@
        it shows is read straight from the contract, and if it disappears the artwork is unaffected.</p>
     <p class="small muted">One exception, stated plainly: because the sealed number is hidden, the contract
        cannot check a number it does not know, so the last sale is triggered by a transaction from the
-       deployer. That transaction cannot end it early or at a different number — the contract verifies
+       deployer. That transaction cannot end it early or at a different number. The contract verifies
        the revealed number against the hash committed at deploy, and checks the sale count really has
        crossed it.</p>
   </section>
@@ -549,7 +549,7 @@
        will not make it cheap.</p>
 
     <details>
-      <summary><span><span class="swatch" style="background:var(--vel)"></span>Red — how often it sells</span></summary>
+      <summary><span><span class="swatch" style="background:var(--vel)"></span>Red: how often it sells</span></summary>
       <div class="code"><b>What is measured</b>
 Total sales. A sale is any transfer where the caller is not the sender, which is
 what a marketplace fill looks like. Moving a token between your own wallets does
@@ -574,7 +574,7 @@ distribution is cheap, climbing from a sparse part is not.</div>
     </details>
 
     <details>
-      <summary><span><span class="swatch" style="background:var(--rhy)"></span>Green — how uneven the gaps are</span></summary>
+      <summary><span><span class="swatch" style="background:var(--rhy)"></span>Green: how uneven the gaps are</span></summary>
       <div class="code"><b>What is measured</b>
 The population standard deviation of the intervals between consecutive sales.
 Steady cadence scores low. A flurry, then years of silence, then another flurry
@@ -605,7 +605,7 @@ have actually traded unpredictably across real time.</div>
     </details>
 
     <details>
-      <summary><span><span class="swatch" style="background:var(--pat)"></span>Blue — longest unbroken hold</span></summary>
+      <summary><span><span class="swatch" style="background:var(--pat)"></span>Blue: longest unbroken hold</span></summary>
       <div class="code"><b>What is measured</b>
     <b>open = now - lastSale</b>
     <b>hold = max(open, longestGap)</b>
@@ -698,7 +698,7 @@ ever sold end up a different colour, whether or not their owner did anything.</d
        so completely that he did not return to colour charts for twenty five years.</p>
 
     <div class="plate" id="plate"></div>
-    <p class="small muted" style="margin-top:0">Not his painting — a 16&times;16 sketch of the method:
+    <p class="small muted" style="margin-top:0">Not his painting. A 16&times;16 sketch of the method:
        64 systematic tones, each repeated four times, placed by lottery.
        <a href="https://www.sothebys.com/en/articles/4096-farben" target="_blank" rel="noopener">See the original at Sotheby's&nbsp;&rarr;</a></p>
     <p class="small muted">The original 4096 Farben sold at Sotheby's in May 2023 for
@@ -710,7 +710,7 @@ ever sold end up a different colour, whether or not their owner did anything.</d
        four copies of each, and then ran a random lottery to decide where all 4,096 squares would land.
        He painted none of the decisions himself. In the earliest colour charts he even had a friend
        call the colours out loud, so the selection was not his either.</p>
-    <p>What he was after, in his own words, was <em>a diffuse, undifferentiated overall effect</em> —
+    <p>What he was after, in his own words, was <em>a diffuse, undifferentiated overall effect</em>,
        a field rather than a picture. The grid, he noted, stops shapes forming, although you can find
        them if you insist on looking.</p>
     <p>The part that gets us: he painted this in 1974, and it looks exactly like modern digital pixels.
@@ -784,7 +784,7 @@ ever sold end up a different colour, whether or not their owner did anything.</d
    CONTRACT WIRING
    Set CONTRACT to the deployed address and DEMO to false.
    Every function in `chain` is the only place the site touches the
-   chain — swap the bodies for real calls and nothing else changes.
+   chain. swap the bodies for real calls and nothing else changes.
    --------------------------------------------------------------- */
 const CONTRACT = (window.CONFIG && window.CONFIG.CONTRACT) || null;
 const RENDERER = (window.CONFIG && window.CONFIG.RENDERER) || null;
@@ -1146,7 +1146,7 @@ function openPixel(id){
   const u=openseaURL(id);
   // new tab: opening in place loses your scroll position and your zoom
   if(u) window.open(u,"_blank","noopener");
-  else toast(`Pixel #${id} — the OpenSea link goes live once the contract is deployed.`);
+  else toast(`Pixel #${id}: view it on OpenSea.`);
 }
 
 /* ---------- demo collectors, so search has something to find ---------- */
@@ -1613,7 +1613,7 @@ async function drawAuction(){
         <p style="max-width:56ch">There is no closing date. There is only a clock, and anyone
            can push it back.</p>
         <p style="max-width:56ch">The first bid starts twenty four hours. Every bid after it adds
-           five more minutes, whenever it lands — on the first morning or in the last thirty
+           five more minutes, whenever it lands, on the first morning or in the last thirty
            seconds. The additions accumulate. A hundred bids add more than eight hours to the end,
            even if they all arrive inside an hour.</p>
         <p style="max-width:56ch">So a quiet auction closes in a day. A contested one runs for
@@ -1648,7 +1648,7 @@ async function drawAuction(){
             ? `<b style="color:var(--ink);font-size:16px">${ts.toLocaleString()}</b> sales so far.`
             : `Trading has not started. The total begins counting once the collection is minted out.`}
           The sealed number is committed as a hash and is not public, so nobody knows how close this
-          is — including us, until we reveal it. It may never be reached.
+          is, including us, until we reveal it. It may never be reached.
         </div>
       </div>`}
     </div>`;
@@ -1659,7 +1659,7 @@ async function drawAuction(){
 
   const bb=document.getElementById("bidBtn");
   if(bb && !bb.disabled) bb.onclick=()=>{
-    if(DEMO){ toast("Demo mode — no transaction sent."); return; }
+    if(DEMO){ toast("Demo mode: no transaction sent."); return; }
     sendBid(document.getElementById("bidAmount").value);
   };
   const cb=document.getElementById("claimBtn");
@@ -1805,7 +1805,7 @@ async function loadMintPrice(){
 }
 const pad32 = n => n.toString(16).padStart(64,"0");
 async function sendMint(qty){
-  if(DEMO){ toast("Demo mode — no transaction sent."); return; }
+  if(DEMO){ toast("Demo mode: no transaction sent."); return; }
   if(!PROVIDER||!ACCOUNT){
     if(TOUCH || /iPhone|iPad|Android/i.test(navigator.userAgent)) mobileWalletPrompt();
     else toast("Connect a wallet first.");
@@ -1884,7 +1884,7 @@ async function sendClaim(){
     toast("Claimed.");
     drawAuction();
   }catch(err){
-    toast(err && err.code===4001 ? "Cancelled in your wallet." : "Claim failed — you may have claimed already.");
+    toast(err && err.code===4001 ? "Cancelled in your wallet." : "Claim failed. you may have claimed already.");
   }
 }
 
