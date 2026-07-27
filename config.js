@@ -1,9 +1,9 @@
 window.CONFIG = {
-  CHAIN_ID: "0xaa36a7",
+  CHAIN_ID: "0x1",
   RPC_ENDPOINTS: [
-    "https://eth-sepolia.g.alchemy.com/v2/alch_3fiqFg8RuxP3NIcBqSEz5",
-    "https://ethereum-sepolia-rpc.publicnode.com"
+    "https://eth-mainnet.g.alchemy.com/v2/alch_3fiqFg8RuxP3NIcBqSEz5",
+    "https://ethereum-rpc.publicnode.com"
   ],
-  CONTRACT: "0xB663227d5bb8050290bc7C8f7De40AdbDDF02702",
-  RENDERER: "0x8E13228dEf6dCD50303008246A45862780DB2691"
+  CONTRACT: "0xEB46ebc19dB1814B6F72eD68ec752631B8F4FF2C",
+  RENDERER: "0x18aCbF40FF1C2Ae97D11fc7d895AF01254116239"
 };
