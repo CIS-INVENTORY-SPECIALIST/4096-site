@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>4096 — a painting made by its own market</title>
+<title>4096: a painting made by its own market</title>
 <meta name="description" content="4,096 pixels, one canvas. Every pixel starts white and takes its colour from how it is traded. Nobody chooses, including us.">
 <meta name="theme-color" content="#eeeeea">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -12,7 +12,7 @@
 <!-- Absolute URLs are required here: relative paths do not resolve for the
      crawlers that build link previews. Update the domain when it changes. -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="4096 — a painting made by its own market">
+<meta property="og:title" content="4096: a painting made by its own market">
 <meta property="og:description" content="4,096 pixels, one canvas. Colour comes only from how each pixel is traded. Nobody chooses it, including us.">
 <!-- These must be absolute for crawlers. Update BOTH when the domain changes;
      a stale host here silently breaks every link preview. -->
@@ -21,7 +21,7 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="4096 — a painting made by its own market">
+<meta name="twitter:title" content="4096: a painting made by its own market">
 <meta name="twitter:description" content="4,096 pixels, one canvas. Colour comes only from how each pixel is traded.">
 <meta name="twitter:image" content="https://fourzeroninesix.xyz/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -410,7 +410,7 @@
 
   <!-- ============ CANVAS ============ -->
   <section data-tab="canvas" data-active>
-    <div class="searchrow">
+    <div class="searchrow" style="display:none">
       <div class="searchwrap">
         <input id="search" type="text" autocomplete="off" spellcheck="false"
                placeholder="Find a collector by ENS or address">
@@ -444,7 +444,7 @@
         <div class="price">0.005 ETH · max 10 per wallet</div>
 
         <div class="progwrap">
-          <div class="progtop"><span>Minted</span><b id="progCount">—</b></div>
+          <div class="progtop"><span>Minted</span><b id="progCount">-</b></div>
           <div class="progbar"><div class="progfill" id="progFill" style="width:0%"></div></div>
           <div class="progfoot"><span id="progPct">0%</span><span>4,096</span></div>
         </div>
@@ -567,10 +567,10 @@ sixteen equal groups. Equal counts share a tone, so if four hundred pixels all
 have two sales, all four hundred share a tone.
 
 <b>What this means for you</b>
-Red is buyable. Roughly six dollars of gas per trade, and the price of the pixel
-barely matters because you set it yourself in a private sale. What you cannot
-buy is a tone when nobody is standing near you: climbing from a crowded part of
-the distribution is cheap, climbing from a sparse part is not.</div>
+Red is buyable. Each sale costs only gas, and the price of the pixel barely
+matters because you set it yourself in a private sale. What you cannot buy is a
+tone when nobody is standing near you: climbing from a crowded part of the
+distribution is cheap, climbing from a sparse part is not.</div>
     </details>
 
     <details>
@@ -1532,7 +1532,7 @@ document.getElementById("mintBtn").onclick=async()=>{ await sendMint(qty); drawM
 /* ---------- your pixels ---------- */
 let ACCOUNT=null;
 function fmtDur(s){
-  if(!s) return "—";
+  if(!s) return "-";
   const d=Math.floor(s/86400);
   if(d>=365) return (d/365).toFixed(1)+" yr";
   if(d>=1) return d+" d";
@@ -1544,6 +1544,7 @@ async function drawPixels(){
     body.innerHTML=`<div class="notice">Connect a wallet to see your pixels, their colour, and why they are that colour.</div>`;
     return;
   }
+  body.innerHTML=`<div class="notice">Loading your pixels…</div>`;
   const ids=await chain.tokensOf(ACCOUNT);
   if(!ids.length){ body.innerHTML=`<div class="notice">No pixels in this wallet.</div>`; return; }
   const cards=await Promise.all(ids.map(i=>chain.pixelOf(i)));
