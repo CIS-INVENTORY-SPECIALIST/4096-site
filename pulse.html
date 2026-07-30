@@ -109,7 +109,8 @@
   /* one row of eight, scrolled sideways inside its own box */
   .hscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:26px;
     scrollbar-width:thin}
-  .hscroll .counter{margin-top:0;min-width:660px}
+  .hscroll .counter{margin-top:0;min-width:660px;width:max-content}
+  .hscroll .glowtable div{background:var(--mount);min-width:82px}
   .glowtable{grid-template-columns:repeat(8,1fr)}
   .glowtable div{padding:13px 15px}
   .glowtable div:last-child{border-right:1px solid var(--ink)}
