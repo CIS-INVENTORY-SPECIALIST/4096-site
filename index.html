@@ -2238,16 +2238,18 @@ async function restoreConnection(){
     compose(cvs.getContext("2d"),OUT,window._emSrc);
     const fname="4096-block-"+(curBlock||new Date().toISOString().slice(0,10))+".png";
     const blob=await new Promise(res=>cvs.toBlob(res,"image/png"));
-    if(!blob){ const a=document.createElement("a");a.download=fname;a.href=cvs.toDataURL("image/png");a.click(); return; }
+    if(!blob){ const a=document.createElement("a");a.download=fname;a.href=cvs.toDataURL("image/png");a.style.display="none";document.body.appendChild(a);a.click();a.remove(); return; }
     const file=new File([blob],fname,{type:"image/png"});
     // mobile: use native share sheet (Save Image to Photos, or share anywhere)
-    if(navigator.canShare && navigator.canShare({files:[file]})){
+    const _touch=window.matchMedia("(hover: none)").matches;
+    if(_touch && navigator.canShare && navigator.canShare({files:[file]})){
       try{ await navigator.share({files:[file], title:"4096"}); return; }
       catch(e){ if(e.name==="AbortError") return; }
     }
     // desktop: download the file
     const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");a.download=fname;a.href=url;a.click();
+    const a=document.createElement("a");a.download=fname;a.href=url;a.style.display="none";
+    document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
   };
 })();
