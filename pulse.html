@@ -45,6 +45,11 @@
   nav{display:flex;flex-wrap:wrap}
   nav a{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
     color:var(--ink3);text-decoration:none;padding:7px 12px}
+  .navgroup{position:relative;display:inline-flex}
+  .navgroup .sub{display:none;position:absolute;top:100%;left:0;z-index:60;
+    background:var(--mount);border:1px solid var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.10)}
+  .navgroup:hover .sub,.navgroup:focus-within .sub{display:block}
+  .navgroup .sub a{display:block;white-space:nowrap;padding:10px 16px}
   nav a[aria-current="page"]{color:var(--ink)}
   nav a[aria-current="page"]::after{content:"";display:block;height:1px;background:var(--ink);margin-top:6px}
   nav a:hover{color:var(--ink)}
@@ -107,6 +112,9 @@
     padding:12px 14px;margin:16px 0;font-size:13px;display:none}
 
   @media(max-width:860px){
+    nav{width:100%;flex-wrap:wrap}
+    .navgroup{display:inline-flex}
+    .navgroup .sub{display:inline-flex;position:static;border:none;box-shadow:none;background:none}
     .overlay{display:none}
     .stack{display:block}
     .wrap{padding:0 18px 70px}
@@ -122,8 +130,15 @@
     4096
   </span>
   <nav>
-    <a href="index.html">Canvas</a>
+    <a href="index.html#canvas">Canvas</a>
+    <a href="index.html#pixels">Your pixels</a>
     <a href="pulse.html" aria-current="page">Heart</a>
+    <span class="navgroup">
+      <a href="index.html#about">About</a>
+      <span class="sub"><a href="index.html#method">Method</a></span>
+    </span>
+    <a href="index.html#richter">Richter</a>
+    <a href="index.html#auction">Auction</a>
   </nav>
 </header>
 

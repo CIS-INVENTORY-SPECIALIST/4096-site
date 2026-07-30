@@ -1,3 +1,4 @@
 index.backup.*.html
 fix_export.js
 .DS_Store
+nav_patch.py

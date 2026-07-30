@@ -86,6 +86,17 @@
   }
   nav button{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
     background:none;border:none;color:var(--ink3);padding:7px 12px;cursor:pointer;white-space:nowrap}
+  nav a.navlink{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink3);padding:7px 12px;cursor:pointer;
+    white-space:nowrap;text-decoration:none;display:flex;align-items:center}
+  nav a.navlink:hover{color:var(--ink)}
+  /* About holds Method in a hover submenu on pointer devices */
+  .navgroup{position:relative;display:inline-flex}
+  .navgroup .sub{display:none;position:absolute;top:100%;left:0;z-index:60;
+    background:var(--mount);border:1px solid var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.10)}
+  .navgroup:hover .sub,.navgroup:focus-within .sub{display:block}
+  .navgroup .sub button{display:block;width:100%;text-align:left;padding:10px 16px;
+    white-space:nowrap}
   nav button[aria-current="page"]{color:var(--ink)}
   nav button[aria-current="page"]::after{content:"";display:block;height:1px;
     background:var(--ink);margin-top:6px}
@@ -107,6 +118,11 @@
     nav#nav{display:none !important;position:absolute;top:100%;right:0;z-index:50;width:210px;background:var(--mount);border:1px solid var(--ink);margin-top:6px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
     nav#nav.open{display:block !important}
     nav#nav button{display:block;width:100%;text-align:left;padding:14px 18px;font-size:11px;border-bottom:1px solid var(--rule);border-top:none}
+    nav#nav a.navlink{display:block;width:100%;text-align:left;padding:14px 18px;font-size:11px;
+      border-bottom:1px solid var(--rule)}
+    .navgroup{display:block;width:100%}
+    .navgroup .sub{display:block;position:static;border:none;box-shadow:none;background:none}
+    .navgroup .sub button{padding:14px 18px 14px 30px}
     nav#nav button:last-child{border-bottom:none}
     .sidebar{max-width:none !important;width:100% !important}
     .mint{max-width:none !important;width:100% !important;box-sizing:border-box}
@@ -395,8 +411,11 @@
     <nav id="nav">
       <button data-tab="canvas" aria-current="page">Canvas</button>
       <button data-tab="pixels">Your pixels</button>
-      <button data-tab="about">About</button>
-      <button data-tab="method">Method</button>
+      <a class="navlink" href="pulse.html">Heart</a>
+      <span class="navgroup">
+        <button data-tab="about">About</button>
+        <span class="sub"><button data-tab="method">Method</button></span>
+      </span>
       <button data-tab="richter">Richter</button>
       <button data-tab="auction">Auction</button>
     </nav>
@@ -2011,6 +2030,21 @@ document.getElementById("wallet").onclick=async()=>{
   wb.textContent=a.slice(0,6)+"…"+a.slice(-4);
   drawPixels();
 };
+
+(function(){
+  const h=(location.hash||"").replace("#","");
+  if(!h) return;
+  const btn=document.querySelector(`nav button[data-tab="${h}"]`);
+  const sec=document.querySelector(`section[data-tab="${h}"]`);
+  if(!btn||!sec) return;
+  document.querySelectorAll("nav button").forEach(b=>b.removeAttribute("aria-current"));
+  btn.setAttribute("aria-current","page");
+  document.querySelectorAll("section").forEach(x=>x.removeAttribute("data-active"));
+  sec.setAttribute("data-active","");
+  if(h==="pixels") drawPixels();
+  if(h==="auction") drawAuction();
+  if(h==="richter") drawPlate();
+})();
 
 document.getElementById("navToggle").addEventListener("click",()=>{const n=document.getElementById("nav");n.classList.toggle("open");});
 document.getElementById("nav").addEventListener("click",e=>{
