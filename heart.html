@@ -50,6 +50,9 @@
     background:var(--mount);border:1px solid var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.10)}
   .navgroup:hover .sub,.navgroup:focus-within .sub{display:block}
   .navgroup .sub a{display:block;white-space:nowrap;padding:10px 16px}
+  .navtoggle{display:none;flex-direction:column;gap:4px;background:none;border:none;
+    cursor:pointer;padding:8px}
+  .navtoggle span{display:block;width:22px;height:2px;background:var(--ink)}
   nav a[aria-current="page"]{color:var(--ink)}
   nav a[aria-current="page"]::after{content:"";display:block;height:1px;background:var(--ink);margin-top:6px}
   nav a:hover{color:var(--ink)}
@@ -106,14 +109,11 @@
     text-transform:uppercase;color:var(--ink3)}
   .counter .v{font-size:23px;font-variant-numeric:tabular-nums;margin-top:5px;letter-spacing:-.015em}
 
-  /* one row of eight, scrolled sideways inside its own box */
-  .hscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:26px;
-    scrollbar-width:thin}
-  .hscroll .counter{margin-top:0;min-width:660px;width:max-content}
-  .hscroll .glowtable div{background:var(--mount);min-width:82px}
+  /* the glow table is a fixed 660px wide and scrolls inside its own box */
+  .hscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:26px}
+  .hscroll .counter{margin-top:0;width:660px}
   .glowtable{grid-template-columns:repeat(8,1fr)}
-  .glowtable div{padding:13px 15px}
-  .glowtable div:last-child{border-right:1px solid var(--ink)}
+  .glowtable div{padding:13px 14px}
   .hscroll::-webkit-scrollbar{height:5px}
   .hscroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
   .swipehint{display:none;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
@@ -125,10 +125,21 @@
   .fail{border:1px solid var(--warn);background:#fbf6ea;color:#6b5320;
     padding:12px 14px;margin:16px 0;font-size:13px;display:none}
 
+  @media(max-width:760px){
+    header{flex-wrap:wrap;align-items:center;position:relative}
+    .brand{order:1}
+    .navtoggle{display:flex;order:2;margin-left:auto}
+    nav#nav{display:none !important;position:absolute;top:100%;right:0;z-index:50;width:210px;
+      background:var(--mount);border:1px solid var(--ink);margin-top:6px;
+      box-shadow:0 8px 24px rgba(0,0,0,.12);flex-direction:column}
+    nav#nav.open{display:flex !important}
+    nav#nav a{display:block;width:100%;text-align:left;padding:14px 18px;font-size:11px;
+      border-bottom:1px solid var(--rule)}
+    .navgroup{display:block;width:100%}
+    .navgroup .sub{display:block;position:static;border:none;box-shadow:none;background:none}
+    .navgroup .sub a{padding:14px 18px 14px 30px}
+  }
   @media(max-width:860px){
-    nav{width:100%;flex-wrap:wrap}
-    .navgroup{display:inline-flex}
-    .navgroup .sub{display:inline-flex;position:static;border:none;box-shadow:none;background:none}
     .overlay{display:none}
     .stack{display:block}
     .wrap{padding:0 18px 70px}
@@ -143,7 +154,10 @@
     <span class="brandmark" aria-hidden="true"><span class="bm1"></span><span class="bm2"></span><span class="bm3"></span><span class="bm4"></span></span>
     4096
   </span>
-  <nav>
+  <button class="navtoggle" id="navToggle" aria-label="Menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <nav id="nav">
     <a href="index.html#canvas">Canvas</a>
     <a href="index.html#pixels">Your pixels</a>
     <a href="heart.html" aria-current="page">Heart</a>
@@ -626,6 +640,11 @@ function measure(){
   var n=window.matchMedia("(max-width:860px)").matches;
   if(n!==narrow){ narrow=n; if(DIST) draw(0); }
 }
+
+var _t=document.getElementById("navToggle");
+if(_t) _t.addEventListener("click",function(){
+  document.getElementById("nav").classList.toggle("open");
+});
 
 layoutNodes();
 measure();
