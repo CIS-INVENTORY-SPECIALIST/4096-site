@@ -109,11 +109,12 @@
     text-transform:uppercase;color:var(--ink3)}
   .counter .v{font-size:23px;font-variant-numeric:tabular-nums;margin-top:5px;letter-spacing:-.015em}
 
-  /* the glow table is a fixed 660px wide and scrolls inside its own box */
+  /* glow table: fixed-width flex cells so nothing can overflow its own frame */
   .hscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:26px}
-  .hscroll .counter{margin-top:0;width:660px}
-  .glowtable{grid-template-columns:repeat(8,1fr)}
-  .glowtable div{padding:13px 14px}
+  .hscroll .counter{margin-top:0;display:flex;width:722px}
+  .hscroll .counter div{flex:0 0 90px;border-right:1px solid var(--rule);
+    padding:14px 0;text-align:center}
+  .hscroll .counter div:last-child{border-right:none}
   .hscroll::-webkit-scrollbar{height:5px}
   .hscroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
   .swipehint{display:none;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
