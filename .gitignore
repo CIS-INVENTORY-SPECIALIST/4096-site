@@ -2,3 +2,7 @@ index.backup.*.html
 fix_export.js
 .DS_Store
 nav_patch.py
+index.premerge.*.html
+index.prejs.*.html
+heart.premerge.*.html
+merge_step*.py

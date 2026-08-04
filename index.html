@@ -218,6 +218,67 @@
   .counter .v{font-size:23px;font-weight:400;font-variant-numeric:tabular-nums;
     margin-top:5px;letter-spacing:-.015em}
 
+
+  /* ---- heart section ---- */
+  .hplate{position:relative;border:1px solid var(--ink);background:var(--paper);
+    line-height:0;margin:26px 0 0;overflow:hidden}
+  .crop{position:absolute;width:11px;height:11px;pointer-events:none;z-index:3}
+  .crop.tl{top:7px;left:7px;border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
+  .crop.tr{top:7px;right:7px;border-top:1px solid var(--ink);border-right:1px solid var(--ink)}
+  .crop.bl{bottom:7px;left:7px;border-bottom:1px solid var(--ink);border-left:1px solid var(--ink)}
+  .crop.br{bottom:7px;right:7px;border-bottom:1px solid var(--ink);border-right:1px solid var(--ink)}
+  .stamp{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink3);margin-top:11px;display:flex;gap:18px;flex-wrap:wrap;
+    font-variant-numeric:tabular-nums}
+  .stamp b{color:var(--ink2);font-weight:400}
+  .sources{font-family:var(--mono);font-size:10.5px;line-height:1.9;color:var(--ink3);
+    border-top:1px solid var(--rule);margin-top:44px;padding-top:18px}
+  .sources a{color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--rule)}
+  .sources a:hover{border-color:var(--ink)}
+  .sources span{display:block}
+  #heartCanvas{display:block;width:100%;height:auto;image-rendering:pixelated}
+  .hoverlay{position:absolute;inset:0}
+  .node{position:absolute;line-height:1.55}
+  .node .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--ink2);display:block;margin-bottom:5px}
+  .node hr{border:none;border-top:1px solid var(--ink);margin:0 0 7px}
+  .node p{font-size:12px;line-height:1.5;color:var(--ink2);margin:0;max-width:none}
+  /* namespaced: index.html owns .readout for the canvas page */
+  .hreadout{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;
+    font-family:var(--mono);font-size:11px;color:var(--ink2);
+    font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-top:18px;min-height:20px}
+  .hreadout b{color:var(--ink);font-weight:500}
+  .hscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:26px}
+  .hscroll .counter{margin-top:0;display:flex;width:722px;max-width:none;flex:none;
+    grid-template-columns:none}
+  .hscroll .counter div{flex:0 0 90px;border-right:1px solid var(--rule);
+    padding:14px 0;text-align:center}
+  .hscroll .counter div:last-child{border-right:none}
+  .hscroll::-webkit-scrollbar{height:5px}
+  .hscroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
+  .swipehint{display:none;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink3);margin:7px 0 0}
+  .hstack{display:none;margin-top:34px}
+  .hstack .node{position:static;margin-bottom:26px;max-width:60ch;width:auto}
+  .hfail{border:1px solid var(--warn);background:#fbf6ea;color:#6b5320;
+    padding:12px 14px;margin:16px 0;font-size:13px;display:none}
+  @media(max-width:760px){ .swipehint{display:block} }
+  @media(max-width:860px){ .hoverlay{display:none} .hstack{display:block} }
+
+  /* ---- tools section ---- */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0 6px}
+  .toolbar select,.toolbar input{font-family:var(--mono);font-size:12px;padding:9px 12px;
+    border:1px solid var(--rule);background:var(--mount);color:var(--ink)}
+  .toolbar input{min-width:340px;flex:1}
+  .toolbar select:focus,.toolbar input:focus{outline:none;border-color:var(--ink)}
+  #toolCanvas{display:block;width:100%;height:auto;image-rendering:pixelated;
+    border:1px solid var(--ink);background:var(--mount);margin-top:20px}
+  .toolmeta{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--ink3);
+    margin-top:12px;display:flex;gap:20px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+  .toolmeta b{color:var(--ink2);font-weight:400}
+  .toolnote{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:22px;
+    border-top:1px solid var(--rule);padding-top:14px;line-height:1.8}
+
   /* ---- mint ---- */
   .mint{border:1px solid var(--ink);padding:24px 24px 26px;background:var(--mount);
     display:block;width:100%;max-width:360px}
@@ -416,11 +477,12 @@
     <nav id="nav">
       <button data-tab="canvas" aria-current="page">Canvas</button>
       <button data-tab="pixels">Your pixels</button>
-      <a class="navlink" href="heart.html">Heart</a>
+      <button data-tab="heart">Heart</button>
       <span class="navgroup">
         <button data-tab="about">About</button>
         <span class="sub"><button data-tab="method">Method</button></span>
       </span>
+      <button data-tab="tools">Tools</button>
       <button data-tab="richter">Richter</button>
       <button data-tab="auction">Auction</button>
     </nav>
@@ -712,6 +774,140 @@ ever sold end up a different colour, whether or not their owner did anything.</d
 
     <p class="small muted" style="margin-top:20px">The contract is the specification. This page describes
        it; if the two ever disagree, the contract is right and this page is wrong.</p>
+  </section>
+
+<section data-tab="heart">
+  <p class="eyebrow">Heart</p>
+  <h2>The heart of 4096.</h2>
+  <p class="small">The canvas is what 4096 is. This is where it came from.</p>
+  <p class="small">Everything on this page runs on the collection. The heart brightens when a pixel
+  sells. It fades when nothing moves. The arteries were grown from the block 4096 was deployed in,
+  and they reach further the longer the collection lives. None of it is a picture of the project.
+  It is the project, read back.</p>
+  <p class="small">The work below belongs to people who worked something out before I did. Each one
+  built a system, then stepped out of its way. That is the idea I am working from. I am not claiming
+  their company. I am showing you where I learned it.</p>
+
+  <div id="hfail" class="hfail"></div>
+
+  <div class="hplate">
+    <canvas id="heartCanvas" width="96" height="74" role="img"
+      aria-label="A pixel heart with arteries. Brightness reflects how recently a 4096 pixel sold; the artery network grows with the mint and with total sales."></canvas>
+    <div class="hoverlay" id="hoverlay"></div>
+    <i class="crop tl"></i><i class="crop tr"></i><i class="crop bl"></i><i class="crop br"></i>
+  </div>
+  <div class="stamp" id="stamp">
+    <span>computed at block <b id="s_block">&mdash;</b></span>
+    <span>claimed <b id="s_minted">&mdash;</b>/4096</span>
+    <span id="s_time">&mdash;</span>
+  </div>
+
+  <div class="hreadout" id="hreadout">reading the chain&hellip;</div>
+  <div class="hstack" id="hstack"></div>
+
+
+  <div style="border-top:1px solid var(--ink);margin-top:64px;padding-top:40px">
+
+  <p class="eyebrow">The heart</p>
+  <h2>It lives inside somebody else&rsquo;s contract.</h2>
+  <p class="small">The heart is craft #1154 on The Vessel. Every craft there holds exactly as many
+  bytes as its token ID. Fifteen hundred of the ten thousand are machine crafts, which store no
+  image at all. They hold a pointer to another contract, and when you look at one, it calls that
+  contract and asks for bytes.</p>
+  <p class="small">The contract on the other end is <em>Heartbeat4096</em>. The Vessel calls it, it
+  reads 4096&rsquo;s state, and it answers with 1,154 grayscale values. Nothing is stored anywhere
+  along that chain. No image file, no server, no cache. The heart does not exist between the moments
+  somebody looks at it.</p>
+  <p class="small">Craft #1154 renders in grey, fixed when it was claimed and not something anyone
+  can change. On this page the grid is cropped square and shaped into a heart. The Vessel&rsquo;s
+  own render is the canonical one.</p>
+
+  <p class="eyebrow" style="margin-top:52px">Brightness</p>
+  <h2>One number decides everything.</h2>
+  <p class="small">Brightness is the time since a 4096 pixel last sold, anywhere in the collection.
+  A sale takes it to 255. From there the remaining time is raised to the power of one and a half,
+  which is what makes the decay front-loaded. Not a straight line down, but a fast drop that
+  flattens into a crawl.</p>
+
+  <div class="hscroll">
+  <div class="counter glowtable">
+    <div><div class="k">Day 0</div><div class="v">255</div></div>
+    <div><div class="k">1</div><div class="v">202</div></div>
+    <div><div class="k">2</div><div class="v">153</div></div>
+    <div><div class="k">3</div><div class="v">110</div></div>
+    <div><div class="k">4</div><div class="v">71</div></div>
+    <div><div class="k">5</div><div class="v">38</div></div>
+    <div><div class="k">6</div><div class="v">13</div></div>
+    <div><div class="k">7</div><div class="v">0</div></div>
+  </div>
+  </div>
+  <p class="swipehint">swipe &rarr;</p>
+
+  <p class="small" style="margin-top:26px">Past seven days it is zero. One sale puts it straight
+  back to full. There is no partial recovery and no memory of how long it was out.</p>
+
+  <p class="eyebrow" style="margin-top:52px">The beat</p>
+  <h2>The pulse leaves the muscle first.</h2>
+  <p class="small">Every artery cell knows its distance from the heart. The beat is that distance
+  offset against a clock, so the crest starts at the muscle and travels out to the tips.</p>
+  <p class="small">Rate and strength both come from the brightness. About a second per beat at full,
+  stretching past three by day six, stopped completely at zero. A dying heart pulses faintly before
+  it stops rather than beating hard and cutting out.</p>
+
+  <p class="eyebrow" style="margin-top:52px">The arteries</p>
+  <h2>Grown from a block that already existed.</h2>
+  <p class="small">The arteries were not drawn. A program grew them. Five trunks leave the heart, four
+  from the top and one descending, and each walks outward one cell at a time, splitting as it goes
+  and thinning until it runs out. Every one of those decisions comes from a single seeded random
+  number generator.</p>
+  <p class="small">The seed is block <b>25,621,173</b>, the block 4096 and its renderer were both
+  deployed in. That number was fixed before any of this existed, so it is not a shape I could have
+  shopped for by growing a hundred trees and keeping a favourite. Run the same seed and you get the
+  same tree, on any machine, forever.</p>
+  <p class="small">How much of it you can see is the collection&rsquo;s decision, not mine. The mint
+  builds the trunks. Trading builds the fine branches at the tips. Both only ever add, so nothing
+  that has appeared can be taken away. It is nowhere near finished.</p>
+
+  </div>
+
+  <div class="sources">
+    <span style="color:var(--ink2);margin-bottom:6px">Every number on this page is checkable.</span>
+    <span>4096 &mdash; <a href="https://etherscan.io/address/0xEB46ebc19dB1814B6F72eD68ec752631B8F4FF2C" target="_blank" rel="noopener">0xEB46&hellip;FF2C</a></span>
+    <span>Heartbeat4096 &mdash; <a href="https://etherscan.io/address/0x4C9db8E4997F3044b9D4CF0a6B255B85ba3ffb61" target="_blank" rel="noopener">0x4C9d&hellip;fb61</a></span>
+    <span>The Vessel &mdash; <a href="https://etherscan.io/address/0xECb92Cc7112b80A2234936315BbB493fb48d1463" target="_blank" rel="noopener">0xECb9&hellip;1463</a></span>
+    <span>Seed block &mdash; <a href="https://etherscan.io/block/25621173" target="_blank" rel="noopener">25,621,173</a></span>
+  </div>
+
+  <p class="small" style="margin-top:34px;color:var(--ink3)">
+    <a href="https://etherscan.io/address/0x4C9db8E4997F3044b9D4CF0a6B255B85ba3ffb61#code" target="_blank" rel="noopener">Heartbeat contract</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://etherscan.io/address/0xEB46ebc19dB1814B6F72eD68ec752631B8F4FF2C#code" target="_blank" rel="noopener">4096</a>
+  </p>
+</section>
+
+
+  <!-- ============ TOOLS ============ -->
+  <section data-tab="tools">
+    <p class="eyebrow">Tools</p>
+    <h2>Any market, painted by the same rules.</h2>
+    <p class="small">4096 derives colour from trading and nothing else. Those rules are not specific
+    to this collection. Point them at any market and you get a canvas: one cell per token, coloured
+    by how often it sold, how uneven the gaps were, and how long it was held.</p>
+    <p class="small">Velocity, rhythm and patience are orthogonalised against each other, then
+    ranked across the population and split into sixteen tones per channel. Exactly as the contract
+    does it. A quiet collection still produces a full canvas, because a tone describes where a token
+    stands against its own population rather than an absolute number.</p>
+
+    <div class="toolbar">
+      <select id="toolPick"></select>
+      <input id="toolAddr" placeholder="or paste a contract address" spellcheck="false">
+    </div>
+
+    <canvas id="toolCanvas" width="8" height="8" role="img"
+      aria-label="A canvas rendered from another collection's trading history."></canvas>
+
+    <div class="toolmeta" id="toolMeta">choose a collection</div>
+    <p class="toolnote" id="toolNote"></p>
   </section>
 
   <section data-tab="richter">
@@ -2049,6 +2245,8 @@ document.getElementById("wallet").onclick=async()=>{
   if(h==="pixels") drawPixels();
   if(h==="auction") drawAuction();
   if(h==="richter") drawPlate();
+  if(h==="heart" && window.__heart) window.__heart.setActive(true);
+  if(h==="tools" && window.__tools) window.__tools.boot();
 })();
 
 document.getElementById("navToggle").addEventListener("click",()=>{const n=document.getElementById("nav");n.classList.toggle("open");});
@@ -2063,6 +2261,8 @@ document.getElementById("nav").addEventListener("click",e=>{
   if(t==="pixels") drawPixels();
   if(t==="auction") drawAuction();
   if(t==="richter") drawPlate();
+  if(window.__heart) window.__heart.setActive(t==="heart");
+  if(t==="tools" && window.__tools) window.__tools.boot();
 });
 
 /* ---------- richter plate ---------- */
@@ -2292,6 +2492,441 @@ async function restoreConnection(){
     setTimeout(()=>URL.revokeObjectURL(url),2000);
   };
 })();
+
+/* =====================================================================
+   HEART  -  self contained, only animates while its section is active
+   ===================================================================== */
+(function(){
+"use strict";
+
+var HEARTBEAT  = "0x4C9db8E4997F3044b9D4CF0a6B255B85ba3ffb61";
+var COLLECTION = (window.CONFIG && window.CONFIG.CONTRACT) || "0xEB46ebc19dB1814B6F72eD68ec752631B8F4FF2C";
+var RPCS = (window.CONFIG && window.CONFIG.RPC_ENDPOINTS) || ["https://ethereum-rpc.publicnode.com"];
+var RPC_OK = 0;
+
+var SEL_PULSE="0xdeb189b5", SEL_PAYLOAD="0x563dc14b", SEL_SALES="0x6605ff66";
+var SUPPLY=4096, CRAFT=1154, PCOLS=34, WEEK=604800, SEED=25621173;
+var REST=0.40, WAVE_LEN=0.30, BEAT_MS=1000, BEAT_SLOW=2.6, SQUEEZE=0.14;
+
+function pad32(n){ var h=n.toString(16); while(h.length<64) h="0"+h; return h; }
+
+async function rpcRaw(method, params){
+  var err;
+  for(var n=0;n<RPCS.length;n++){
+    var i=(RPC_OK+n)%RPCS.length;
+    try{
+      var res=await fetch(RPCS[i],{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({jsonrpc:"2.0",id:1,method:method,params:params})});
+      var j=await res.json();
+      if(j.error) throw new Error(j.error.message||"rpc error");
+      if(j.result!==undefined){ RPC_OK=i; return j.result; }
+    }catch(e){ err=e; }
+  }
+  throw err||new Error("no endpoint responded");
+}
+function call(to,data){ return rpcRaw("eth_call",[{to:to,data:data},"latest"]); }
+
+var COLS=96, ROWS=74, N=33;
+var HX=Math.floor((COLS-N)/2), HY=Math.floor((ROWS-N)/2);
+
+var SPANS={3:[[9,13],[18,22]],4:[[7,14],[17,24]],5:[[6,15],[16,25]],
+ 6:[[5,26]],7:[[4,27]],8:[[3,28]],9:[[3,29]],10:[[2,29]],11:[[2,30]],12:[[2,30]],
+ 13:[[1,30]],14:[[1,30]],15:[[1,30]],16:[[1,29]],17:[[2,29]],18:[[2,28]],19:[[2,28]],
+ 20:[[3,27]],21:[[3,26]],22:[[4,25]],23:[[4,24]],24:[[5,22]],25:[[5,21]],26:[[6,19]],
+ 27:[[6,17]],28:[[7,15]],29:[[7,13]],30:[[8,12]],31:[[9,11]]};
+var SULCUS=[[11,4],[10,5],[10,6],[9,7],[9,8],[9,9],[9,10],[10,11],[10,12],[11,13],[11,14],
+ [11,15],[10,16],[10,17],[9,18],[9,19],[9,20],[10,21],[10,22],[11,23],[11,24],[12,25],[12,26]];
+var AIV=[[11,15],[12,15],[13,14],[14,14],[15,14],[16,13],[17,13],[18,13],[19,12],[20,12],
+ [21,12],[22,11],[23,11],[24,11],[25,10],[26,10],[27,10],[28,10],[29,10]];
+var BRANCH=[[14,16],[15,17],[16,18],[17,19],[18,20],[19,21],[16,11],[17,10],[18,9],[19,9],
+ [21,14],[22,15],[23,16],[24,17],[13,6],[14,5],[15,5]];
+
+var M=[],B=[],G=[],DEPTH=[],DMAX=1;
+(function(){
+  var r,c,k;
+  for(r=0;r<N;r++){ M.push(new Array(N).fill(0)); B.push(new Array(N).fill(0));
+                    G.push(new Array(N).fill(0)); DEPTH.push(new Array(N).fill(0)); }
+  for(k in SPANS) SPANS[k].forEach(function(sp){ for(c=sp[0];c<=sp[1];c++) M[+k][c]=1; });
+  for(r=0;r<N;r++) for(c=0;c<N;c++){
+    if(!M[r][c]) continue;
+    var edge=false;
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+      var rr=r+d[0],cc=c+d[1];
+      if(rr<0||rr>=N||cc<0||cc>=N||!M[rr][cc]) edge=true; });
+    if(edge) B[r][c]=1;
+  }
+  SULCUS.concat(AIV).forEach(function(p){ if(M[p[0]]&&M[p[0]][p[1]]) G[p[0]][p[1]]=2; });
+  BRANCH.forEach(function(p){ if(M[p[0]]&&M[p[0]][p[1]]&&!G[p[0]][p[1]]) G[p[0]][p[1]]=1; });
+  var q=[],head=0;
+  for(r=0;r<N;r++) for(c=0;c<N;c++) if(B[r][c]){ DEPTH[r][c]=1; q.push([r,c]); }
+  while(head<q.length){
+    var p=q[head++];
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+      var rr=p[0]+d[0],cc=p[1]+d[1];
+      if(rr>=0&&rr<N&&cc>=0&&cc<N&&M[rr][cc]&&DEPTH[rr][cc]===0){
+        DEPTH[rr][cc]=DEPTH[p[0]][p[1]]+1; q.push([rr,cc]); }});
+  }
+  for(r=0;r<N;r++) for(c=0;c<N;c++) if(DEPTH[r][c]>DMAX) DMAX=DEPTH[r][c];
+})();
+
+function mulberry32(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    var t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+function gauss(rnd,sd){
+  var u=1-rnd(), v=rnd();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)*sd;
+}
+
+function growVessels(seed){
+  var rnd=mulberry32(seed>>>0), cells=new Map(), order={n:0};
+  function free(c,r){
+    var gc=c-HX, gr=r-HY;
+    if(gc>=0&&gc<N&&gr>=0&&gr<N&&M[gr][gc]) return false;
+    return c>=0&&c<COLS&&r>=0&&r<ROWS;
+  }
+  function stamp(c,r,w){
+    var h=w>>1;
+    for(var dc=-h;dc<=h;dc++) for(var dr=-h;dr<=h;dr++){
+      if(w===1&&(dc||dr)) continue;
+      var cc=c+dc, rr=r+dr, key=cc+","+rr;
+      if(free(cc,rr)&&!cells.has(key)) cells.set(key,order.n);
+    }
+    order.n++;
+  }
+  function walk(c,r,ang,w,life,depth){
+    if(life<=0||w<1||depth>7) return;
+    var fc=c, fr=r, drift=gauss(rnd,0.075), n=Math.floor(life);
+    var pc=Math.round(fc), pr=Math.round(fr);
+    for(var i=0;i<n;i++){
+      stamp(pc,pr,w);
+      ang+=drift+gauss(rnd,0.05);
+      var nc=fc+Math.cos(ang), nr=fr+Math.sin(ang);
+      var ic=Math.round(nc), ir=Math.round(nr);
+      if(!free(ic,ir)) break;
+      if(ic!==pc&&ir!==pr){
+        if(free(ic,pr)) stamp(ic,pr,Math.max(1,w-1));
+        else if(free(pc,ir)) stamp(pc,ir,Math.max(1,w-1));
+      }
+      fc=nc; fr=nr; pc=ic; pr=ir;
+      if(i>n*0.42&&w>1) w--;
+    }
+    var sp=0.45+rnd()*0.50;
+    walk(pc,pr,ang-sp*0.7,Math.max(1,w),  life*(0.55+rnd()*0.23),depth+1);
+    walk(pc,pr,ang+sp*0.9,Math.max(1,w-1),life*(0.40+rnd()*0.22),depth+1);
+    if(depth<4&&rnd()<0.45) walk(pc,pr,ang+(rnd()<0.5?-1:1)*1.25,1,life*0.4,depth+2);
+  }
+  var PI=Math.PI;
+  [[8,-PI/2-0.92,2,15,2],[14,-PI/2-0.22,3,20,1],[20,-PI/2+0.26,2,18,2],[25,-PI/2+0.88,2,13,3]]
+    .forEach(function(v){ walk(HX+v[0],HY+v[4],v[1],v[2],v[3],0); });
+  walk(HX+20,HY+26,PI/2-0.42,2,16,0);
+  walk(HX+8, HY+27,PI/2+0.50,2,14,0);
+  return cells;
+}
+
+function frontier(cells){
+  var dist=new Map(), q=[], head=0;
+  cells.forEach(function(_,key){
+    var p=key.split(","), c=+p[0], r=+p[1], touches=false;
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+      var cc=c+d[0], rr=r+d[1], gc=cc-HX, gr=rr-HY;
+      if(gc>=0&&gc<N&&gr>=0&&gr<N&&M[gr][gc]) touches=true; });
+    if(touches){ dist.set(key,0); q.push([c,r]); }
+  });
+  while(head<q.length){
+    var p=q[head++], base=dist.get(p[0]+","+p[1]);
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+      var cc=p[0]+d[0], rr=p[1]+d[1], key=cc+","+rr;
+      if(cells.has(key)&&!dist.has(key)){ dist.set(key,base+1); q.push([cc,rr]); }});
+  }
+  var far=0; dist.forEach(function(v){ if(v>far) far=v; });
+  var out=new Map();
+  cells.forEach(function(_,key){ out.set(key, dist.has(key)?dist.get(key):far+9); });
+  return {d:out,max:far||1};
+}
+
+var S={glow:0,last:0,since:0,minted:0,sales:0,payload:null,block:0};
+var VES=null, DIST=null, DMAXV=1, loaded=false;
+
+var NODES=[
+ {c:2, r:3, w:25,h:15, lbl:"01 / 4096 Farben \u00b7 Gerhard Richter, 1974",
+  txt:"The leading reason 4096 exists. Richter wanted his own taste out of the painting, so he built a system strict enough to keep it out. Arithmetic for the palette, a lottery for the positions. He applied the rule and stepped back. The painting is his and the composition is not. That is algorithmic art, decades before there was a machine to run it on. It is also exactly what a smart contract is. He used slips of paper. We use a market."},
+ {c:67,r:3, w:27,h:15, lbl:"02 / Million Dollar Homepage \u00b7 Alex Tew, 2005",
+  txt:"A student sold a million pixels of advertising space to pay for university. It sold out in five months. Nobody composed it. Whoever showed up next got the next empty space, and the picture is whatever that added up to. I was six when it happened and found it years later in a digital art class. It gets called a gimmick. What I saw was one image made entirely of the people who bought into it. Twenty years on the page still loads, though most of the links it holds have gone dead. The picture outlived the things it was made of."},
+ {c:2, r:41,w:25,h:16, lbl:"03 / Right Click Share \u00b7 XCOPY and Deca",
+  txt:"Right-click-and-Save-As Guy reduced to a 32\u00d732 grid and broken into 1,024 single-colour pixels. Holders attest onchain to place their pixel in the composite, and attestations expire after a year. Stop attesting and it goes white. An artwork that needs care to stay visible is a harder idea than most of what gets built. 4096 asks it from the other side. There you keep the work alive by hand. Here you are not allowed to touch it."},
+ {c:67,r:40,w:27,h:15, lbl:"04 / JPEG \u00b7 Jan Robert Leegte",
+  txt:"A real JPEG built entirely from code, with no source image anywhere in it, rendered fresh from the token hash every time you open it and recompressed when you resize the window. Leegte has been making work about the browser since the 90s. JPEG is not a picture of compression. It is compression, made out of itself. That piece is why my work lives in the contract instead of on a server."},
+ {c:33,r:56,w:32,h:15, lbl:"05 / The Vessel \u00b7 Stephen Santoro",
+  txt:"Ten thousand crafts, each holding exactly as many bytes as its token ID. Fifteen hundred are machine crafts, which store no image at all. They hold a pointer to another contract, and the holder chooses which contract that is. The artwork delegates its own image to code somebody else wrote. Almost nothing works that way. It is the reason there is anything on this page at all. I came to it recently, read both contracts, and built a machine that week."}
+];
+
+function haloAt(c,r){
+  for(var i=0;i<NODES.length;i++){
+    var n=NODES[i];
+    if(c>=n.c&&c<n.c+n.w&&r>=n.r&&r<n.r+n.h) return 1;
+  }
+  return 0;
+}
+
+var cv=null, ctx=null, narrow=false;
+var PAPER=[238,238,234], INK=[27,27,25], VELC=[160,47,28], HOT=[214,96,68];
+function mix(a,b,t){ return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]; }
+function css(x){ return "rgb("+Math.round(x[0])+","+Math.round(x[1])+","+Math.round(x[2])+")"; }
+
+function radialWeight(gc,gr){
+  var grid=Math.ceil(Math.sqrt(CRAFT));
+  var i=gr*PCOLS+gc, gx=i%grid, gy=Math.floor(i/grid), cc=grid>>1;
+  var dx=Math.abs(gx-cc), dy=Math.abs(gy-cc), maxd2=cc*cc*2;
+  return maxd2 ? 1000-Math.floor((dx*dx+dy*dy)*550/maxd2) : 1000;
+}
+
+function draw(phase){
+  if(!cv) return;
+  if(phase===undefined) phase=0;
+  var c0=narrow?18:0, c1=narrow?78:COLS;
+  var r0=narrow?4:0,  r1=narrow?70:ROWS;
+  cv.width=c1-c0; cv.height=r1-r0;
+  ctx.fillStyle="rgb(238,238,234)";
+  ctx.fillRect(0,0,cv.width,cv.height);
+
+  var g=S.glow/255;
+  var reach=2+(S.minted/SUPPLY)*18+Math.pow(S.sales,0.28)*1.9;
+
+  if(DIST) DIST.forEach(function(o,key){
+    if(o>reach) return;
+    var p=key.split(","), c=+p[0], r=+p[1];
+    if(c<c0||c>=c1||r<r0||r>=r1) return;
+    var lift=Math.max(0,Math.sin(phase-o*WAVE_LEN));
+    var boost=lift*lift*g;
+    var col=mix(mix(INK,VELC,g*REST),HOT,boost);
+    col=mix(col,PAPER,(o/DMAXV)*0.30*(1-g*0.4));
+    if(!narrow&&haloAt(c,r)) col=mix(col,PAPER,0.82);
+    ctx.fillStyle=css(col);
+    ctx.fillRect(c-c0,r-r0,1,1);
+  });
+
+  for(var gr=0;gr<N;gr++) for(var gc=0;gc<N;gc++){
+    if(!M[gr][gc]) continue;
+    var c=HX+gc, r=HY+gr;
+    if(c<c0||c>=c1||r<r0||r>=r1) continue;
+    var w=450+Math.round(550*(DEPTH[gr][gc]/DMAX));
+    var sq=Math.max(0,Math.sin(phase));
+    var v=Math.min(255,Math.round((4+Math.round(S.glow*w/1000))*(1+SQUEEZE*sq*sq*g)));
+    if(S.payload){
+      var idx=gr*PCOLS+gc;
+      if(idx<S.payload.length){
+        var texture=S.payload[idx]-(4+Math.round(S.glow*radialWeight(gc,gr)/1000));
+        v=Math.max(0,Math.min(255,v+texture));
+      }
+    }
+    var col;
+    if(B[gr][gc]) col=INK;
+    else if(G[gr][gc]===2) col=mix([v,v,v],INK,0.66);
+    else if(G[gr][gc]===1) col=mix([v,v,v],INK,0.36);
+    else col=[v,v,v];
+    ctx.fillStyle=css(col);
+    ctx.fillRect(c-c0,r-r0,1,1);
+  }
+}
+
+function layoutNodes(){
+  var ov=document.getElementById("hoverlay"), st=document.getElementById("hstack");
+  if(!ov||!st) return;
+  ov.innerHTML=""; st.innerHTML="";
+  NODES.forEach(function(n){
+    var html='<span class="lbl">'+n.lbl+'</span><hr><p>'+n.txt+'</p>';
+    var d=document.createElement("div"); d.className="node";
+    d.style.left=(n.c/COLS*100)+"%";
+    d.style.top=(n.r/ROWS*100)+"%";
+    d.style.width=(n.w/COLS*100)+"%";
+    d.innerHTML=html; ov.appendChild(d);
+    var s=document.createElement("div"); s.className="node"; s.innerHTML=html; st.appendChild(s);
+  });
+}
+
+function fmt(s){
+  if(!s) return "never";
+  var h=Math.floor(s/3600);
+  return h<48 ? h+"h" : Math.floor(h/24)+"d "+(h%24)+"h";
+}
+function readout(){
+  var el=document.getElementById("hreadout");
+  if(!el) return;
+  var left=S.last?Math.max(0,(S.last+WEEK)-Math.floor(Date.now()/1000)):0;
+  el.innerHTML=
+    "glow <b>"+S.glow+"</b>/255 &nbsp;&middot;&nbsp; last sale <b>"+fmt(S.since)+"</b> ago &nbsp;&middot;&nbsp; "+
+    (S.glow===0 ? "flatlined, one sale revives it" : "dies in <b>"+fmt(left)+"</b>")+
+    " &nbsp;&middot;&nbsp; <b>"+S.minted.toLocaleString()+"</b> claimed &nbsp;&middot;&nbsp; <b>"+S.sales.toLocaleString()+"</b> sales";
+  var sb=document.getElementById("s_block"), sm=document.getElementById("s_minted"), st=document.getElementById("s_time");
+  if(sb) sb.textContent = S.block ? S.block.toLocaleString() : "\u2014";
+  if(sm) sm.textContent = S.minted.toLocaleString();
+  if(st) st.textContent = new Date().toISOString().replace("T"," ").slice(0,19)+" UTC";
+}
+
+async function load(){
+  var b=(await call(HEARTBEAT,SEL_PULSE)).replace(/^0x/,"");
+  S.glow  =parseInt(b.slice(0,64),16);
+  S.last  =parseInt(b.slice(64,128),16);
+  S.since =parseInt(b.slice(128,192),16);
+  S.minted=parseInt(b.slice(192,256),16);
+  S.sales =parseInt((await call(COLLECTION,SEL_SALES)).replace(/^0x/,""),16);
+  try{ S.block=parseInt(await rpcRaw("eth_blockNumber",[]),16); }catch(e){ S.block=0; }
+  try{
+    var p=(await call(HEARTBEAT,SEL_PAYLOAD+pad32(CRAFT))).replace(/^0x/,"");
+    var len=parseInt(p.slice(64,128),16), data=p.slice(128,128+len*2);
+    S.payload=new Uint8Array(len);
+    for(var i=0;i<len;i++) S.payload[i]=parseInt(data.substr(i*2,2),16);
+  }catch(e){ S.payload=null; }
+  if(!VES){
+    VES=growVessels(SEED);
+    var f=frontier(VES); DIST=f.d; DMAXV=f.max;
+  }
+  loaded=true;
+}
+
+var t0=Date.now(), raf=null, active=false, timer=null;
+var still=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function tick(){
+  raf=null;
+  if(!active||!DIST) return;
+  if(S.glow===0||still){ draw(0); return; }
+  var period=BEAT_MS*(1+BEAT_SLOW*(1-S.glow/255));
+  draw(((Date.now()-t0)%period)/period*Math.PI*2);
+  raf=requestAnimationFrame(tick);
+}
+function beat(){ if(active&&raf===null) raf=requestAnimationFrame(tick); }
+function stop(){ if(raf!==null){ cancelAnimationFrame(raf); raf=null; } }
+
+async function refresh(){
+  if(!active) return;
+  try{
+    await load();
+    var f=document.getElementById("hfail"); if(f) f.style.display="none";
+    beat(); readout();
+  }catch(e){
+    var el=document.getElementById("hfail");
+    if(el){ el.style.display="block";
+      el.innerHTML="<b>Could not reach the chain.</b> "+(e.message||e)+
+        " The heartbeat is still live onchain and readable on Etherscan."; }
+    var ro=document.getElementById("hreadout");
+    if(ro) ro.textContent="chain unreachable";
+  }
+}
+
+function measure(){
+  var n=window.matchMedia("(max-width:860px)").matches;
+  if(n!==narrow){ narrow=n; if(DIST) draw(0); }
+}
+
+document.addEventListener("visibilitychange",function(){
+  if(document.hidden) stop(); else beat();
+});
+window.addEventListener("resize",measure);
+
+window.__heart={
+  setActive:function(on){
+    active=!!on;
+    if(!active){ stop(); if(timer){clearInterval(timer);timer=null;} return; }
+    if(!cv){
+      cv=document.getElementById("heartCanvas");
+      if(!cv) return;
+      ctx=cv.getContext("2d");
+      layoutNodes();
+    }
+    measure();
+    if(!loaded) refresh(); else { beat(); readout(); }
+    if(!timer) timer=setInterval(refresh,60000);
+  }
+};
+})();
+
+
+/* =====================================================================
+   TOOLS  -  render any collection through 4096's colour rules
+   ===================================================================== */
+(function(){
+"use strict";
+
+/* Precomputed canvases live in /canvases/<slug>.json and are produced by
+   canvas-of.js. Adding a collection is one line here plus one file. */
+var SETS=[
+  {slug:"normies",   name:"Normies",     days:180},
+];
+
+var booted=false, cvs=null, ctx=null, cache={};
+
+function el(id){ return document.getElementById(id); }
+
+function render(data){
+  cvs=cvs||el("toolCanvas"); if(!cvs) return;
+  ctx=ctx||cvs.getContext("2d");
+  var px=data.pixels.slice().sort(function(a,b){ return Number(a.id)-Number(b.id); });
+  var grid=Math.floor(Math.sqrt(px.length));
+  px.length=grid*grid;
+  cvs.width=grid; cvs.height=grid;
+  var img=ctx.createImageData(grid,grid);
+  px.forEach(function(p,i){
+    var c=parseInt(p.hex.slice(1),16), o=i*4;
+    img.data[o]=(c>>16)&255; img.data[o+1]=(c>>8)&255; img.data[o+2]=c&255; img.data[o+3]=255;
+  });
+  ctx.putImageData(img,0,0);
+
+  var defined=px.filter(function(p){ return p.sales>=3; }).length;
+  var uniq={}; px.forEach(function(p){ uniq[p.hex]=1; });
+  el("toolMeta").innerHTML=
+    "<span><b>"+data.label+"</b></span>"+
+    "<span>"+px.length.toLocaleString()+" tokens</span>"+
+    "<span>"+defined.toLocaleString()+" with full colour</span>"+
+    "<span>"+Object.keys(uniq).length.toLocaleString()+" distinct colours</span>"+
+    "<span>"+data.days+" days</span>";
+  el("toolNote").textContent=
+    "A token needs three sales before rhythm and patience mean anything. Below that it "+
+    "sits at the midpoint on both and takes colour from velocity alone. Burned tokens are "+
+    "excluded. Grid is token order, trimmed to a square.";
+}
+
+async function show(slug){
+  var meta=el("toolMeta");
+  if(cache[slug]) return render(cache[slug]);
+  meta.textContent="loading "+slug+"\u2026";
+  try{
+    var r=await fetch("canvases/"+slug+".json");
+    if(!r.ok) throw new Error("not found");
+    cache[slug]=await r.json();
+    render(cache[slug]);
+  }catch(e){
+    meta.textContent="could not load "+slug;
+  }
+}
+
+window.__tools={
+  boot:function(){
+    if(booted) return;
+    booted=true;
+    var pick=el("toolPick"); if(!pick) return;
+    SETS.forEach(function(s){
+      var o=document.createElement("option");
+      o.value=s.slug; o.textContent=s.name;
+      pick.appendChild(o);
+    });
+    pick.addEventListener("change",function(){ show(pick.value); });
+    var addr=el("toolAddr");
+    if(addr) addr.addEventListener("keydown",function(e){
+      if(e.key!=="Enter") return;
+      el("toolMeta").textContent=
+        "live rendering is not enabled yet. precomputed collections only for now.";
+    });
+    if(SETS.length) show(SETS[0].slug);
+  }
+};
+})();
+
 </script>
 </body>
 </html>
