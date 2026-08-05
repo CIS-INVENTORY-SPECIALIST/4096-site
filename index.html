@@ -118,6 +118,20 @@
   nav a.navlink:hover{color:var(--ink)}
   /* About holds Method in a hover submenu on pointer devices */
   .navgroup{position:relative;display:inline-flex}
+  /* Method sits inside a dropdown that is hidden until the group is hovered,
+     so marking its button current marks something nobody can see. When a child
+     is current, mark the parent instead: About carries the underline and the
+     visitor knows where they are. */
+  .navgroup:has([aria-current="page"]) > button{color:var(--ink)}
+  /* The underline is the desktop marker only. Below 760px the nav is a stacked
+     burger menu that marks the current page with a background instead, and
+     every item is full width, so a rule under one of them reads as a divider
+     rather than as state. */
+  @media(min-width:761px){
+    .navgroup:has([aria-current="page"]) > button::after{content:"";display:block;
+      height:1px;background:var(--ink);margin-top:6px}
+  }
+
   .navgroup .sub{display:none;position:absolute;top:100%;left:0;z-index:60;
     background:var(--mount);border:1px solid var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.10)}
   .navgroup:hover .sub,.navgroup:focus-within .sub{display:block}
@@ -354,6 +368,13 @@
   .blocknum.on{opacity:1}
   .blocknum::before{content:" · "}
 
+  /* Sits alone above the work, like the paragraph on a wall next to a
+     painting. Wider leading and a slightly larger size than body text so it
+     reads as an introduction rather than as the first paragraph of an
+     article. */
+  .standfirst{font-size:var(--t-body);line-height:1.75;color:var(--ink2);
+    max-width:54ch;margin:0 0 30px}
+
   /* ---- mint ---- */
   .mint{border:1px solid var(--ink);padding:24px 24px 26px;background:var(--mount);
     display:block;width:100%;max-width:360px}
@@ -586,6 +607,13 @@
 
   <!-- ============ CANVAS ============ -->
   <section data-tab="canvas" data-active>
+    <!-- The only thing above the canvas. Someone arriving needs to know what
+         they are looking at before they can read the emptiness as anything
+         other than a page that has not loaded. -->
+    <p class="standfirst">An experiment in whether a market can paint a
+      picture. 4,096 pixels, one canvas, colour from trading and nothing else.
+      Nobody has seen the result, including me.</p>
+
     <div class="searchrow" style="display:none">
       <div class="searchwrap">
         <input id="search" type="text" autocomplete="off" spellcheck="false"
@@ -725,7 +753,7 @@
        If you want to try to game a channel, this is what you would be gaming, and knowing it
        will not make it cheap.</p>
 
-    <details>
+    <details open>
       <summary><span><span class="swatch" style="background:var(--vel)"></span>Red: how often it sells</span></summary>
       <div class="code"><b>What is measured</b>
 Total sales. A sale is any transfer where the caller is not the sender, which is
@@ -844,7 +872,7 @@ Each channel is ranked and split into sixteen:
     <b>tone = floor(rank x 16 / population)</b>, capped at 15
     <b>channel = tone x 17</b>            gives 0, 17, 34 ... 255
     <b>colour = (R x 65536) + (G x 256) + B</b>
-Sixteen cubed is 4,096 possible colours, from 4,096 pixels. Sixteen cubed is 4,096 possible colours, from 4,096 pixels.
+Sixteen cubed is 4,096 possible colours, from 4,096 pixels.
 
 <b>Ties</b>
 Equal measurements share a tone, always. That means the sixteen tones are
@@ -1793,9 +1821,9 @@ async function drawCounter(){
     ? [["Total sales", ts.toLocaleString()],
        ["Untouched", untouched.toLocaleString()],
        ["Canvas", frozen ? "Set" : "Painting"]]
-    : [["Minted", mint.toLocaleString()],
-       ["Remaining", (SUPPLY-mint).toLocaleString()],
-       ["Team", "150"]];
+    : [["Remaining", (SUPPLY-mint).toLocaleString()],
+       ["Team", "150"],
+       ["Sales", ts.toLocaleString()]];
   document.getElementById("counter").innerHTML=tiles
     .map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 }
