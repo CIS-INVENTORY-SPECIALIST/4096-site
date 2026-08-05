@@ -65,8 +65,23 @@
      a letterform. */
   .brand{font-size:29px;font-weight:400;letter-spacing:-.01em;line-height:1;
     display:inline-flex;align-items:center;gap:.34em}
-  .brandmark{display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;
+  /* The mark turns a quarter when you touch it. A quarter rather than a full
+     turn because the four squares are the whole logo: a full rotation lands
+     back where it started and reads as decoration, where a quarter visibly
+     rearranges them. */
+  .brandmark{cursor:pointer;transition:transform .55s cubic-bezier(.2,.8,.2,1);
+    -webkit-tap-highlight-color:transparent;
+    /* the grey box Safari paints over anything tappable, and the blue outline
+       it adds after a tap. the rotation is the feedback. */
+    outline:none;user-select:none;-webkit-user-select:none;
+    -webkit-touch-callout:none;
+    transform:rotate(var(--spin, 0deg));
+    display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;
     width:.62em;height:.62em;flex:none}
+  /* focus-visible fires for keyboard navigation and never for touch, so the
+     ring is there for anyone tabbing through without reappearing under a
+     thumb. */
+  .brandmark:focus-visible{outline:1px solid var(--ink);outline-offset:4px}
   .brandmark span{display:block}
   .bm1{background:var(--vel)}
   .bm2{background:var(--rhy)}
@@ -509,7 +524,7 @@
 
   <header>
     <div class="brand">
-        <span class="brandmark" aria-hidden="true">
+        <span class="brandmark" id="brandmark" role="button" tabindex="0" aria-label="4096">
           <span class="bm1"></span><span class="bm2"></span>
           <span class="bm3"></span><span class="bm4"></span>
         </span>4096
@@ -2981,6 +2996,24 @@ window.__tools={
 })();
 
 
+
+
+/* Each press advances the mark another quarter turn. It never resets, so the
+   squares keep rearranging rather than snapping back to a home position. */
+(function(){
+  const mark = document.getElementById("brandmark");
+  if(!mark) return;
+  let turns = 0;
+  function spin(){
+    turns++;
+    mark.style.setProperty("--spin", (turns * 90) + "deg");
+    if(navigator.vibrate) navigator.vibrate(8);
+  }
+  mark.addEventListener("click", spin);
+  mark.addEventListener("keydown", e => {
+    if(e.key === "Enter" || e.key === " "){ e.preventDefault(); spin(); }
+  });
+})();
 
 </script>
 </body>
