@@ -267,6 +267,14 @@
   .sidebar .counter > div:last-child{border-bottom:none}
   .sidebar .counter .v{font-size:var(--t-lead);margin-top:0}
   .stagewrap{display:flex;flex-direction:column;align-items:center;gap:18px}
+
+  /* Everything in this column centres on the work: the frame, its hover
+     readout, the caption under it and the controls below that. The caption is
+     two short lines rather than a paragraph, so centring costs nothing and the
+     column reads as one object instead of three left edges that do not line up
+     with each other or with the standfirst above. */
+  .stagewrap .stateNote, .stagewrap #stateNote{text-align:center}
+
   /* Every reproduction on the site hangs the same way: an ink border, a white
      mount, and a shadow cast down and right as if lit from above left. The
      canvas, the Richter plate and the auction preview all use this, so a
