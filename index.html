@@ -346,6 +346,14 @@
     display:none}
 
 
+  /* The block number is the only thing on the page that moves on its own.
+     It is not information anybody needs; it is the page saying it is
+     connected to something rather than sitting still. */
+  .blocknum{color:var(--ink3);font-variant-numeric:tabular-nums;
+    opacity:0;transition:opacity .4s ease}
+  .blocknum.on{opacity:1}
+  .blocknum::before{content:" · "}
+
   /* ---- mint ---- */
   .mint{border:1px solid var(--ink);padding:24px 24px 26px;background:var(--mount);
     display:block;width:100%;max-width:360px}
@@ -1049,7 +1057,8 @@ ever sold end up a different colour, whether or not their owner did anything.</d
   <div class="foot">
     <p class="footstate" id="footState"></p>
     <div class="footrow">
-      <span>4096 &nbsp;·&nbsp; fully on-chain<span id="addr"></span></span>
+      <span>4096 &nbsp;·&nbsp; fully on-chain<span id="addr"></span>
+        <span class="blocknum" id="blockNum" title="latest block"></span></span>
       <span class="footlinks">
         <a href="https://x.com/Tenfin9erz" target="_blank" rel="noopener">X</a>
         <a href="#" id="fOpensea" target="_blank" rel="noopener">OpenSea</a>
@@ -3039,6 +3048,36 @@ window.__tools={
   mark.addEventListener("keydown", e => {
     if(e.key === "Enter" || e.key === " "){ e.preventDefault(); spin(); }
   });
+})();
+
+
+/* Twelve seconds is roughly a block, so the number changes about as often as
+   the chain does. Paused when the tab is hidden: a background tab quietly
+   polling forever is rude to whoever left it open. */
+(function(){
+  const el = document.getElementById("blockNum");
+  if(!el) return;
+  let timer = null;
+
+  async function tick(){
+    try{
+      const r = await fetch(window.CONFIG.RPC_ENDPOINTS[0], {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_blockNumber",params:[]})
+      });
+      const j = await r.json();
+      if(!j.result) return;
+      const n = parseInt(j.result, 16);
+      el.textContent = "block " + n.toLocaleString();
+      el.classList.add("on");
+    }catch(e){ /* the footer is not worth an error message */ }
+  }
+
+  function start(){ if(!timer){ tick(); timer = setInterval(tick, 12000); } }
+  function stop(){ if(timer){ clearInterval(timer); timer = null; } }
+
+  document.addEventListener("visibilitychange", () => document.hidden ? stop() : start());
+  start();
 })();
 
 </script>
