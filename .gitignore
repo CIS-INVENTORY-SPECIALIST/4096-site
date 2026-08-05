@@ -6,3 +6,6 @@ index.premerge.*.html
 index.prejs.*.html
 heart.premerge.*.html
 merge_step*.py
+index.pre*.html
+proofs_*.py
+tools_*.py

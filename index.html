@@ -598,7 +598,6 @@
         <button data-tab="about">About</button>
         <span class="sub"><button data-tab="method">Method</button></span>
       </span>
-      <button data-tab="proofs">Proofs</button>
       <button data-tab="richter">Richter</button>
       <button data-tab="auction">Auction</button>
     </nav>
@@ -1002,123 +1001,8 @@ ever sold end up a different colour, whether or not their owner did anything.</d
 </section>
 
 
-  <!-- ============ TOOLS ============ -->
-  <section data-tab="tools">
-
-    <div id="toolIndex">
-      <p class="eyebrow">Tools</p>
-      <h2>Things built on the same rules.</h2>
-      <p class="small">4096 derives colour from trading and nothing else. The contract that does it
-      is public and immutable, so anything here reads from it rather than from a copy. More will
-      arrive as they get built.</p>
-
-      <div class="toolgrid">
-
-      <button class="toolrow" data-tool="canvasof">
-        <span class="toolthumb"><canvas id="thumbCanvasOf" width="8" height="8"
-          aria-label="A canvas rendered from another collection's trading history."></canvas></span>
-        <span class="toolhead">
-          <span class="num">01</span><span class="nm">Canvas of</span><span class="st">open</span>
-        </span>
-        <span class="tooldesc">Render any collection through 4096&rsquo;s colour rules.</span>
-      </button>
-
-      <button class="toolrow" disabled>
-        <span class="toolthumb"><span class="ph"></span></span>
-        <span class="toolhead">
-          <span class="num">02</span><span class="nm">Pixel</span><span class="st">soon</span>
-        </span>
-        <span class="tooldesc">One token, its whole life. Every hand it passed through.</span>
-      </button>
-
-      <button class="toolrow" disabled>
-        <span class="toolthumb"><span class="ph"></span></span>
-        <span class="toolhead">
-          <span class="num">03</span><span class="nm">Palette</span><span class="st">soon</span>
-        </span>
-        <span class="tooldesc">Export a collection&rsquo;s derived palette as a swatch set.</span>
-      </button>
-
-      </div>
-    </div>
-
-    <div id="toolCanvasOf" style="display:none">
-      <button class="toolback" id="toolBack">&larr; Tools</button>
-      <p class="eyebrow">01 / Canvas of</p>
-      <h2>Any market, painted by the same rules.</h2>
-      <p class="small">Velocity, rhythm and patience are orthogonalised against each other, then
-      ranked across the population and split into sixteen tones per channel. Exactly as the
-      contract does it. A quiet collection still produces a full canvas, because a tone describes
-      where a token stands against its own population rather than an absolute number.</p>
-
-      <div class="toolbar">
-        <select id="toolPick"></select>
-        <input id="toolAddr" placeholder="or paste a contract address" spellcheck="false">
-      </div>
-      <p class="toolsoon" id="toolSoon">Live rendering is coming. Precomputed collections only for now.</p>
-
-      <div class="canvasframe">
-        <canvas id="toolCanvas" width="8" height="8" role="img"
-          aria-label="A canvas rendered from another collection's trading history."></canvas>
-      </div>
-
-      <div class="toolmeta" id="toolMeta">loading&hellip;</div>
-      <p class="toolnote" id="toolNote"></p>
-    </div>
-
-  </section>
 
 
-  <!-- ============ PROOFS ============ -->
-  <section data-tab="proofs">
-
-    <div id="pIndex">
-      <p class="eyebrow">Proofs</p>
-      <h2>The market that paints it.</h2>
-      <p class="small">Every colour on the canvas comes from trading and nothing else. So whatever
-      drives the trading is what paints the picture. These are the collaborations that do it:
-      artists, galleries and events, each one a reason for pixels to change hands.</p>
-
-      <div class="plead" id="pLead"></div>
-      <div class="parchive" id="pArchive"></div>
-
-      <div style="border-top:1px solid var(--ink);margin-top:64px;padding-top:40px">
-        <p class="eyebrow">How it works</p>
-        <h2>Nobody picks who qualifies.</h2>
-        <p class="small">A drop is committed to a block that has not happened yet. When that block
-        arrives its hash chooses the rule and the number, from a family set at commit. Hold five
-        pixels. Hold two that have never sold. Hold every pixel in one row. Nobody knows which
-        until it fires, and by then it is fixed.</p>
-        <p class="small">The canvas is captured in the same transaction, exactly as it stood, and
-        minted to the collaborator as a proof. It is an impression of the artwork at the moment
-        the rule landed, and it is theirs to keep, sell or give away.</p>
-        <p class="small">Then a window opens for seventy two hours. Anyone who satisfies the rule
-        can put themselves on the list, and the contract checks their pixels itself. Nobody is
-        found and no list is handed over. When the window closes it is sealed and readable by
-        anyone, forever.</p>
-        <p class="small">Every drop moves pixels. Every pixel that moves changes colour. The
-        collaborations are not beside the artwork, they are what makes it.</p>
-      </div>
-    </div>
-
-    <div id="pDetail" style="display:none">
-      <button class="pback" id="pBack">&larr; Proofs</button>
-      <p class="eyebrow" id="pdEyebrow"></p>
-      <h2 id="pdName"></h2>
-      <p class="small" id="pdDesc"></p>
-
-      <div class="pdetail">
-        <div>
-          <div class="pframe" id="pdPlate"></div>
-        </div>
-        <div>
-          <div class="prec" id="pdRecord"></div>
-          <div class="plist" id="pdList"></div>
-        </div>
-      </div>
-    </div>
-
-  </section>
 
   <section data-tab="richter">
     <p class="eyebrow">Inspiration</p>
@@ -2457,7 +2341,6 @@ document.getElementById("wallet").onclick=async()=>{
   if(h==="richter") drawPlate();
   if(h==="heart" && window.__heart) window.__heart.setActive(true);
   if(h==="tools" && window.__tools) window.__tools.boot();
-  if(h==="proofs" && window.__proofs) window.__proofs.boot();
 })();
 
 document.getElementById("navToggle").addEventListener("click",()=>{const n=document.getElementById("nav");n.classList.toggle("open");});
@@ -2474,7 +2357,6 @@ document.getElementById("nav").addEventListener("click",e=>{
   if(t==="richter") drawPlate();
   if(window.__heart) window.__heart.setActive(t==="heart");
   if(t==="tools" && window.__tools) window.__tools.boot();
-  if(t==="proofs" && window.__proofs) window.__proofs.boot();
 });
 
 /* ---------- richter plate ---------- */
@@ -3172,144 +3054,6 @@ window.__tools={
 })();
 
 
-/* =====================================================================
-   PROOFS  -  sample data until the contract is deployed
-   ===================================================================== */
-(function(){
-"use strict";
-
-/* Replace with reads from Proofs4096 once it is live. Shape matches the
-   contract: a drop is pending until it rolls, then it has a rule, a plate
-   and a list. */
-var DROPS = [
-  { id:3, name:"Jan Robert Leegte", label:"early access",
-    logo:"proofs/leegte.svg", plate:null, url:"https://leegte.org",
-    desc:"An early window on the next release.",
-    rolled:false, block:25990000 },
-
-  { id:2, name:"Art Blocks", label:"marfa weekend",
-    logo:"proofs/artblocks.svg", plate:"proofs/plate2.svg", url:"https://artblocks.io",
-    desc:"Passes to Marfa Weekend, October.",
-    rolled:true, rule:"COUNT", threshold:4, rolledAt:25904112,
-    minted:4096, sales:1840, list:[
-      "0x388b31b759b771e479c051ff29084dfcd81c4d88",
-      "0x1b8dc6a4a46e778033758cce1b6b0ddac78e25cf",
-      "0xcb7504c4cb986e80ab4983b44263381f21273482"
-    ] },
-
-  { id:1, name:"Stephen Santoro", label:"the vessel",
-    logo:"proofs/vessel.svg", plate:"proofs/plate1.svg", url:"https://thevessel.art",
-    desc:"First look at the next crafts.",
-    rolled:true, rule:"WHITE", threshold:3, rolledAt:25679000,
-    minted:176, sales:2, list:[
-      "0x388b31b759b771e479c051ff29084dfcd81c4d88",
-      "0xccf0a1307e5e5ad04e85d94d7f9d400390f0118a"
-    ] }
-];
-
-function el(id){ return document.getElementById(id); }
-function esc(t){ return String(t).replace(/[&<>"]/g, function(c){
-  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
-function num(n){ return Number(n).toLocaleString(); }
-function shortAddr(a){ return a.slice(0,6) + "\u2026" + a.slice(-4); }
-
-function frame(src, kind){
-  var cls = "pframe " + kind;
-  if(!src) return '<div class="' + cls + '"></div>';
-  return '<div class="' + cls + '">'
-       + '<img src="' + esc(src) + '" alt="" loading="lazy"></div>';
-}
-
-function card(d){
-  // the logo goes to the collaborator. the impression opens the record.
-  // two destinations, so the card is a container rather than one button.
-  var logo = d.url
-    ? '<a class="pframe logo" href="' + esc(d.url) + '" target="_blank" rel="noopener"'
-      + ' title="' + esc(d.name) + '"><img src="' + esc(d.logo) + '" alt="" loading="lazy"></a>'
-    : frame(d.logo,"logo");
-
-  var impression = d.rolled
-    ? '<button class="pframe impression" data-id="' + d.id + '" title="Open proof ' + d.id + '">'
-      + '<img src="' + esc(d.plate) + '" alt="" loading="lazy"></button>'
-    : "";
-
-  var status = d.rolled ? "proof " + d.id : "pending";
-  return '<div class="pcard ' + (d.rolled?"rolled":"pending") + '">'
-       + '<div class="pair">' + logo + impression + '</div>'
-       + '<div class="pmeta">'
-       +   '<span class="num">' + String(d.id).padStart(2,"0") + '</span>'
-       +   '<span class="nm">' + esc(d.name) + '</span>'
-       +   '<span class="st' + (d.rolled?"":" live") + '">' + status + '</span>'
-       + '</div>'
-       + '<p class="pdesc">' + esc(d.desc) + '</p>'
-       + '</div>';
-}
-
-function row(k,v){
-  return '<div><span class="k">' + k + '</span><span class="v">' + v + '</span></div>';
-}
-
-function openDetail(id){
-  var d = DROPS.filter(function(x){ return x.id === id; })[0];
-  if(!d) return;
-
-  el("pIndex").style.display = "none";
-  el("pDetail").style.display = "block";
-
-  el("pdEyebrow").textContent = (d.rolled ? "Proof " + d.id : "Pending") + " \u00b7 " + d.label;
-  el("pdName").textContent = d.name;
-  el("pdDesc").textContent = d.desc;
-
-  var pd = el("pdPlate");
-  pd.className = "pframe " + (d.plate ? "impression" : "logo");
-  pd.innerHTML = '<img src="' + esc(d.plate || d.logo) + '" alt="">';
-
-  var rec = "";
-  if(d.rolled){
-    rec += row("Rule", d.rule + " " + d.threshold);
-    rec += row("Block", num(d.rolledAt));
-    rec += row("Claimed at roll", num(d.minted) + " / 4096");
-    rec += row("Sales at roll", num(d.sales));
-    rec += row("On the list", num(d.list.length));
-  } else {
-    rec += row("Rolls at block", num(d.block));
-    rec += row("Rule", "not yet decided");
-  }
-  el("pdRecord").innerHTML = rec;
-
-  el("pdList").innerHTML = d.rolled
-    ? "<b>The list</b>" + d.list.map(function(a){
-        return '<span title="' + esc(a) + '">' + esc(shortAddr(a)) + "</span>"; }).join("")
-    : "<b>The list</b><span>opens when the rule fires</span>";
-}
-
-function closeDetail(){
-  el("pDetail").style.display = "none";
-  el("pIndex").style.display = "block";
-}
-
-var booted = false;
-window.__proofs = {
-  boot: function(){
-    if(booted) return;
-    booted = true;
-    var lead = el("pLead"), arch = el("pArchive");
-    if(!lead || !arch) return;
-    var sorted = DROPS.slice().sort(function(a,b){ return b.id - a.id; });
-    lead.innerHTML = sorted.length ? card(sorted[0]) : "";
-    arch.innerHTML = sorted.slice(1).map(card).join("");
-    function onClick(e){
-      var b = e.target.closest(".pframe.impression[data-id]");
-      if(b) openDetail(Number(b.dataset.id));
-    }
-    lead.addEventListener("click", onClick);
-    arch.addEventListener("click", onClick);
-    var back = el("pBack");
-    if(back) back.addEventListener("click", closeDetail);
-    closeDetail();
-  }
-};
-})();
 
 </script>
 </body>
