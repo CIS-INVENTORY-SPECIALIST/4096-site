@@ -1675,9 +1675,9 @@ function sizeCanvas(){
   const SIDEBAR=320, GAP=34, PAD=56;
   const twoCol=window.innerWidth>1000;
   const content=Math.min(1160, window.innerWidth)-PAD;
+
   // The frame is drawn around the canvas, so its moulding and mat come out of
-  // the available width before the cell size is chosen. Measuring it rather
-  // than assuming keeps this correct as the frame scales with the viewport.
+  // the width before the cell size is chosen.
   const frameEl=cv.closest(".frame");
   let chrome=46;
   if(frameEl){
@@ -1687,38 +1687,20 @@ function sizeCanvas(){
   const availW=twoCol ? content-SIDEBAR-GAP-chrome
                       : Math.min(window.innerWidth-chrome, 760);
 
-  // The canvas also has to fit above the fold, or the artwork is cut off on
-  // arrival by whatever sits above it. Measure that rather than guessing:
-  // everything from the top of the page to the top of the frame, plus the
-  // frame's own padding and a little air beneath.
-  // A hidden section has no geometry: every rect comes back zero, so measuring
-  // the frame while another tab is showing picks a cell size from nothing and
-  // the canvas is wrong until the next resize. Chain data can arrive at any
-  // moment, including while the visitor is reading a different page, so this
-  // has to be checked rather than assumed.
-  const frame=cv.closest(".frame");
-  // A hidden section measures as zero, so sizing from it picks a cell size from
-  // nothing. Rather than returning and leaving whatever was there before, fall
-  // back to the width calculation alone: it does not need the frame's position
-  // and it gives the same answer this tab will get when it opens.
-  const visible=frame && frame.getBoundingClientRect().width > 0;
-  if(!visible){
-    CELL=Math.max(5,Math.min(12,Math.floor(availW/GRID)));
-    cv.style.width=(CELL*GRID)+"px"; cv.style.height=(CELL*GRID)+"px";
-    return;
-  }
-
-  const top=frame.getBoundingClientRect().top + window.scrollY;
-  const availH=window.innerHeight - top - 90;
+  // The canvas also has to fit above the fold. Everything above it is a known
+  // height, so compute the offset rather than measuring it: a hidden section
+  // measures as zero, and a function that answers differently depending on
+  // which tab happens to be open makes the canvas jump when you switch back.
+  //
+  // header and rule, the standfirst at three lines, the gap beneath it, the
+  // frame's own moulding, and air under the work for its caption.
+  const ABOVE = 150 + (twoCol ? 108 : 150) + 30 + chrome/2 + 90;
+  const availH = window.innerHeight - ABOVE;
 
   // CELL stays a whole number so every pixel is a whole number of screen
-  // pixels. Scaling the canvas with CSS instead would land cell edges on half
-  // pixels and blur a grid whose whole point is that it is exact.
-  // Height only constrains the two column layout. On a phone the browser hides
-  // its URL bar as you scroll, which changes innerHeight by around eighty
-  // pixels mid-gesture; letting that feed back into the cell size makes the
-  // canvas jump under your thumb. Single column scrolls anyway.
-  const avail=twoCol ? Math.min(availW, Math.max(availH, GRID*5)) : availW;
+  // pixels. Scaling with CSS instead would land cell edges on half pixels and
+  // blur a grid whose whole point is that it is exact.
+  const avail = twoCol ? Math.min(availW, Math.max(availH, GRID*5)) : availW;
   CELL=Math.max(5,Math.min(12,Math.floor(avail/GRID)));
   cv.style.width=(CELL*GRID)+"px"; cv.style.height=(CELL*GRID)+"px";
   const _ld=document.getElementById("canvasLoading"); if(_ld){ _ld.style.width=(CELL*GRID)+"px"; _ld.style.height=(CELL*GRID)+"px"; _ld.style.minHeight=(CELL*GRID)+"px"; }
