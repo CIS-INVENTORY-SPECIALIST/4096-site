@@ -42,6 +42,17 @@
     --warn:#856012;
     --serif:"Libre Baskerville",Georgia,"Times New Roman",serif;
     --mono:"IBM Plex Mono",ui-monospace,monospace;
+
+    /* Type sits on seven steps a minor third apart. Every size on the page
+       is one of these, so nothing is a pixel off something else for no
+       reason. Tune the scale here rather than at the call site. */
+    --t-micro:   9.0px;
+    --t-meta:   11.0px;
+    --t-small:  13.0px;
+    --t-body:   15.5px;
+    --t-lead:   19.0px;
+    --t-head:   23.0px;
+    --t-title:  29.0px;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
@@ -49,7 +60,7 @@
      and more leading than a modern screen serif would. */
   body{
     background:var(--paper); color:var(--ink);
-    font-family:var(--serif); font-size:15.5px; font-weight:400; line-height:1.75;
+    font-family:var(--serif); font-size:var(--t-body); font-weight:400; line-height:1.75;
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   }
   a{color:inherit}
@@ -63,7 +74,7 @@
      sits beside the wordmark rather than inside it, so it can travel alone as
      an avatar or a favicon, and so white does not have to survive on paper as
      a letterform. */
-  .brand{font-size:29px;font-weight:400;letter-spacing:-.01em;line-height:1;
+  .brand{font-size:var(--t-title);font-weight:400;letter-spacing:-.01em;line-height:1;
     display:inline-flex;align-items:center;gap:.34em}
   /* The mark turns a quarter when you touch it. A quarter rather than a full
      turn because the four squares are the whole logo: a full rotation lands
@@ -94,14 +105,14 @@
   @media(max-width:760px){
     nav#nav{width:100%;
         border-top:1px solid var(--rule);margin-top:4px}
-    nav button{padding:11px 4px;text-align:center;font-size:9px;letter-spacing:.12em;
+    nav button{padding:11px 4px;text-align:center;font-size:var(--t-micro);letter-spacing:.12em;
       border-bottom:1px solid var(--rule)}
     nav button[aria-current="page"]{background:var(--mount)}
     nav button[aria-current="page"]::after{display:none}
   }
-  nav button{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+  nav button{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;text-transform:uppercase;
     background:none;border:none;color:var(--ink3);padding:7px 12px;cursor:pointer;white-space:nowrap}
-  nav a.navlink{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  nav a.navlink{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;
     text-transform:uppercase;color:var(--ink3);padding:7px 12px;cursor:pointer;
     white-space:nowrap;text-decoration:none;display:flex;align-items:center}
   nav a.navlink:hover{color:var(--ink)}
@@ -118,7 +129,7 @@
   nav button:hover{color:var(--ink)}
   nav button:focus-visible{outline:1px solid var(--ink);outline-offset:2px}
   /* No uppercase here: it would mangle a hex address into 0XF60D. */
-  .wallet{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  .wallet{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
     border:1px solid var(--rule);background:var(--mount);color:var(--ink2);padding:9px 13px;cursor:pointer}
   .wallet[data-state="idle"]{text-transform:uppercase}
   .wallet:hover{border-color:var(--ink);color:var(--ink)}
@@ -132,8 +143,8 @@
     .wallet{order:3}
     nav#nav{display:none !important;position:absolute;top:100%;right:0;z-index:50;width:210px;background:var(--mount);border:1px solid var(--ink);margin-top:6px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
     nav#nav.open{display:block !important}
-    nav#nav button{display:block;width:100%;text-align:left;padding:14px 18px;font-size:11px;border-bottom:1px solid var(--rule);border-top:none}
-    nav#nav a.navlink{display:block;width:100%;text-align:left;padding:14px 18px;font-size:11px;
+    nav#nav button{display:block;width:100%;text-align:left;padding:14px 18px;font-size:var(--t-meta);border-bottom:1px solid var(--rule);border-top:none}
+    nav#nav a.navlink{display:block;width:100%;text-align:left;padding:14px 18px;font-size:var(--t-meta);
       border-bottom:1px solid var(--rule)}
     .navgroup{display:block;width:100%}
     .navgroup .sub{display:block;position:static;border:none;box-shadow:none;background:none}
@@ -156,12 +167,12 @@
   }
 
   /* ---- type ---- */
-  .eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;
+  .eyebrow{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.22em;text-transform:uppercase;
     color:var(--ink3);margin:0 0 18px}
-  h2{font-size:23px;font-weight:400;letter-spacing:-.012em;margin:0 0 14px;line-height:1.35}
+  h2{font-size:var(--t-head);font-weight:400;letter-spacing:-.012em;margin:0 0 14px;line-height:1.35}
   p{margin:0 0 17px;max-width:60ch}
   .muted{color:var(--ink2)}
-  .small{font-size:13.5px;line-height:1.65}
+  .small{font-size:var(--t-small);line-height:1.65}
   strong,b{font-weight:700}
   em{font-style:italic}
 
@@ -186,7 +197,7 @@
     padding:12px 24px;display:flex;justify-content:space-between;
     align-items:baseline;gap:12px}
   .sidebar .counter div:last-child{border-bottom:none}
-  .sidebar .counter .v{font-size:19px;margin-top:0}
+  .sidebar .counter .v{font-size:var(--t-lead);margin-top:0}
   .stagewrap{display:flex;flex-direction:column;align-items:center;gap:18px}
   .frame{border:1px solid var(--ink);padding:13px;background:var(--mount);
     line-height:0;position:relative;overflow:hidden}
@@ -194,11 +205,11 @@
     will-change:transform}
   #overlay{position:absolute;left:0;top:0;pointer-events:none}
   .zoomreset{position:absolute;right:9px;bottom:9px;z-index:5;font-family:var(--mono);
-    font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;background:var(--mount);
+    font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;background:var(--mount);
     border:1px solid var(--ink);color:var(--ink);padding:7px 11px;cursor:pointer;line-height:1}
   #canvas{display:block;image-rendering:pixelated;cursor:crosshair}
   .readout{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;
-    font-family:var(--mono);font-size:11px;color:var(--ink2);
+    font-family:var(--mono);font-size:var(--t-meta);color:var(--ink2);
     font-variant-numeric:tabular-nums;min-height:20px;letter-spacing:.02em}
   .readout b{color:var(--ink);font-weight:500}
   .swatch{display:inline-block;width:10px;height:10px;border:1px solid var(--rule);
@@ -206,20 +217,20 @@
 
   /* ---- search ---- */
   .searchwrap{position:relative;width:100%;max-width:390px;margin:0 auto}
-  .searchwrap input{width:100%;font-family:var(--mono);font-size:12px;padding:10px 13px;
+  .searchwrap input{width:100%;font-family:var(--mono);font-size:var(--t-meta);padding:10px 13px;
     border:1px solid var(--rule);background:var(--mount);color:var(--ink)}
   .searchwrap input::placeholder{color:var(--ink3)}
   .searchwrap input:focus{outline:none;border-color:var(--ink)}
   .results{position:absolute;left:0;right:0;top:100%;background:var(--mount);
     border:1px solid var(--ink);border-top:none;z-index:20;max-height:270px;overflow:auto}
   .results button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;
-    font-family:var(--mono);font-size:11.5px;background:none;border:none;
+    font-family:var(--mono);font-size:var(--t-meta);background:none;border:none;
     border-bottom:1px solid var(--rule2);padding:10px 13px;cursor:pointer;color:var(--ink)}
   .results button:hover{background:var(--paper)}
-  .results .cnt{color:var(--ink3);font-size:10.5px;white-space:nowrap}
+  .results .cnt{color:var(--ink3);font-size:var(--t-meta);white-space:nowrap}
   .hlbar{display:flex;gap:9px;align-items:center;justify-content:center;flex-wrap:wrap;
-    font-family:var(--mono);font-size:11px}
-  .ghost{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+    font-family:var(--mono);font-size:var(--t-meta)}
+  .ghost{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;
     background:var(--mount);border:1px solid var(--rule);color:var(--ink2);padding:9px 13px;cursor:pointer}
   .ghost:hover{border-color:var(--ink);color:var(--ink)}
   .ghost[aria-pressed="true"]{border-color:var(--ink);color:var(--ink)}
@@ -232,9 +243,9 @@
     border:1px solid var(--ink);margin-top:44px;background:var(--mount)}
   .counter div{border-right:1px solid var(--rule);padding:15px 17px}
   .counter div:last-child{border-right:none}
-  .counter .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+  .counter .k{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.2em;
     text-transform:uppercase;color:var(--ink3)}
-  .counter .v{font-size:23px;font-weight:400;font-variant-numeric:tabular-nums;
+  .counter .v{font-size:var(--t-head);font-weight:400;font-variant-numeric:tabular-nums;
     margin-top:5px;letter-spacing:-.015em}
 
 
@@ -246,11 +257,11 @@
   .crop.tr{top:7px;right:7px;border-top:1px solid var(--ink);border-right:1px solid var(--ink)}
   .crop.bl{bottom:7px;left:7px;border-bottom:1px solid var(--ink);border-left:1px solid var(--ink)}
   .crop.br{bottom:7px;right:7px;border-bottom:1px solid var(--ink);border-right:1px solid var(--ink)}
-  .stamp{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  .stamp{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.16em;text-transform:uppercase;
     color:var(--ink3);margin-top:11px;display:flex;gap:18px;flex-wrap:wrap;
     font-variant-numeric:tabular-nums}
   .stamp b{color:var(--ink2);font-weight:400}
-  .sources{font-family:var(--mono);font-size:10.5px;line-height:1.9;color:var(--ink3);
+  .sources{font-family:var(--mono);font-size:var(--t-meta);line-height:1.9;color:var(--ink3);
     border-top:1px solid var(--rule);margin-top:44px;padding-top:18px}
   .sources a{color:var(--ink2);text-decoration:none;border-bottom:1px solid var(--rule)}
   .sources a:hover{border-color:var(--ink)}
@@ -258,13 +269,13 @@
   #heartCanvas{display:block;width:100%;height:auto;image-rendering:pixelated}
   .hoverlay{position:absolute;inset:0}
   .node{position:absolute;line-height:1.55}
-  .node .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+  .node .lbl{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.2em;
     text-transform:uppercase;color:var(--ink2);display:block;margin-bottom:5px}
   .node hr{border:none;border-top:1px solid var(--ink);margin:0 0 7px}
-  .node p{font-size:12px;line-height:1.5;color:var(--ink2);margin:0;max-width:none}
+  .node p{font-size:var(--t-meta);line-height:1.5;color:var(--ink2);margin:0;max-width:none}
   /* namespaced: index.html owns .readout for the canvas page */
   .hreadout{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;
-    font-family:var(--mono);font-size:11px;color:var(--ink2);
+    font-family:var(--mono);font-size:var(--t-meta);color:var(--ink2);
     font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-top:18px;min-height:20px}
   .hreadout b{color:var(--ink);font-weight:500}
   .hscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:26px}
@@ -275,12 +286,12 @@
   .hscroll .counter div:last-child{border-right:none}
   .hscroll::-webkit-scrollbar{height:5px}
   .hscroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
-  .swipehint{display:none;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+  .swipehint{display:none;font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.16em;
     text-transform:uppercase;color:var(--ink3);margin:7px 0 0}
   .hstack{display:none;margin-top:34px}
   .hstack .node{position:static;margin-bottom:26px;max-width:60ch;width:auto}
   .hfail{border:1px solid var(--warn);background:#fbf6ea;color:#6b5320;
-    padding:12px 14px;margin:16px 0;font-size:13px;display:none}
+    padding:12px 14px;margin:16px 0;font-size:var(--t-small);display:none}
   @media(max-width:760px){ .swipehint{display:block} }
   @media(max-width:860px){ .hoverlay{display:none} .hstack{display:block} }
 
@@ -302,23 +313,23 @@
     repeating-linear-gradient(45deg,var(--rule2) 0 6px,transparent 6px 12px)}
   .toolrow:disabled .toolthumb{border-color:var(--rule)}
   .toolhead{display:flex;align-items:baseline;gap:10px;margin-top:14px}
-  .toolhead .num{font-family:var(--mono);font-size:9px;letter-spacing:.22em;
+  .toolhead .num{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.22em;
     color:var(--ink3)}
-  .toolhead .nm{font-size:18px;letter-spacing:-.012em}
-  .toolhead .st{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;
+  .toolhead .nm{font-size:var(--t-lead);letter-spacing:-.012em}
+  .toolhead .st{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.2em;
     text-transform:uppercase;color:var(--ink3);margin-left:auto}
   .toolrow:hover:not(:disabled) .toolhead .st{color:var(--ink)}
   .toolrow:disabled .nm{color:var(--ink3)}
-  .tooldesc{font-size:13px;line-height:1.6;color:var(--ink2);margin:7px 0 0;
+  .tooldesc{font-size:var(--t-small);line-height:1.6;color:var(--ink2);margin:7px 0 0;
     display:block;max-width:44ch}
   .toolrow:disabled .tooldesc{color:var(--ink3)}
-  .toolback{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  .toolback{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;
     text-transform:uppercase;color:var(--ink3);background:none;border:none;
     cursor:pointer;padding:0;margin:0 0 22px}
   .toolback:hover{color:var(--ink)}
 
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0 6px}
-  .toolbar select,.toolbar input{font-family:var(--mono);font-size:12px;padding:9px 12px;
+  .toolbar select,.toolbar input{font-family:var(--mono);font-size:var(--t-meta);padding:9px 12px;
     border:1px solid var(--rule);background:var(--mount);color:var(--ink)}
   .toolbar input{min-width:300px;flex:1}
   .toolbar select:focus,.toolbar input:focus{outline:none;border-color:var(--ink)}
@@ -326,40 +337,55 @@
     margin-top:20px;display:inline-block;line-height:0;max-width:100%}
   #toolCanvas{display:block;image-rendering:pixelated;
     width:520px;max-width:100%;height:auto}
-  .toolmeta{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--ink3);
+  .toolmeta{font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.06em;color:var(--ink3);
     margin-top:14px;display:flex;gap:20px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
   .toolmeta b{color:var(--ink2);font-weight:400}
-  .toolnote{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:22px;
+  .toolnote{font-family:var(--mono);font-size:var(--t-micro);color:var(--ink3);margin-top:22px;
     border-top:1px solid var(--rule);padding-top:14px;line-height:1.8;max-width:70ch}
-  .toolsoon{font-family:var(--mono);font-size:11px;color:var(--warn);margin-top:10px;
+  .toolsoon{font-family:var(--mono);font-size:var(--t-meta);color:var(--warn);margin-top:10px;
     display:none}
 
 
   /* ---- mint ---- */
   .mint{border:1px solid var(--ink);padding:24px 24px 26px;background:var(--mount);
     display:block;width:100%;max-width:360px}
-  .mint h3{font-size:19px;font-weight:400;margin:0 0 6px;letter-spacing:-.01em}
-  .mint .price{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  .mint h3{font-size:var(--t-lead);font-weight:400;margin:0 0 6px;letter-spacing:-.01em}
+  .mint .price{font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.14em;
     text-transform:uppercase;color:var(--ink3);margin-bottom:16px}
   .progwrap{margin:0 0 18px}
   .progtop{display:flex;justify-content:space-between;align-items:baseline;
-    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;
     color:var(--ink3);margin-bottom:7px}
-  .progtop b{font-family:var(--serif);font-size:19px;font-weight:400;color:var(--ink);
+  .progtop b{font-family:var(--serif);font-size:var(--t-lead);font-weight:400;color:var(--ink);
     letter-spacing:-.01em;text-transform:none}
   .progbar{height:7px;background:var(--rule2);border:1px solid var(--rule);position:relative}
   .progfill{height:100%;background:var(--ink);transition:width .4s ease}
-  .progfoot{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:6px;
+  .progfoot{font-family:var(--mono);font-size:var(--t-micro);color:var(--ink3);margin-top:6px;
     display:flex;justify-content:space-between}
-  .reserve{font-size:12.5px;color:var(--ink3);line-height:1.55;margin-top:16px;
+  .reserve{font-size:var(--t-small);color:var(--ink3);line-height:1.55;margin-top:16px;
     padding-top:14px;border-top:1px solid var(--rule2)}
   .qty{display:flex;align-items:center;border:1px solid var(--rule)}
-  .qty button{font-family:var(--mono);font-size:15px;background:none;border:none;
+  .qty button{font-family:var(--mono);font-size:var(--t-body);background:none;border:none;
     color:var(--ink2);width:38px;height:42px;cursor:pointer}
   .qty button:hover{color:var(--ink)}
   .qty span{min-width:46px;text-align:center;font-family:var(--mono);font-weight:500;
     font-variant-numeric:tabular-nums}
-  .cta{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  /* Every control moves the same way. A short ease on colour and border so a
+     hover reads as the thing warming up rather than swapping state, and a
+     press that visibly gives, since on touch there is no hover to fall back
+     on. 120ms is under the threshold where a delay is felt as lag but above
+     where a change is felt as a jump. */
+  .cta, .ghost, .wallet, nav button {
+    transition: background .12s ease, color .12s ease,
+                border-color .12s ease, transform .08s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cta:active, .ghost:active, .wallet:active {
+    transform: translateY(1px);
+  }
+  .cta[disabled]:active { transform: none; }
+
+  .cta{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;text-transform:uppercase;
     background:var(--ink);color:var(--mount);border:1px solid var(--ink);padding:13px 24px;cursor:pointer}
   .cta:hover{background:#000}
   .cta[disabled]{background:none;color:var(--ink3);border-color:var(--rule);cursor:not-allowed}
@@ -371,26 +397,26 @@
   .card:hover{border-color:var(--ink)}
   .cardtop{display:flex;align-items:center;gap:11px;margin-bottom:14px}
   .chip{width:38px;height:38px;border:1px solid var(--rule);flex:none}
-  .cardid{font-size:17px;font-weight:400;line-height:1.2}
-  .cardpos{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:3px;
+  .cardid{font-size:var(--t-body);font-weight:400;line-height:1.2}
+  .cardpos{font-family:var(--mono);font-size:var(--t-micro);color:var(--ink3);margin-top:3px;
     overflow-wrap:anywhere}
-  .bar{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;
+  .bar{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:var(--t-micro);
     letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-top:7px}
   .bar .lab{width:54px;flex:none}
   .track{flex:1;height:4px;background:var(--rule2)}
   .fill{height:4px}
   .bar .num{width:20px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
   .cardfoot{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule2);
-    font-size:12.5px;color:var(--ink3);line-height:1.6}
+    font-size:var(--t-small);color:var(--ink3);line-height:1.6}
 
   /* ---- tables ---- */
   .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;
     border:1px solid var(--rule);background:var(--mount);margin-top:10px}
   table{width:100%;border-collapse:collapse;background:var(--mount)}
   th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--rule);
-    font-size:14px;vertical-align:top;line-height:1.6}
+    font-size:var(--t-small);vertical-align:top;line-height:1.6}
   tr:last-child td{border-bottom:none}
-  th{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  th{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;text-transform:uppercase;
     color:var(--ink3);font-weight:500;border-bottom:1px solid var(--ink)}
   td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 
@@ -398,14 +424,14 @@
   details{border:1px solid var(--rule);margin-top:10px;background:var(--mount)}
   details + details{margin-top:-1px}
   details[open]{border-color:var(--ink)}
-  summary{cursor:pointer;padding:15px 17px;font-size:15px;list-style:none;
+  summary{cursor:pointer;padding:15px 17px;font-size:var(--t-body);list-style:none;
     display:flex;justify-content:space-between;align-items:center;gap:14px}
   summary::-webkit-details-marker{display:none}
-  summary::after{content:"read";font-family:var(--mono);font-size:9px;letter-spacing:.18em;
+  summary::after{content:"read";font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;
     text-transform:uppercase;color:var(--ink3)}
   details[open] summary::after{content:"close"}
   summary:hover{background:var(--paper)}
-  .code{padding:0 17px 17px;font-family:var(--mono);font-size:11.5px;line-height:1.85;
+  .code{padding:0 17px 17px;font-family:var(--mono);font-size:var(--t-meta);line-height:1.85;
     color:var(--ink2);white-space:pre-wrap;border-top:1px solid var(--rule2);padding-top:15px}
   .code b{color:var(--ink);font-weight:500}
 
@@ -430,40 +456,40 @@
     .box{border-right:none;border-bottom:1px solid var(--rule)}
     .box:last-child{border-bottom:none}
   }
-  .box .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+  .box .k{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.2em;
     text-transform:uppercase;color:var(--ink3)}
-  .box .v{font-size:27px;font-weight:400;font-variant-numeric:tabular-nums;
+  .box .v{font-size:var(--t-title);font-weight:400;font-variant-numeric:tabular-nums;
     margin-top:7px;letter-spacing:-.02em}
-  .box .sub{font-size:12.5px;color:var(--ink3);margin-top:7px;line-height:1.55}
+  .box .sub{font-size:var(--t-small);color:var(--ink3);margin-top:7px;line-height:1.55}
   .bidrow{display:flex;gap:10px;width:100%;max-width:530px;flex-wrap:wrap}
-  .bidrow input{flex:1;min-width:150px;font-family:var(--mono);font-size:14px;
+  .bidrow input{flex:1;min-width:150px;font-family:var(--mono);font-size:var(--t-small);
     padding:12px 13px;border:1px solid var(--rule);background:var(--mount)}
   .split{width:100%;max-width:530px;border-top:1px solid var(--rule);padding-top:26px;margin-top:10px}
   .claimrow{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
 
   /* ---- misc ---- */
   .notice{border:1px solid var(--rule);background:var(--mount);padding:20px 22px;
-    color:var(--ink2);font-size:15px}
+    color:var(--ink2);font-size:var(--t-body)}
   .notice.live{border-color:var(--ink);color:var(--ink)}
   .foot{margin-top:70px;padding-top:20px;border-top:1px solid var(--rule)}
-  .footstate{font-size:15px;color:var(--ink2);max-width:52ch;margin:0 0 18px}
+  .footstate{font-size:var(--t-body);color:var(--ink2);max-width:52ch;margin:0 0 18px}
   .footstate b{color:var(--ink);font-weight:400}
   .footrow{display:flex;justify-content:space-between;align-items:baseline;
-    gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;
+    gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:var(--t-micro);
     letter-spacing:.08em;color:var(--ink3)}
   .footlinks{display:flex;gap:16px;flex-wrap:wrap}
   .footlinks a{text-decoration:none;color:var(--ink3);letter-spacing:.14em;text-transform:uppercase}
   .footlinks a:hover{color:var(--ink)}
   .banner{background:#e6e4dc;border:1px solid var(--rule);color:#5f5c4e;
-    padding:9px 13px;font-family:var(--mono);font-size:10.5px;margin-top:14px;
+    padding:9px 13px;font-family:var(--mono);font-size:var(--t-meta);margin-top:14px;
     line-height:1.5}
-  .loading{display:flex;align-items:center;justify-content:center;    min-height:200px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  .loading{display:flex;align-items:center;justify-content:center;    min-height:200px;font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.16em;
     text-transform:uppercase;color:var(--ink3)}
   .rpcfail{border:1px solid var(--warn);background:#fbf6ea;color:#6b5320;
-    padding:16px 18px;font-size:14px;margin-top:16px}
+    padding:16px 18px;font-size:var(--t-small);margin-top:16px}
   .rpcfail b{display:block;margin-bottom:5px}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);
-    color:var(--mount);font-family:var(--mono);font-size:11px;padding:12px 18px;z-index:50;
+    color:var(--mount);font-family:var(--mono);font-size:var(--t-meta);padding:12px 18px;z-index:50;
     opacity:0;pointer-events:none;transition:opacity .18s}
   .toast.on{opacity:1}
   /* one visible focus ring for everything, not just the nav */
@@ -484,36 +510,36 @@
     .tablewrap tbody{display:flex;flex-direction:column;gap:10px}
     .tablewrap tr{display:block;border:1px solid var(--rule);background:var(--mount);box-sizing:border-box;width:100%;padding:15px 18px}
     .tablewrap tr:last-child{border-bottom:1px solid var(--rule)}
-    .tablewrap td{display:block;border:none;padding:1px 0;font-size:15px}
-    .tablewrap td:first-child{font-weight:700;font-size:16px;margin-bottom:5px}
+    .tablewrap td{display:block;border:none;padding:1px 0;font-size:var(--t-body)}
+    .tablewrap td:first-child{font-weight:700;font-size:var(--t-body);margin-bottom:5px}
     .tablewrap td:not(:first-child){color:var(--ink2);padding-left:0}
     /* Stacking a table drops the header row, so each value has to carry its own
        label or the rows read as a list of unrelated sentences. */
     .tablewrap td[data-label]::before{
-      content:attr(data-label);display:block;font-family:var(--mono);font-size:9px;
+      content:attr(data-label);display:block;font-family:var(--mono);font-size:var(--t-micro);
       letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);
       margin:9px 0 2px}
   }
   @media(max-width:640px){
     .wrap{padding:0 16px 84px}
-    body{font-size:15px;line-height:1.7}
+    body{font-size:var(--t-body);line-height:1.7}
     header{padding:22px 0 12px;gap:14px}
-    .brand{font-size:24px}
+    .brand{font-size:var(--t-head)}
     .frame{padding:7px}
     .searchwrap{max-width:none}
     .stagewrap{width:100%}
-    h2{font-size:20px}
+    h2{font-size:var(--t-lead)}
     p{margin-bottom:15px}
     .tablewrap table{min-width:0}
-    .counter .v{font-size:20px}
-    .box .v{font-size:24px}
+    .counter .v{font-size:var(--t-lead)}
+    .box .v{font-size:var(--t-head)}
     .cta,.ghost,.wallet{min-height:44px}
     .qty button{width:44px;height:44px}
     .readout{gap:14px}
     /* pre-wrap plus source line breaks makes shredded text at this width.
        Let the prose reflow and give each formula its own line instead. */
-    .code{font-size:12.5px;white-space:normal;line-height:1.75}
-    .code b{display:block;margin:11px 0;font-size:11px;overflow-wrap:anywhere;
+    .code{font-size:var(--t-small);white-space:normal;line-height:1.75}
+    .code b{display:block;margin:11px 0;font-size:var(--t-meta);overflow-wrap:anywhere;
       background:var(--paper);border-left:2px solid var(--rule);
       padding:8px 10px;font-weight:500}
   }
@@ -1883,7 +1909,7 @@ async function drawAuction(){
         <div class="claimrow">
           <div>
             <div class="small muted">Your share, if the canvas sold at 1 ETH</div>
-            <div style="font-size:19px;font-variant-numeric:tabular-nums">
+            <div style="font-size:var(--t-lead);font-variant-numeric:tabular-nums">
               0.000244 ETH <span class="small muted">per pixel · 1/4096 each</span>
             </div>
           </div>
@@ -1902,7 +1928,7 @@ async function drawAuction(){
         <p class="eyebrow" style="margin-bottom:8px">Where the total stands</p>
         <div class="small muted" style="max-width:56ch">
           ${ts > 0
-            ? `<b style="color:var(--ink);font-size:16px">${ts.toLocaleString()}</b> sales so far.`
+            ? `<b style="color:var(--ink);font-size:var(--t-body)">${ts.toLocaleString()}</b> sales so far.`
             : `Trading has not started. The total begins counting once the collection is minted out.`}
           The sealed number is committed as a hash and is not public, so nobody knows how close this
           is, including us, until we reveal it. It may never be reached.
@@ -1959,14 +1985,14 @@ function chooseWallet(){
     back.style.cssText="position:fixed;inset:0;background:rgba(255,255,255,.86);z-index:60;"+
       "display:flex;align-items:center;justify-content:center;padding:20px";
     back.innerHTML=`<div style="background:#fff;border:1px solid var(--ink);max-width:340px;width:100%">
-      <div style="padding:14px 16px;border-bottom:1px solid var(--rule);font-size:11px;
+      <div style="padding:14px 16px;border-bottom:1px solid var(--rule);font-size:var(--t-meta);
                   letter-spacing:.18em;text-transform:uppercase;color:var(--ink3)">Choose a wallet</div>
       <div id="wl"></div></div>`;
     const wl=back.querySelector("#wl");
     list.forEach(w=>{
       const b=document.createElement("button");
       b.style.cssText="display:flex;align-items:center;gap:10px;width:100%;text-align:left;"+
-        "font-family:inherit;font-size:13.5px;background:none;border:none;"+
+        "font-family:inherit;font-size:var(--t-small);background:none;border:none;"+
         "border-bottom:1px solid var(--rule);padding:13px 16px;cursor:pointer;min-height:48px";
       b.innerHTML=(w.info.icon?`<img src="${w.info.icon}" alt="" style="width:22px;height:22px">`:"")+
                   `<span>${w.info.name}</span>`;
@@ -2001,22 +2027,22 @@ function mobileWalletPrompt(){
   back.style.cssText="position:fixed;inset:0;background:rgba(238,238,234,.94);z-index:60;"+
     "display:flex;align-items:center;justify-content:center;padding:22px";
   back.innerHTML=`<div style="background:#fff;border:1px solid var(--ink);max-width:340px;width:100%;padding:22px">
-    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    <div style="font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;text-transform:uppercase;
                 color:var(--ink3);margin-bottom:12px">Connect on mobile</div>
-    <p style="font-size:15px;margin:0 0 14px">A phone browser cannot see your wallet. Open this page
+    <p style="font-size:var(--t-body);margin:0 0 14px">A phone browser cannot see your wallet. Open this page
        inside your wallet's own browser and it will connect straight away.</p>
     <a href="https://metamask.app.link/dapp/${url}" style="display:block;text-align:center;
        background:var(--ink);color:var(--paper);text-decoration:none;padding:13px;
-       font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase">
+       font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.16em;text-transform:uppercase">
        Open in MetaMask</a>
     <a href="https://link.trustwallet.com/open_url?url=https://${url}" style="display:block;text-align:center;
        border:1px solid var(--rule);color:var(--ink);text-decoration:none;padding:13px;margin-top:8px;
-       font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase">
+       font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.16em;text-transform:uppercase">
        Open in Trust Wallet</a>
     <button id="mwClose" style="display:block;width:100%;margin-top:8px;background:none;
-       border:none;color:var(--ink3);font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+       border:none;color:var(--ink3);font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
        text-transform:uppercase;padding:10px;cursor:pointer">Not now</button>
-    <p style="font-size:12.5px;color:var(--ink3);margin:12px 0 0">You only need a wallet to mint,
+    <p style="font-size:var(--t-small);color:var(--ink3);margin:12px 0 0">You only need a wallet to mint,
        bid or claim. Everything else on this page works without one.</p>
   </div>`;
   back.querySelector("#mwClose").onclick=()=>back.remove();
@@ -2399,27 +2425,27 @@ async function restoreConnection(){
 <!-- ==== FRAME & EXPORT MODAL ==== -->
 <div id="exportModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(20,20,18,.55);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--paper,#eeeeea);max-width:560px;width:100%;max-height:92vh;overflow:auto;padding:28px 26px 32px;box-shadow:0 20px 60px rgba(0,0,0,.4);position:relative">
-    <button id="exportClose" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:24px;line-height:1;cursor:pointer;color:var(--ink3,#8a857b)">&times;</button>
-    <div style="font-family:'Courier New',monospace;font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3,#8a857b);margin-bottom:4px">4096</div>
-    <div style="font-family:Georgia,serif;font-size:26px;margin-bottom:20px">frame &amp; export</div>
+    <button id="exportClose" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:var(--t-head);line-height:1;cursor:pointer;color:var(--ink3,#8a857b)">&times;</button>
+    <div style="font-family:'Courier New',monospace;font-size:var(--t-meta);letter-spacing:.26em;text-transform:uppercase;color:var(--ink3,#8a857b);margin-bottom:4px">4096</div>
+    <div style="font-family:Georgia,serif;font-size:var(--t-head);margin-bottom:20px">frame &amp; export</div>
     <div style="display:flex;justify-content:center;margin-bottom:22px;min-height:300px;align-items:center">
       <div id="em_molding" style="display:inline-block;line-height:0">
         <div id="em_mat" style="display:inline-block;background:#fff;line-height:0">
           <canvas id="em_preview" width="300" height="300" style="display:block;width:300px;height:300px;image-rendering:pixelated;box-shadow:0 0 0 1px #3c3c3a"></canvas>
         </div>
-        <div id="em_plaque" style="display:none;font-family:'Courier New',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2,#4a453d);text-align:center;padding-top:12px">4096 · block —</div>
+        <div id="em_plaque" style="display:none;font-family:'Courier New',monospace;font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2,#4a453d);text-align:center;padding-top:12px">4096 · block —</div>
       </div>
     </div>
-    <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3,#8a857b);margin-bottom:10px">choose a frame</div>
+    <div style="font-family:'Courier New',monospace;font-size:var(--t-micro);letter-spacing:.22em;text-transform:uppercase;color:var(--ink3,#8a857b);margin-bottom:10px">choose a frame</div>
     <div id="em_frames" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:20px"></div>
-    <div style="display:flex;gap:18px;justify-content:center;margin-bottom:22px;font-family:'Courier New',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2,#4a453d)">
+    <div style="display:flex;gap:18px;justify-content:center;margin-bottom:22px;font-family:'Courier New',monospace;font-size:var(--t-micro);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2,#4a453d)">
       <label style="cursor:pointer;display:flex;gap:6px;align-items:center"><input type="checkbox" id="em_matToggle" checked> white mat</label>
       <label style="cursor:pointer;display:flex;gap:6px;align-items:center"><input type="checkbox" id="em_plaqueToggle" checked> block stamp</label>
     </div>
     <div style="text-align:center">
-      <button id="em_download" style="background:var(--ink,#1b1b19);color:var(--paper,#eeeeea);border:none;font-family:'Courier New',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;padding:13px 38px;cursor:pointer">download</button>
+      <button id="em_download" style="background:var(--ink,#1b1b19);color:var(--paper,#eeeeea);border:none;font-family:'Courier New',monospace;font-size:var(--t-meta);letter-spacing:.18em;text-transform:uppercase;padding:13px 38px;cursor:pointer">download</button>
     </div>
-    <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--ink3,#8a857b);font-style:italic">the live canvas as it looks right now. no wallet needed.</div>
+    <div style="text-align:center;margin-top:12px;font-size:var(--t-meta);color:var(--ink3,#8a857b);font-style:italic">the live canvas as it looks right now. no wallet needed.</div>
   </div>
 </div>
 <script>
@@ -2454,7 +2480,7 @@ async function restoreConnection(){
   Object.keys(FRAMES).forEach(k=>{
     const b=document.createElement('button');
     b.textContent=FRAMES[k].label; b.dataset.k=k;
-    b.style.cssText="background:transparent;border:1px solid #3c3c3a;color:#1b1b19;font-family:'Courier New',monospace;font-size:11px;letter-spacing:.06em;padding:8px 12px;cursor:pointer";
+    b.style.cssText="background:transparent;border:1px solid #3c3c3a;color:#1b1b19;font-family:'Courier New',monospace;font-size:var(--t-meta);letter-spacing:.06em;padding:8px 12px;cursor:pointer";
     b.onclick=()=>pick(k);
     framesEl.appendChild(b);
   });
