@@ -190,6 +190,61 @@
   strong,b{font-weight:700}
   em{font-style:italic}
 
+  /* Reading pages centre their column. Everything in them is capped at 60ch,
+     so in a container built for a 64 by 64 canvas the text occupied the left
+     half and left the right half empty. Centring splits the space and the
+     measure stays where it should be.
+
+     The canvas and auction pages are excluded: what they hold is a picture
+     and a set of controls, not prose, and both want the room. */
+  /* Cap and centre the page, not each element inside it. Capping the children
+     individually beat p{max-width:60ch} on specificity and stretched every
+     paragraph to the full column, which is the opposite of the intent. */
+  section[data-tab="heart"],
+  section[data-tab="about"],
+  section[data-tab="method"],
+  section[data-tab="richter"]{
+    max-width:62rem;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  /* Full bleed inside those pages for anything that is an object rather than
+     a paragraph: the heart plate, the glow table, the Richter grid. */
+  /* Descendant, not child: these sit inside wrappers rather than directly
+     under the section, so the child combinator missed them and they inherited
+     the reading cap meant for paragraphs. */
+  /* The heart's plate, its glow table and its stacked text are objects rather
+     than paragraphs and want the full width. Descendant selectors, not child:
+     they sit inside wrappers.
+
+     The Richter grid is deliberately not here. It is an illustration inside a
+     text column, it has no width of its own, and letting it off the leash made
+     it fill eight hundred pixels. It stays capped with the prose. */
+  section[data-tab="heart"] .hplate,
+  section[data-tab="heart"] .hscroll,
+  section[data-tab="heart"] .hstack{max-width:none;margin-left:0;margin-right:0}
+
+  /* The Richter reproduction hangs in the same frame the canvas does, at the
+     size of a plate in a catalogue rather than the size of the page. */
+  /* Smaller, and with the mat pulled tight to the work. On the 4096 canvas the
+     mat shows because most pixels are still white and the two grounds read as
+     one; here the grid is fully coloured, so any mat between the hairline and
+     the colour reads as a gap rather than as a mount. */
+  section[data-tab="richter"] .plate{max-width:none;width:250px}
+  section[data-tab="richter"] .frame{display:inline-block;margin:26px 0 14px;
+    padding:44px}
+  /* No mat on this one. The grid is fully coloured, so any white between the
+     hairline and the artwork reads as a gap rather than as a mount. The mat
+     sits exactly at the frame's padding edge, which is where the work starts.
+
+     The 4096 canvas keeps its mat: while most of its pixels are white the mat
+     and the work are near enough the same ground to read as one surface. */
+  section[data-tab="richter"] .frame::before{inset:24px}
+  section[data-tab="richter"] .frame::after{inset:11px}
+  /* line-height on the frame leaves a few pixels above an inline-block child,
+     which is why the work sat lower than it sat left. */
+  section[data-tab="richter"] .frame{font-size:0}
+
   section{display:none;padding-top:40px}
   section[data-active]{display:block}
 
@@ -212,8 +267,61 @@
   .sidebar .counter > div:last-child{border-bottom:none}
   .sidebar .counter .v{font-size:var(--t-lead);margin-top:0}
   .stagewrap{display:flex;flex-direction:column;align-items:center;gap:18px}
-  .frame{border:1px solid var(--ink);padding:13px;background:var(--mount);
-    line-height:0;position:relative;overflow:hidden}
+  /* Every reproduction on the site hangs the same way: an ink border, a white
+     mount, and a shadow cast down and right as if lit from above left. The
+     canvas, the Richter plate and the auction preview all use this, so a
+     picture is presented as a picture wherever it appears.
+
+     The shadow is offset rather than blurred and it is nearly transparent. A
+     soft glow would read as a web card; this reads as an object sitting
+     slightly off the wall. */
+  /* The black box moulding from the export tool, brought onto the page so a
+     canvas looks the same here as it does when you take it away. A dark
+     moulding, a white mount inside it, a hairline where the mount meets the
+     work, and a shadow cast down and right.
+
+     Values follow FRAMES.blackbox: 34px of moulding, #141412, an inner black
+     line, and a mat about a tenth of the width. */
+  /* The black box moulding from the export tool, so a canvas looks the same on
+     the page as it does when you take it away.
+
+     Built entirely from the frame's own padding and two pseudo elements. The
+     mat cannot be padding on a child: the canvas frame holds three of them,
+     and the highlight overlay is absolutely positioned at the origin of the
+     zoom stage, so padding there would shift the highlight off the pixels it
+     is marking.
+
+     Proportions follow FRAMES.blackbox, scaled for the page: moulding, then a
+     groove stroked near its inner edge, then a white mat, then a hairline
+     around the work itself. */
+  /* The moulding is a proportion of the screen, not a fixed number. At 56px on
+     a 390px phone it took a third of the width and the picture looked crushed
+     inside its own frame. */
+  .frame{padding:clamp(38px,10vw,56px);background:#141412;border:none;
+    line-height:0;position:relative;overflow:hidden;
+    box-shadow:inset 0 0 0 2px rgba(0,0,0,.55),
+               8px 12px 26px rgba(27,27,25,.20)}
+
+  /* the mat, drawn behind everything */
+  .frame::before{content:"";position:absolute;inset:clamp(22px,6vw,30px);
+    background:var(--mount);z-index:0}
+
+  /* the groove, a stroke a little inside the moulding */
+  .frame::after{content:"";position:absolute;inset:clamp(9px,2.4vw,14px);
+    border:1px solid rgba(0,0,0,.55);z-index:0;pointer-events:none}
+
+  /* content sits above both, its own box untouched */
+  .frame > *{position:relative;z-index:1}
+
+  /* the hairline where the mat meets the work. outline rather than border so
+     nothing in the layout moves. */
+  /* The hairline sits directly on the work with nothing between it and the
+     colour. outline rather than border so no box in the layout moves. */
+  /* The hairline defines the edge of a canvas that is still mostly bare: without
+     it the work and the mount are the same ground and the picture has no
+     boundary. The Richter grid is fully coloured and defines its own edge, so
+     a line there only separates the colour from the mat and reads as a gap. */
+  .frame canvas{outline:1px solid #3c3c3a}
   .zoomstage{position:relative;transform-origin:0 0;touch-action:none;line-height:0;
     will-change:transform}
   #overlay{position:absolute;left:0;top:0;pointer-events:none}
@@ -468,9 +576,19 @@
   td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 
   /* ---- disclosure ---- */
-  details{border:1px solid var(--rule);margin-top:10px;background:var(--mount)}
+  /* The panels hold a preformatted specification: the line breaks are in the
+     source and the alignment of the equations depends on the spaces around
+     them, so the text cannot reflow to fill a wider box. Fit the box to the
+     text instead. 60rem is where the longest line lands at the mono size. */
+  details{border:1px solid var(--rule);margin-top:10px;background:var(--mount);
+    max-width:60rem}
   details + details{margin-top:-1px}
-  details[open]{border-color:var(--ink)}
+  /* The panels overlap by a pixel so neighbours share one rule. That works
+     while every border is the same colour, but an open panel darkens to ink
+     and the lighter border of the panel below sits on top of it, rubbing out
+     the bottom edge so the box never closes. Lifting the open one above its
+     neighbours restores it. */
+  details[open]{border-color:var(--ink);position:relative;z-index:1}
   summary{cursor:pointer;padding:15px 17px;font-size:var(--t-body);list-style:none;
     display:flex;justify-content:space-between;align-items:center;gap:14px}
   summary::-webkit-details-marker{display:none}
@@ -490,7 +608,20 @@
 
   /* ---- auction ---- */
   .auctionwrap{display:flex;flex-direction:column;align-items:center;gap:20px}
-  .miniframe{border:1px solid var(--ink);padding:11px;background:var(--mount);line-height:0}
+  /* The auction preview is the same object as the canvas, shown smaller. It
+     hangs the same way, with a slightly tighter mount and a shadow scaled to
+     match. */
+  /* The same moulding at preview scale. */
+  .miniframe{padding:34px;background:#141412;border:none;line-height:0;
+    position:relative;overflow:hidden;
+    box-shadow:inset 0 0 0 2px rgba(0,0,0,.55),
+               5px 8px 18px rgba(27,27,25,.20)}
+  .miniframe::before{content:"";position:absolute;inset:18px;
+    background:var(--mount);z-index:0}
+  .miniframe::after{content:"";position:absolute;inset:8px;
+    border:1px solid rgba(0,0,0,.55);z-index:0;pointer-events:none}
+  .miniframe > *{position:relative;z-index:1}
+  .miniframe canvas{outline:1px solid #3c3c3a}
   #auctionCanvas{display:block;image-rendering:pixelated;width:244px;height:244px}
   .boxes{display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:530px;
     border:1px solid var(--rule);background:var(--mount)}
@@ -572,7 +703,10 @@
     body{font-size:var(--t-body);line-height:1.7}
     header{padding:22px 0 12px;gap:14px}
     .brand{font-size:var(--t-head)}
-    .frame{padding:7px}
+    /* The moulding and the mat are proportions of the screen. The mat needs a
+     real floor rather than a proportion alone: it is the white gap between the
+     work and the moulding, and at ten pixels it read as no gap at all. */
+  .frame{padding:clamp(38px,10vw,48px)}
     .searchwrap{max-width:none}
     .stagewrap{width:100%}
     h2{font-size:var(--t-lead)}
@@ -1033,7 +1167,9 @@ ever sold end up a different colour, whether or not their owner did anything.</d
        It was the last work in a series he had been circling since 1966, and it ended the series
        so completely that he did not return to colour charts for twenty five years.</p>
 
-    <div class="plate" id="plate"></div>
+    <!-- Hung rather than placed: a mount, an ink border and a shadow, so a
+         reproduction of a painting is presented as one. -->
+    <div class="frame"><div class="plate" id="plate"></div></div>
     <p class="small muted" style="margin-top:0">Not his painting. A 16&times;16 sketch of the method:
        64 systematic tones, each repeated four times, placed by lottery.
        <a href="https://www.sothebys.com/en/articles/4096-farben" target="_blank" rel="noopener">See the original at Sotheby's&nbsp;&rarr;</a></p>
@@ -1531,14 +1667,40 @@ function sizeCanvas(){
   const SIDEBAR=320, GAP=34, PAD=56;
   const twoCol=window.innerWidth>1000;
   const content=Math.min(1160, window.innerWidth)-PAD;
-  const availW=twoCol ? content-SIDEBAR-GAP : Math.min(window.innerWidth-46, 760);
+  // The frame is drawn around the canvas, so its moulding and mat come out of
+  // the available width before the cell size is chosen. Measuring it rather
+  // than assuming keeps this correct as the frame scales with the viewport.
+  const frameEl=cv.closest(".frame");
+  let chrome=46;
+  if(frameEl){
+    const fs=getComputedStyle(frameEl);
+    chrome = 32 + (parseFloat(fs.paddingLeft)||0) * 2;
+  }
+  const availW=twoCol ? content-SIDEBAR-GAP-chrome
+                      : Math.min(window.innerWidth-chrome, 760);
 
   // The canvas also has to fit above the fold, or the artwork is cut off on
   // arrival by whatever sits above it. Measure that rather than guessing:
   // everything from the top of the page to the top of the frame, plus the
   // frame's own padding and a little air beneath.
+  // A hidden section has no geometry: every rect comes back zero, so measuring
+  // the frame while another tab is showing picks a cell size from nothing and
+  // the canvas is wrong until the next resize. Chain data can arrive at any
+  // moment, including while the visitor is reading a different page, so this
+  // has to be checked rather than assumed.
   const frame=cv.closest(".frame");
-  const top=frame ? frame.getBoundingClientRect().top + window.scrollY : 300;
+  // A hidden section measures as zero, so sizing from it picks a cell size from
+  // nothing. Rather than returning and leaving whatever was there before, fall
+  // back to the width calculation alone: it does not need the frame's position
+  // and it gives the same answer this tab will get when it opens.
+  const visible=frame && frame.getBoundingClientRect().width > 0;
+  if(!visible){
+    CELL=Math.max(5,Math.min(12,Math.floor(availW/GRID)));
+    cv.style.width=(CELL*GRID)+"px"; cv.style.height=(CELL*GRID)+"px";
+    return;
+  }
+
+  const top=frame.getBoundingClientRect().top + window.scrollY;
   const availH=window.innerHeight - top - 90;
 
   // CELL stays a whole number so every pixel is a whole number of screen
@@ -2392,6 +2554,9 @@ document.getElementById("nav").addEventListener("click",e=>{
   history.replaceState(null,"","#"+t);
   document.querySelectorAll("section").forEach(s=>s.removeAttribute("data-active"));
   document.querySelector(`section[data-tab="${t}"]`).setAttribute("data-active","");
+  // Sizing was skipped while this section was hidden, so do it now that it has
+  // geometry. Cheap, and it is the only moment the measurement is valid.
+  if(t==="canvas" && typeof sizeCanvas==="function") sizeCanvas();
   if(t==="pixels") drawPixels();
   if(t==="auction") drawAuction();
   if(t==="richter") drawPlate();
@@ -2405,8 +2570,14 @@ function drawPlate(){
   // 64 systematic tones, each repeated four times, then placed by lottery.
   // 64 x 4 = 256 fills the 16x16 grid, mirroring his 1,024 x 4 = 4,096.
   const base=[];
+  // Richter's own grading runs the full range, which on a paper coloured page
+  // reads as a screenshot of something else. The steps are kept, and the whole
+  // set is pulled toward the paper: the same systematic construction, printed
+  // rather than lit.
+  const PAPER=[238,238,234], k=0.26;                 // how far toward the page
+  const toward=(v,p)=>Math.round(v+(p-v)*k);
   for(let r=0;r<4;r++)for(let g=0;g<4;g++)for(let b=0;b<4;b++)
-    base.push(`rgb(${r*85},${g*85},${b*85})`);
+    base.push(`rgb(${toward(r*85,PAPER[0])},${toward(g*85,PAPER[1])},${toward(b*85,PAPER[2])})`);
   const cols=[...base,...base,...base,...base];
   const rr=mulberry(4096);
   for(let i=cols.length-1;i>0;i--){const j=Math.floor(rr()*(i+1));[cols[i],cols[j]]=[cols[j],cols[i]]}
