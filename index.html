@@ -116,27 +116,12 @@
     text-transform:uppercase;color:var(--ink3);padding:7px 12px;cursor:pointer;
     white-space:nowrap;text-decoration:none;display:flex;align-items:center}
   nav a.navlink:hover{color:var(--ink)}
-  /* About holds Method in a hover submenu on pointer devices */
-  .navgroup{position:relative;display:inline-flex}
-  /* Method sits inside a dropdown that is hidden until the group is hovered,
-     so marking its button current marks something nobody can see. When a child
-     is current, mark the parent instead: About carries the underline and the
-     visitor knows where they are. */
-  .navgroup:has([aria-current="page"]) > button{color:var(--ink)}
   /* The underline is the desktop marker only. Below 760px the nav is a stacked
      burger menu that marks the current page with a background instead, and
      every item is full width, so a rule under one of them reads as a divider
      rather than as state. */
   @media(min-width:761px){
-    .navgroup:has([aria-current="page"]) > button::after{content:"";display:block;
-      height:1px;background:var(--ink);margin-top:6px}
   }
-
-  .navgroup .sub{display:none;position:absolute;top:100%;left:0;z-index:60;
-    background:var(--mount);border:1px solid var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.10)}
-  .navgroup:hover .sub,.navgroup:focus-within .sub{display:block}
-  .navgroup .sub button{display:block;width:100%;text-align:left;padding:10px 16px;
-    white-space:nowrap}
   nav button[aria-current="page"]{color:var(--ink)}
   nav button[aria-current="page"]::after{content:"";display:block;height:1px;
     background:var(--ink);margin-top:6px}
@@ -159,10 +144,6 @@
     nav#nav.open{display:block !important}
     nav#nav button{display:block;width:100%;text-align:left;padding:14px 18px;font-size:var(--t-meta);border-bottom:1px solid var(--rule);border-top:none}
     nav#nav a.navlink{display:block;width:100%;text-align:left;padding:14px 18px;font-size:var(--t-meta);
-      border-bottom:1px solid var(--rule)}
-    .navgroup{display:block;width:100%}
-    .navgroup .sub{display:block;position:static;border:none;box-shadow:none;background:none}
-    nav#nav .navgroup .sub button{padding:12px 18px 12px 32px;
       border-bottom:1px solid var(--rule)}
     nav#nav button{line-height:1.3}
     nav#nav a.navlink{line-height:1.3}
@@ -644,9 +625,11 @@
   }
   .box .k{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.2em;
     text-transform:uppercase;color:var(--ink3)}
+  /* The line under each auction figure explaining what it is. Nothing to do
+     with the old nav dropdown that happened to share this class name. */
+  .box .sub{font-size:var(--t-small);color:var(--ink3);margin-top:7px;line-height:1.55}
   .box .v{font-size:var(--t-title);font-weight:400;font-variant-numeric:tabular-nums;
     margin-top:7px;letter-spacing:-.02em}
-  .box .sub{font-size:var(--t-small);color:var(--ink3);margin-top:7px;line-height:1.55}
   .bidrow{display:flex;gap:10px;width:100%;max-width:530px;flex-wrap:wrap}
   .bidrow input{flex:1;min-width:150px;font-family:var(--mono);font-size:var(--t-small);
     padding:12px 13px;border:1px solid var(--rule);background:var(--mount)}
@@ -751,10 +734,8 @@
       <button data-tab="canvas" aria-current="page">Canvas</button>
       <button data-tab="pixels">Your pixels</button>
       <button data-tab="heart">Heart</button>
-      <span class="navgroup">
-        <button data-tab="about">About</button>
-        <span class="sub"><button data-tab="method">Method</button></span>
-      </span>
+      <button data-tab="about">About</button>
+      <button data-tab="method">Method</button>
       <button data-tab="richter">Richter</button>
       <button data-tab="auction">Auction</button>
     </nav>
