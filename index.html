@@ -200,17 +200,16 @@
   @media(max-width:1000px){.stage2col{grid-template-columns:1fr;justify-items:center}}
   .sidebar{display:flex;flex-direction:column;gap:0;width:100%;max-width:340px}
   @media(max-width:1000px){
-    .sidebar{max-width:none;width:100%}
+    /* Stacked under the canvas the column is centred and capped rather than
+       stretched. A mint control with a stepper, a button and three ledger rows
+       does not want to be seven hundred pixels wide, and between here and the
+       phone breakpoint that is exactly what it was doing. */
+    .sidebar{max-width:360px;width:100%;margin:0 auto}
     .mint{max-width:none}
     .stage2col{gap:26px}
   }
-  /* the ledger sits under the mint panel so the column reads as one object */
-  /* joins the mint panel above it, so they read as one object */
-  .sidebar .counter{grid-template-columns:1fr;margin-top:-1px;border-top:none}
-  .sidebar .counter div{border-right:none;border-bottom:1px solid var(--rule);
-    padding:12px 24px;display:flex;justify-content:space-between;
-    align-items:baseline;gap:12px}
-  .sidebar .counter div:last-child{border-bottom:none}
+
+  .sidebar .counter > div:last-child{border-bottom:none}
   .sidebar .counter .v{font-size:var(--t-lead);margin-top:0}
   .stagewrap{display:flex;flex-direction:column;align-items:center;gap:18px}
   .frame{border:1px solid var(--ink);padding:13px;background:var(--mount);
@@ -255,10 +254,25 @@
      right, so the ledger had no left or right edge and read as unfinished. */
   .counter{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
     border:1px solid var(--ink);margin-top:44px;background:var(--mount)}
-  .counter div{border-right:1px solid var(--rule);padding:15px 17px}
-  .counter div:last-child{border-right:none}
+  /* Direct children only, or the border lands on .k and .v inside each cell
+     as well as on the cell itself. */
+  .counter > div{border-right:1px solid var(--rule);padding:15px 17px}
+  .counter > div:last-child{border-right:none}
   .counter .k{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.2em;
     text-transform:uppercase;color:var(--ink3)}
+  /* The ledger in the sidebar is one column joined to the mint panel above it,
+     so its cells divide top to bottom rather than left to right. This has to
+     sit after the general .counter rules: same specificity, so source order
+     decides, and earlier the general border-right was winning and drawing an
+     edge down every stacked cell. */
+  .sidebar .counter{grid-template-columns:1fr;margin-top:-1px;border-top:none}
+  /* Direct children only. Without the child combinator this also matched .k
+     and .v inside each cell, so the label got the cell's bottom border and
+     drew a short rule under itself the width of its own text. */
+  .sidebar .counter > div{border-right:none;border-bottom:1px solid var(--rule);
+    padding:12px 24px;display:flex;justify-content:space-between;
+    align-items:baseline;gap:12px}
+
   .counter .v{font-size:var(--t-head);font-weight:400;font-variant-numeric:tabular-nums;
     margin-top:5px;letter-spacing:-.015em}
 
@@ -295,9 +309,9 @@
   .hscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:26px}
   .hscroll .counter{margin-top:0;display:flex;width:722px;max-width:none;flex:none;
     grid-template-columns:none}
-  .hscroll .counter div{flex:0 0 90px;border-right:1px solid var(--rule);
+  .hscroll .counter > div{flex:0 0 90px;border-right:1px solid var(--rule);
     padding:14px 0;text-align:center}
-  .hscroll .counter div:last-child{border-right:none}
+  .hscroll .counter > div:last-child{border-right:none}
   .hscroll::-webkit-scrollbar{height:5px}
   .hscroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
   .swipehint{display:none;font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.16em;
@@ -376,8 +390,12 @@
     max-width:54ch;margin:0 0 30px}
 
   /* ---- mint ---- */
+  /* The column sets the width, not the panel. Two rules each declaring a
+     max-width meant the ledger and the mint box could disagree, and between
+     760 and 1000 they did: 420 against 360, so the ledger overhung the panel
+     it is supposed to be joined to. */
   .mint{border:1px solid var(--ink);padding:24px 24px 26px;background:var(--mount);
-    display:block;width:100%;max-width:360px}
+    display:block;width:100%}
   .mint h3{font-size:var(--t-lead);font-weight:400;margin:0 0 6px;letter-spacing:-.01em}
   .mint .price{font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.14em;
     text-transform:uppercase;color:var(--ink3);margin-bottom:16px}
@@ -1513,7 +1531,24 @@ function sizeCanvas(){
   const SIDEBAR=320, GAP=34, PAD=56;
   const twoCol=window.innerWidth>1000;
   const content=Math.min(1160, window.innerWidth)-PAD;
-  const avail=twoCol ? content-SIDEBAR-GAP : Math.min(window.innerWidth-46, 760);
+  const availW=twoCol ? content-SIDEBAR-GAP : Math.min(window.innerWidth-46, 760);
+
+  // The canvas also has to fit above the fold, or the artwork is cut off on
+  // arrival by whatever sits above it. Measure that rather than guessing:
+  // everything from the top of the page to the top of the frame, plus the
+  // frame's own padding and a little air beneath.
+  const frame=cv.closest(".frame");
+  const top=frame ? frame.getBoundingClientRect().top + window.scrollY : 300;
+  const availH=window.innerHeight - top - 90;
+
+  // CELL stays a whole number so every pixel is a whole number of screen
+  // pixels. Scaling the canvas with CSS instead would land cell edges on half
+  // pixels and blur a grid whose whole point is that it is exact.
+  // Height only constrains the two column layout. On a phone the browser hides
+  // its URL bar as you scroll, which changes innerHeight by around eighty
+  // pixels mid-gesture; letting that feed back into the cell size makes the
+  // canvas jump under your thumb. Single column scrolls anyway.
+  const avail=twoCol ? Math.min(availW, Math.max(availH, GRID*5)) : availW;
   CELL=Math.max(5,Math.min(12,Math.floor(avail/GRID)));
   cv.style.width=(CELL*GRID)+"px"; cv.style.height=(CELL*GRID)+"px";
   const _ld=document.getElementById("canvasLoading"); if(_ld){ _ld.style.width=(CELL*GRID)+"px"; _ld.style.height=(CELL*GRID)+"px"; _ld.style.minHeight=(CELL*GRID)+"px"; }
