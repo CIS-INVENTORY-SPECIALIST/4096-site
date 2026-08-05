@@ -108,7 +108,10 @@
     nav button{padding:11px 4px;text-align:center;font-size:var(--t-micro);letter-spacing:.12em;
       border-bottom:1px solid var(--rule)}
     nav button[aria-current="page"]{background:var(--mount)}
-    nav button[aria-current="page"]::after{display:none}
+    /* The stacked menu marks the current page with a ground, not a rule: a
+       hairline under one full width row reads as a divider between two rows
+       rather than as state. */
+    nav button::after{display:none}
   }
   nav button{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;text-transform:uppercase;
     background:none;border:none;color:var(--ink3);padding:7px 12px;cursor:pointer;white-space:nowrap}
@@ -123,26 +126,125 @@
   @media(min-width:761px){
   }
   nav button[aria-current="page"]{color:var(--ink)}
-  nav button[aria-current="page"]::after{content:"";display:block;height:1px;
-    background:var(--ink);margin-top:6px}
+  /* The rule draws in from the left rather than appearing, and it takes one of
+     the three channel colours rather than ink. Every other colour on this site
+     means something; the nav borrows the same three rather than inventing a
+     fourth. Position rather than name, so adding a page does not need a new
+     rule. */
+  nav button::after{content:"";display:block;height:1.5px;margin-top:6px;
+    background:var(--ink);
+    transform:scaleX(0);transform-origin:left;
+    transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+  nav button:nth-child(3n+1)::after{background:var(--vel)}
+  nav button:nth-child(3n+2)::after{background:var(--rhy)}
+  nav button:nth-child(3n)::after{background:var(--pat)}
+  nav button:hover::after,
+  nav button[aria-current="page"]::after{transform:scaleX(1)}
   nav button:hover{color:var(--ink)}
   nav button:focus-visible{outline:1px solid var(--ink);outline-offset:2px}
   /* No uppercase here: it would mangle a hex address into 0XF60D. */
+  /* The icon carries the phone, the words carry the desktop. A bare icon on a
+     wide screen makes people hesitate before clicking something they cannot
+     name; a wide button on a narrow one crowds the wordmark. */
+  .wallet{display:inline-flex;align-items:center;gap:8px}
+  .wicon{display:none;flex:none}
+
   .wallet{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
     border:1px solid var(--rule);background:var(--mount);color:var(--ink2);padding:9px 13px;cursor:pointer}
   .wallet[data-state="idle"]{text-transform:uppercase}
   .wallet:hover{border-color:var(--ink);color:var(--ink)}
-  .navtoggle{display:none;flex-direction:column;gap:4px;background:none;border:none;
-    cursor:pointer;padding:8px}
+  /* Three strokes that become a cross, each half a channel colour and half
+     paper, so the mark only takes colour once it is open. The middle stroke
+     leaves first and the outer two follow, which reads as the thing folding
+     rather than snapping. */
+  /* No box, to match the wallet beside it. Two controls in a header, one in a
+     bordered white square and one bare, read as two different kinds of thing. */
+  .navtoggle{display:none;width:44px;height:44px;padding:0;border:none;
+    background:none;cursor:pointer;position:relative;
+    -webkit-tap-highlight-color:transparent}
+  .navtoggle span{position:absolute;left:11px;width:22px;height:2px;background:var(--ink);
+    transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .22s ease,
+                background .38s ease}
+  .navtoggle span:nth-child(1){top:15px}
+  .navtoggle span:nth-child(2){top:21px}
+  .navtoggle span:nth-child(3){top:27px}
+  /* Half channel, half ink. Paper would have worked against the header but it
+     disappears the moment anything sits behind the button, and ink reads as a
+     stroke that has been partly coloured rather than one that is missing. */
+  .navtoggle[aria-expanded="true"] span:nth-child(1){
+    background:linear-gradient(to right,var(--vel) 0 50%,var(--ink) 50% 100%);
+    transform:translateY(6px) rotate(45deg)}
+  .navtoggle[aria-expanded="true"] span:nth-child(2){opacity:0;transform:scaleX(0)}
+  .navtoggle[aria-expanded="true"] span:nth-child(3){
+    background:linear-gradient(to right,var(--ink) 0 50%,var(--pat) 50% 100%);
+    transform:translateY(-6px) rotate(-45deg)}
+  /* the middle stroke carries rhythm on the way out, so all three channels are
+     seen rather than two */
+  .navtoggle[aria-expanded="true"] span:nth-child(2){background:var(--rhy)}
+
   .navtoggle span{display:block;width:22px;height:2px;background:var(--ink)}
   @media(max-width:760px){
     header{flex-wrap:wrap;align-items:center;position:relative}
     .brand{order:1}
-    .navtoggle{display:flex;order:2;margin-left:auto}
-    .wallet{order:3}
-    nav#nav{display:none !important;position:absolute;top:100%;right:0;z-index:50;width:210px;background:var(--mount);border:1px solid var(--ink);margin-top:6px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+    /* The wallet sits inboard and the burger on the outside edge, where a
+       thumb reaches it. The menu is the more frequent action. */
+    .wallet{order:2;margin-left:auto}
+    .navtoggle{display:flex;order:3}
+    nav#nav{display:none !important;position:absolute;top:100%;right:0;z-index:50;
+      /* Sized to the longest label rather than to a round number. Ranged right
+         under the button, a fixed width left most of the panel empty on the
+         left of every row. */
+      width:max-content;min-width:132px;background:var(--mount);border:1px solid var(--ink);margin-top:6px;box-shadow:0 8px 24px rgba(0,0,0,.12);
+      /* the sweeping rule travels to the panel's full height, so it has to be
+         clipped at the edge rather than continuing down the page */
+      overflow:hidden}
     nav#nav.open{display:block !important}
-    nav#nav button{display:block;width:100%;text-align:left;padding:14px 18px;font-size:var(--t-meta);border-bottom:1px solid var(--rule);border-top:none}
+
+    /* A hairline travels the height of the panel and each label appears as it
+       passes. The rule is the same one the site is built from; here it does
+       the revealing rather than the dividing. */
+    nav#nav::before{content:"";position:absolute;left:0;right:0;top:0;height:1.5px;
+      background:var(--ink);opacity:0;z-index:2;pointer-events:none}
+    nav#nav.open::before{animation:navsweep .52s cubic-bezier(.4,0,.2,1) forwards}
+    /* The panel is revealed by the rule rather than appearing before it. Its
+       ground is clipped to whatever the rule has already passed, so the white
+       and the labels arrive together. */
+    nav#nav.open{animation:navreveal .52s cubic-bezier(.4,0,.2,1) forwards}
+    @keyframes navreveal{
+      from{clip-path:inset(0 0 100% 0)}
+      to{clip-path:inset(0 0 0 0)}
+    }
+    @keyframes navsweep{
+      from{top:0;opacity:1}
+      to{top:100%;opacity:1}
+    }
+    nav#nav button{opacity:0}
+    nav#nav.open button{animation:navink .01s linear forwards}
+    @keyframes navink{to{opacity:1}}
+    nav#nav.open button:nth-child(1){animation-delay:.05s}
+    nav#nav.open button:nth-child(2){animation-delay:.12s}
+    nav#nav.open button:nth-child(3){animation-delay:.19s}
+    nav#nav.open button:nth-child(4){animation-delay:.26s}
+    nav#nav.open button:nth-child(5){animation-delay:.33s}
+    nav#nav.open button:nth-child(6){animation-delay:.40s}
+    nav#nav.open button:nth-child(7){animation-delay:.47s}
+
+    /* Motion is decoration here; the menu has to work without it. */
+    @media(prefers-reduced-motion:reduce){
+      nav#nav.open::before{animation:none;opacity:0}
+      nav#nav.open{animation:none;clip-path:none}
+      nav#nav.open button{animation:none;opacity:1}
+      nav#nav button{opacity:1}
+    }
+    nav#nav button{display:block;width:100%;
+      /* Ranged right, under the button they hang from. Left aligned labels
+         under a control on the far edge leave the panel reading as two objects
+         that happen to overlap. */
+      text-align:right;
+      /* forty four is the smallest comfortable target; fourteen of padding on
+         a line of 1.3 landed just under it, and the rows read as cramped. */
+      padding:15px 18px;min-height:46px;
+      font-size:var(--t-meta);border-bottom:1px solid var(--rule);border-top:none}
     nav#nav a.navlink{display:block;width:100%;text-align:left;padding:14px 18px;font-size:var(--t-meta);
       border-bottom:1px solid var(--rule)}
     nav#nav button{line-height:1.3}
@@ -706,6 +808,17 @@
     .counter .v{font-size:var(--t-lead)}
     .box .v{font-size:var(--t-head)}
     .cta,.ghost,.wallet{min-height:44px}
+    /* No box. Beside a burger that is also just strokes on paper, a bordered
+       white square reads as a third thing in the header rather than a second
+       control. The touch target stays forty four; only the border goes. */
+    .wallet{width:44px;padding:0;justify-content:center;gap:0;
+      border:none;background:none;color:var(--ink)}
+    .wallet .wlabel{display:none}
+    .wallet .wicon{display:block;width:21px;height:21px}
+    /* Once connected the address is the only thing identifying which wallet
+       you are in, so the button widens again to show it. */
+    .wallet[data-state="connected"]{width:auto;padding:9px 13px}
+    .wallet[data-state="connected"] .wlabel{display:inline}
     .qty button{width:44px;height:44px}
     .readout{gap:14px}
     /* pre-wrap plus source line breaks makes shredded text at this width.
@@ -739,7 +852,13 @@
       <button data-tab="richter">Richter</button>
       <button data-tab="auction">Auction</button>
     </nav>
-    <button class="wallet" id="wallet" data-state="idle">Connect wallet</button>
+    <button class="wallet" id="wallet" data-state="idle">
+      <svg class="wicon" width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
+        <rect x="1.6" y="3.6" width="13.8" height="9.8" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M1.6 6.6h13.8" stroke="currentColor" stroke-width="1.2"/>
+        <rect x="10.4" y="8.6" width="3" height="2.2" fill="currentColor"/>
+      </svg><span class="wlabel">Connect wallet</span>
+    </button>
   </header>
 
   <div class="banner" id="demoBanner">
@@ -2536,7 +2655,14 @@ document.getElementById("wallet").onclick=async()=>{
   if(h==="tools" && window.__tools) window.__tools.boot();
 })();
 
-document.getElementById("navToggle").addEventListener("click",()=>{const n=document.getElementById("nav");n.classList.toggle("open");});
+document.getElementById("navToggle").addEventListener("click",e=>{
+  const n=document.getElementById("nav"), b=e.currentTarget;
+  const open=n.classList.toggle("open");
+  // The burger's morph is driven by this attribute rather than a class, so the
+  // state a screen reader announces and the state you can see are the same
+  // thing rather than two things kept in step by hand.
+  b.setAttribute("aria-expanded", open ? "true" : "false");
+});
 /* One function, bound to the document rather than to the nav, so anything
    carrying a data-tab attribute moves the site: the nav itself, the link to
    the algorithm on About, the link to the colours from a holder's pixels, and
@@ -2549,6 +2675,8 @@ function goTab(t){
   const navBtn=document.querySelector(`nav button[data-tab="${t}"]`);
   if(navBtn) navBtn.setAttribute("aria-current","page");
   document.getElementById("nav").classList.remove("open");
+  const _t=document.getElementById("navToggle");
+  if(_t) _t.setAttribute("aria-expanded","false");
   history.replaceState(null,"","#"+t);
   document.querySelectorAll("section").forEach(s=>s.removeAttribute("data-active"));
   sec.setAttribute("data-active","");
