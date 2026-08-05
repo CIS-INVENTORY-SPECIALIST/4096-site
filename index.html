@@ -2068,10 +2068,15 @@ async function drawPixels(){
   if(!ids.length){ body.innerHTML=`<div class="notice">No pixels in this wallet.</div>`; return; }
   const cards=await Promise.all(ids.map(i=>chain.pixelOf(i)));
   const chans=[["Velocity","R","var(--vel)"],["Rhythm","G","var(--rhy)"],["Patience","B","var(--pat)"]];
+  const allUntraded = cards.every(p=>!p.traded);
   body.onclick=e=>{const c=e.target.closest(".card"); if(c) openPixel(+c.dataset.id)};
   body.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){const c=e.target.closest(".card"); if(c){e.preventDefault();openPixel(+c.dataset.id)}}};
   body.innerHTML =
-    `<p class="small muted">${ids.length} pixel${ids.length>1?"s":""}. Tones are out of 16 and shift whenever anyone trades.</p>`+
+    // When every pixel is in the same state the per card line is the same
+    // sentence printed once for each of them, which reads as a template rather
+    // than a description. Say it once, above.
+    `<p class="small muted">${ids.length} pixel${ids.length>1?"s":""}. Tones are out of 16 and shift whenever anyone trades.`+
+      `${cards.every(p=>!p.traded) ? " None of these has sold, so all of them are pure white and stay that way until one does." : ""}</p>`+
     `<div class="grid">`+cards.map(p=>`
       <div class="card" role="button" tabindex="0" data-id="${p.id}"
            title="Open pixel #${p.id} on OpenSea">
@@ -2083,10 +2088,9 @@ async function drawPixels(){
           <div class="bar"><span class="lab">${lab}</span>
             <span class="track"><span class="fill" style="width:${(p[key]/15)*100}%;background:${col}"></span></span>
             <span class="num">${p[key]}</span></div>`).join("")}
-        <div class="cardfoot">
-          ${p.traded ? `${p.sales} sale${p.sales>1?"s":""} · longest hold ${fmtDur(p.hold)} · alive ${fmtDur(p.life)}`
-                     : "Never sold. Pure white, and it stays that way until it is."}
-        </div>
+        ${p.traded
+          ? `<div class="cardfoot">${p.sales} sale${p.sales>1?"s":""} · longest hold ${fmtDur(p.hold)} · alive ${fmtDur(p.life)}</div>`
+          : (allUntraded ? "" : `<div class="cardfoot">Never sold.</div>`)}
       </div>`).join("")+`</div>`;
 }
 
