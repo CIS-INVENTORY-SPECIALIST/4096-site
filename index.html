@@ -2077,6 +2077,10 @@ async function drawPixels(){
     // than a description. Say it once, above.
     `<p class="small muted">${ids.length} pixel${ids.length>1?"s":""}. Tones are out of 16 and shift whenever anyone trades.`+
       `${cards.every(p=>!p.traded) ? " None of these has sold, so all of them are pure white and stay that way until one does." : ""}</p>`+
+    // The channels are named on every card but explained nowhere near them.
+    // Point at the page that does rather than repeating a shortened version
+    // of it here.
+    `<button class="ghost" data-tab="method" style="margin:0 0 22px">What the colours mean</button>`+
     `<div class="grid">`+cards.map(p=>`
       <div class="card" role="button" tabindex="0" data-id="${p.id}"
            title="Open pixel #${p.id} on OpenSea">
@@ -2552,14 +2556,22 @@ document.getElementById("wallet").onclick=async()=>{
 })();
 
 document.getElementById("navToggle").addEventListener("click",()=>{const n=document.getElementById("nav");n.classList.toggle("open");});
-document.getElementById("nav").addEventListener("click",e=>{
-  const t=e.target.dataset.tab; if(!t) return;
+/* One function, bound to the document rather than to the nav, so anything
+   carrying a data-tab attribute moves the site: the nav itself, the link to
+   the algorithm on About, the link to the colours from a holder's pixels, and
+   whatever gets added later. Bound to the nav alone, a button anywhere else
+   silently did nothing. */
+function goTab(t){
+  const sec=document.querySelector(`section[data-tab="${t}"]`);
+  if(!sec) return;
   document.querySelectorAll("nav button").forEach(b=>b.removeAttribute("aria-current"));
-  e.target.setAttribute("aria-current","page");
+  const navBtn=document.querySelector(`nav button[data-tab="${t}"]`);
+  if(navBtn) navBtn.setAttribute("aria-current","page");
   document.getElementById("nav").classList.remove("open");
   history.replaceState(null,"","#"+t);
   document.querySelectorAll("section").forEach(s=>s.removeAttribute("data-active"));
-  document.querySelector(`section[data-tab="${t}"]`).setAttribute("data-active","");
+  sec.setAttribute("data-active","");
+  window.scrollTo(0,0);
   // Sizing was skipped while this section was hidden, so do it now that it has
   // geometry. Cheap, and it is the only moment the measurement is valid.
   if(t==="canvas" && typeof sizeCanvas==="function") sizeCanvas();
@@ -2568,6 +2580,12 @@ document.getElementById("nav").addEventListener("click",e=>{
   if(t==="richter") drawPlate();
   if(window.__heart) window.__heart.setActive(t==="heart");
   if(t==="tools" && window.__tools) window.__tools.boot();
+}
+
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-tab]");
+  if(!el) return;
+  goTab(el.dataset.tab);
 });
 
 /* ---------- richter plate ---------- */
