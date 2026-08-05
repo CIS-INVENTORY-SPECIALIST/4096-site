@@ -670,7 +670,7 @@
     padding:9px 13px;font-family:var(--mono);font-size:var(--t-meta);margin-top:14px;
     line-height:1.5}
   .loading{display:flex;align-items:center;justify-content:center;    min-height:200px;font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.16em;
-    text-transform:uppercase;color:var(--ink3)}
+    text-transform:uppercase;color:var(--ink3);background:rgb(214,213,205)}
   .rpcfail{border:1px solid var(--warn);background:#fbf6ea;color:#6b5320;
     padding:16px 18px;font-size:var(--t-small);margin-top:16px}
   .rpcfail b{display:block;margin-bottom:5px}
@@ -1745,6 +1745,18 @@ function drawOverlay(){
 let IMGDATA=null, ASSIGNED=true;
 function _loading(on){
   const l=document.getElementById("canvasLoading"), z=document.getElementById("zoomstage");
+  // Size it here rather than only in sizeCanvas. This runs before the first
+  // read of the chain, so relying on sizeCanvas having been called already
+  // meant the placeholder appeared at whatever size the CSS gave it and the
+  // page jumped when the real canvas arrived.
+  if(l && on){
+    // CELL starts at its declared default, which is larger than most computed
+    // sizes, so sizing the placeholder from it before the first measurement
+    // showed a frame that then shrank when the canvas arrived. Compute first.
+    if(typeof sizeCanvas === "function") sizeCanvas();
+    const px=(CELL*GRID)+"px";
+    l.style.width=px; l.style.height=px; l.style.minHeight=px;
+  }
   if(l) l.style.display = on ? "flex" : "none";
   if(z) z.style.display = on ? "none" : "block";
 }
