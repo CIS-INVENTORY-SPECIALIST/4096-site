@@ -1204,18 +1204,13 @@
     <p>No admin key, no upgrade path, no pause, no server, no indexer. The colour rules, the auction
        terms and the royalty destination are fixed at deploy. This site is a convenience: everything
        it shows is read straight from the contract, and if it disappears the artwork is unaffected.</p>
-    <p class="small muted">One exception, stated plainly: because the sealed number is hidden, the contract
-       cannot check a number it does not know, so the last sale is triggered by a transaction from the
-       deployer. That transaction cannot end it early or at a different number. The contract verifies
-       the revealed number against the hash committed at deploy, and checks the sale count really has
-       crossed it.</p>
   </section>
 
 
   <section data-tab="method">
     <p class="eyebrow">Method</p>
     <h2>Everything, in the open</h2>
-    <p>These are the exact rules the contract runs. Nothing here is simplified for the page. If you want to know why your pixel is the colour it is, this is where it is decided.</p>
+    <p>If you want to know why your pixel is the colour it is, this is where it is decided.</p>
 
     <details open class="ch vel">
       <summary><span>Red: how often it sells</span></summary>
@@ -1355,8 +1350,6 @@ Across any meaningful stretch of trading, roughly nine in ten pixels that have
 ever sold end up a different colour, whether or not their owner did anything.</div>
     </details>
 
-    <p class="small muted" style="margin-top:20px">The contract is the specification. This page describes
-       it; if the two ever disagree, the contract is right and this page is wrong.</p>
   </section>
 
 <section data-tab="heart">
@@ -1511,12 +1504,12 @@ ever sold end up a different colour, whether or not their owner did anything.</d
     <p>4096 borrows that structure and swaps the system. Where Richter used arithmetic and slips of
        paper, this uses a market. Nobody picks the colours here either. They are produced by
        thousands of people trading, none of whom can see what they are painting.</p>
-    <p>Here is how we think about our own role in it. Richter was the hand that held the brush while a
+    <p>Richter was the hand that held the brush while a
        system decided the colours. We are not even the hand. We wrote the math and then stepped back.
        The market is the brush, every trade is a stroke, and the people making those strokes cannot see
        the canvas they are painting. We do not get to choose the ending any more than you do. We built
        the instrument and let go of it, and that letting go is the whole point.</p>
-    <p>The differences are as instructive as the similarities. His painting resolved in a studio over
+    <p>His painting resolved in a studio over
        weeks; this one resolves over years and might never resolve at all. His palette was complete
        by construction; this one is only as rich as the market that makes it. He knew what his
        painting looked like when he finished it. Nobody will know what this one looks like until it
