@@ -2238,20 +2238,17 @@ async function drawPixels(){
   if(!ACCOUNT){
     // The place you notice the lack is the place to offer the remedy. A
     // notice that names a control elsewhere on the page is a dead end.
-    body.innerHTML=`<div class="notice">No wallet connected. <button class="ghost" id="pxConnect">Connect one to see your pixels</button></div>`;
-    const pc=document.getElementById("pxConnect");
-    if(pc) pc.onclick=()=>requireWallet();
+    body.innerHTML=`<div class="wstatus">No wallet connected</div>`+
+      `<div class="notice">Your pixels, their colour, and why they are that colour. <button type="button" class="ghost" id="pxConnect">Connect a wallet</button></div>`;
     return;
   }
-  const bar = `<div class="wstatus">${shortAddr(ACCOUNT)} connected<button class="wdisc" id="pxDisconnect">Disconnect</button></div>`;
-  const wireBar = () => {
-    const d=document.getElementById("pxDisconnect");
-    if(d) d.onclick=()=>disconnectWallet();
-  };
+  // type="button" or it defaults to submit. Both controls are wired by the
+  // delegated listener below, not here: this markup is rebuilt on every
+  // render and anything bound directly to it is discarded by the next one.
+  const bar = `<div class="wstatus">${shortAddr(ACCOUNT)} connected<button type="button" class="wdisc" id="pxDisconnect">Disconnect</button></div>`;
   body.innerHTML=bar+`<div class="notice">Loading your pixels…</div>`;
-  wireBar();
   const ids=await chain.tokensOf(ACCOUNT);
-  if(!ids.length){ body.innerHTML=bar+`<div class="notice">No pixels in this wallet.</div>`; wireBar(); return; }
+  if(!ids.length){ body.innerHTML=bar+`<div class="notice">No pixels in this wallet.</div>`; return; }
   const cards=await Promise.all(ids.map(i=>chain.pixelOf(i)));
   const chans=[["Velocity","R","var(--vel)"],["Rhythm","G","var(--rhy)"],["Patience","B","var(--pat)"]];
   const allUntraded = cards.every(p=>!p.traded);
@@ -2720,11 +2717,37 @@ function paintWallet(){
 
 function shortAddr(a){ return a.slice(0,6)+"…"+a.slice(-4); }
 
+/* The wallet still has the site authorised after this: no page can revoke
+   that, only the wallet can, from its own settings. What this remembers is
+   that you asked the site to forget you, so the next load does not quietly
+   pick the account back up and contradict the line that reports it. */
+const WALLET_OFF = "4096:wallet-off";
+function walletDismissed(){
+  try{ return localStorage.getItem(WALLET_OFF) === "1"; }catch(e){ return false; }
+}
+function setWalletDismissed(v){
+  try{ v ? localStorage.setItem(WALLET_OFF,"1") : localStorage.removeItem(WALLET_OFF); }catch(e){}
+}
+
 function disconnectWallet(){
   ACCOUNT=null;
   PROVIDER=null;
+  setWalletDismissed(true);
   drawPixels();
 }
+
+/* One listener on the panel rather than one per render. Both controls are
+   rebuilt every time drawPixels runs, so a handler bound to the element
+   itself is thrown away by the next render. stopPropagation because the
+   document routes any click with a [data-tab] ancestor through goTab, and
+   this panel has one: without it, disconnecting re-rendered the tab, which
+   read as the page reloading. */
+document.addEventListener("click", e => {
+  const d = e.target.closest("#pxDisconnect");
+  if(d){ e.preventDefault(); e.stopPropagation(); disconnectWallet(); return; }
+  const c = e.target.closest("#pxConnect");
+  if(c){ e.preventDefault(); e.stopPropagation(); requireWallet(); }
+}, true);
 
 /* Ask for a wallet at the moment one is needed. A no-op when connected, so
    every gated action can call it unconditionally. Returns false if the
@@ -2734,6 +2757,7 @@ async function requireWallet(){
   const a = await chain.connect();
   if(!a) return false;
   ACCOUNT = a;
+  setWalletDismissed(false);   // an explicit connect undoes an explicit disconnect
   drawPixels();
   return true;
 }
@@ -2840,6 +2864,8 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 async function restoreConnection(){
+  // Asked to be forgotten, stay forgotten across reloads.
+  if(walletDismissed()) return;
   try{
     let prov = null;
     const list = walletList();
