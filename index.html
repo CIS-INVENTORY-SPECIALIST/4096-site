@@ -951,7 +951,9 @@
     <div class="stage2col">
     <div class="stagewrap">
       <div class="frame">
-        <div class="loading" id="canvasLoading">reading the chain</div>
+        <!-- Deliberately empty. The grey square is the placeholder; a
+             status message inside the frame reads as software. -->
+        <div class="loading" id="canvasLoading" aria-hidden="true"></div>
         <div class="zoomstage" id="zoomstage">
           <canvas id="canvas" width="64" height="64"></canvas><canvas id="overlay"></canvas>
         </div>
