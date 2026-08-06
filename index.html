@@ -1947,7 +1947,10 @@ let ORDER=null;
    time, and the same one for everybody. */
 function holdingOrder(n){
   const a=Array.from({length:n},(_,i)=>i);
-  const cut=Math.floor(n*0.75);
+  // A short tail rather than a quarter. Long enough that the last pixels
+  // settle rather than stopping mid-scatter, short enough that it does not
+  // read as a wipe down the canvas.
+  const cut=Math.floor(n*0.92);
   let s=4096;
   for(let i=cut-1;i>0;i--){
     s=(s*1664525+1013904223)>>>0;
@@ -1984,9 +1987,16 @@ function revealCanvas(ms){
 
   const total=GRID*GRID;
   const work=ctx.createImageData(GRID,GRID);
+  // Between the mount and the unminted grey, so neither disappears into
+  // it. Blanking to white made a minted pixel invisible as it arrived and
+  // left the reveal looking like grey filling a shape.
+  const REVEAL_GROUND=[236,235,229];
   for(let i=0;i<total;i++){
     const o=i*4;
-    work.data[o]=255; work.data[o+1]=255; work.data[o+2]=255; work.data[o+3]=255;
+    work.data[o]=REVEAL_GROUND[0];
+    work.data[o+1]=REVEAL_GROUND[1];
+    work.data[o+2]=REVEAL_GROUND[2];
+    work.data[o+3]=255;
   }
   ctx.putImageData(work,0,0);
 
