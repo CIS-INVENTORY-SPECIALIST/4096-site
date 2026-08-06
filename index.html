@@ -1947,10 +1947,11 @@ let ORDER=null;
    time, and the same one for everybody. */
 function holdingOrder(n){
   const a=Array.from({length:n},(_,i)=>i);
-  // A short tail rather than a quarter. Long enough that the last pixels
-  // settle rather than stopping mid-scatter, short enough that it does not
-  // read as a wipe down the canvas.
-  const cut=Math.floor(n*0.92);
+  // Every pixel, scattered. An ordered tail was meant to let the sequence
+  // resolve, but until positions are assigned a token is its own place, so
+  // an ordered run is a contiguous strip and it wiped across the bottom of
+  // the grid. Order is position here; there is no tidy ending available.
+  const cut=n;
   let s=4096;
   for(let i=cut-1;i>0;i--){
     s=(s*1664525+1013904223)>>>0;
