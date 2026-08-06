@@ -698,6 +698,14 @@
   .code{padding:0 17px 17px;font-family:var(--mono);font-size:var(--t-meta);line-height:1.85;
     color:var(--ink2);white-space:pre-wrap;border-top:1px solid var(--rule2);padding-top:15px}
   .code b{color:var(--ink);font-weight:500}
+  /* The equations are what the contract actually runs; the prose around them
+     describes it. Same size, same face, but on a ground with a rule at the
+     left, so the eye can find the arithmetic without reading the paragraph.
+     Marked in the markup rather than by selector, because b does three jobs in
+     here: headings, standalone equations, and emphasis mid sentence. */
+  .code b.eq{background:var(--paper);box-shadow:-10px 0 0 var(--paper),
+    10px 0 0 var(--paper),inset 2px 0 0 var(--rule);
+    padding:1px 0}
 
   /* ---- richter plate ---- */
   .plate{display:grid;grid-template-columns:repeat(16,1fr);width:100%;max-width:390px;
@@ -832,9 +840,12 @@
     /* pre-wrap plus source line breaks makes shredded text at this width.
        Let the prose reflow and give each formula its own line instead. */
     .code{font-size:var(--t-small);white-space:normal;line-height:1.75}
-    .code b{display:block;margin:11px 0;font-size:var(--t-meta);overflow-wrap:anywhere;
+    /* Only the equations become blocks. Applying this to every b turned the
+       section headings into code and split any sentence with an inline formula
+       in it down the middle. */
+    .code b.eq{display:block;margin:11px 0;font-size:var(--t-meta);overflow-wrap:anywhere;
       background:var(--paper);border-left:2px solid var(--rule);
-      padding:8px 10px;font-weight:500}
+      box-shadow:none;padding:8px 10px;font-weight:500}
   }
 </style>
 </head>
@@ -899,7 +910,7 @@
         </div>
         <button class="zoomreset" id="zoomReset" hidden>Reset</button>
       </div>
-      <div class="readout" id="readout"><span class="muted" id="hint">Hover a pixel. Click to open it on OpenSea.</span></div>
+      <div class="readout" id="readout"><span class="muted" id="hint">Zoom in. Every pixel is a token, and every one of them belongs to somebody.</span></div>
       <p class="small muted" id="stateNote" style="max-width:52ch;text-align:center;margin:0"></p>
       <p class="small muted" id="zoomHint" style="text-align:center;margin:0;display:none">
         Pinch to zoom. One pixel is small on purpose.</p>
@@ -1027,7 +1038,7 @@ what a marketplace fill looks like. Moving a token between your own wallets does
 not count. Gifts do not count. The mint does not count.
 
 <b>How it becomes a number</b>
-    <b>key_velocity = min(sales, 1023)</b>
+    <b class="eq">key_velocity = min(sales, 1023)</b>
 The sale count maps straight to a key. No scaling. An earlier version divided by
 supply, which crushed everything under five sales into one bucket and left most
 of the range unreachable.
@@ -1053,16 +1064,16 @@ scores high.
 
 <b>How it is computed</b>
 The contract keeps two running totals, updated on every sale:
-    <b>gapSum   += gap</b>
-    <b>gapSumSq += gap x gap</b>
+    <b class="eq">gapSum   += gap</b>
+    <b class="eq">gapSumSq += gap x gap</b>
 Then, with <b>n = sales - 1</b> gaps:
-    <b>mean     = gapSum / n</b>
-    <b>meanSq   = gapSumSq / n</b>
-    <b>variance = meanSq - mean x mean</b>       (floored at 0)
-    <b>rhythm   = sqrt(variance)</b>            in seconds
+    <b class="eq">mean     = gapSum / n</b>
+    <b class="eq">meanSq   = gapSumSq / n</b>
+    <b class="eq">variance = meanSq - mean x mean</b>       (floored at 0)
+    <b class="eq">rhythm   = sqrt(variance)</b>            in seconds
 Quantised on a log scale so a gap of minutes and a gap of decades fit one axis:
-    <b>e    = floor(log2(v))</b>
-    <b>key  = e x 32 + ((v - 2^e) x 32) / 2^e</b>, capped at 1023
+    <b class="eq">e    = floor(log2(v))</b>
+    <b class="eq">key  = e x 32 + ((v - 2^e) x 32) / 2^e</b>, capped at 1023
 
 <b>Below three sales it does not exist</b>
 One sale has no gap at all. Two sales have a single gap, whose spread is
@@ -1078,9 +1089,9 @@ have actually traded unpredictably across real time.</div>
     <details>
       <summary><span><span class="swatch" style="background:var(--pat)"></span>Blue: longest unbroken hold</span></summary>
       <div class="code"><b>What is measured</b>
-    <b>open = now - lastSale</b>
-    <b>hold = max(open, longestGap)</b>
-    <b>key  = qLog(hold)</b>          same log quantiser as rhythm
+    <b class="eq">open = now - lastSale</b>
+    <b class="eq">hold = max(open, longestGap)</b>
+    <b class="eq">key  = qLog(hold)</b>          same log quantiser as rhythm
 The longest stretch without selling, including the one running right now.
 Absolute seconds, never a ratio.
 
@@ -1107,12 +1118,12 @@ added there was not one pure red pixel on the canvas.
 
 <b>The correction</b>
 Least squares slopes across the defined population, with n tokens:
-    <b>den = n x Svv - Sv x Sv</b>
-    <b>m1  = (n x Svg - Sv x Sg) / den</b>      red out of green
-    <b>m2  = (n x Svb - Sv x Sb) / den</b>      red out of blue
+    <b class="eq">den = n x Svv - Sv x Sv</b>
+    <b class="eq">m1  = (n x Svg - Sv x Sg) / den</b>      red out of green
+    <b class="eq">m2  = (n x Svb - Sv x Sb) / den</b>      red out of blue
 Residuals, then blue out of green:
-    <b>rb  = patience - m2 x velocity</b>
-    <b>rg  = rhythm - m1 x velocity - m3 x rb</b>
+    <b class="eq">rb  = patience - m2 x velocity</b>
+    <b class="eq">rg  = rhythm - m1 x velocity - m3 x rb</b>
 What survives in green is not "how erratic is this pixel" but "how erratic
 compared to others that traded about as much."
 
@@ -1120,8 +1131,8 @@ compared to others that traded about as much."
 A slope is a fraction and Solidity has no fractions, so a naive integer divide
 rounds m1 and m2 to zero and the correction silently does nothing. Every slope is
 therefore held in fixed point:
-    <b>S = 1,000,000</b>
-    <b>m = (numerator x S) / denominator</b>
+    <b class="eq">S = 1,000,000</b>
+    <b class="eq">m = (numerator x S) / denominator</b>
 and unwound by S wherever it is applied. If den is 0, which happens when every
 token has identical velocity, the slope is set to 0 rather than dividing.
 
@@ -1135,9 +1146,9 @@ remains between these measures is not linear.</div>
       <summary><span>From rank to colour</span></summary>
       <div class="code"><b>Sixteen tones</b>
 Each channel is ranked and split into sixteen:
-    <b>tone = floor(rank x 16 / population)</b>, capped at 15
-    <b>channel = tone x 17</b>            gives 0, 17, 34 ... 255
-    <b>colour = (R x 65536) + (G x 256) + B</b>
+    <b class="eq">tone = floor(rank x 16 / population)</b>, capped at 15
+    <b class="eq">channel = tone x 17</b>            gives 0, 17, 34 ... 255
+    <b class="eq">colour = (R x 65536) + (G x 256) + B</b>
 Sixteen cubed is 4,096 possible colours, from 4,096 pixels.
 
 <b>Ties</b>
@@ -1765,10 +1776,15 @@ let HL_LABEL="";
 
 // Phones have no hover. Say what the device can actually do.
 const TOUCH = window.matchMedia("(hover: none)").matches;
-const HINT_BROWSE = TOUCH ? "Tap a pixel to see it. Tap again to open it on OpenSea."
-                          : "Hover a pixel. Click to open it on OpenSea.";
-const HINT_MINTING = TOUCH ? "Tap a pixel to see its number."
-                           : "Hover a pixel to see its number.";
+// An invitation rather than an instruction. The controls are discoverable
+// once somebody has a reason to reach for them; what they did not know is
+// that the canvas zooms, and that every square in it is owned.
+const HINT_BROWSE = TOUCH
+  ? "Pinch to zoom. Every pixel is a token, and every one of them belongs to somebody."
+  : "Zoom in. Every pixel is a token, and every one of them belongs to somebody.";
+const HINT_MINTING = TOUCH
+  ? "Pinch to zoom. Every pixel is a token, and every one of them belongs to somebody."
+  : "Zoom in. Every pixel is a token, and every one of them belongs to somebody.";
 
 /* ---------- rendering ---------- */
 let COLOURS=null, POSOF=null;
