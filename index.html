@@ -708,13 +708,37 @@
      and the lighter border of the panel below sits on top of it, rubbing out
      the bottom edge so the box never closes. Lifting the open one above its
      neighbours restores it. */
+  /* The panel carries its channel rather than a square announcing it. A wash
+     at four percent: enough that an open panel is recognisably red, green or
+     blue, not enough to fight the paper it sits on or to make the mono in it
+     any harder to read. The chevron and the left rule take the same colour at
+     full strength, where a small mark can afford it. */
+  details.ch.vel{--chan:var(--vel)}
+  details.ch.rhy{--chan:var(--rhy)}
+  details.ch.pat{--chan:var(--pat)}
+  details.ch[open]{background:color-mix(in srgb, var(--chan) 4%, var(--mount))}
+  details.ch[open] summary::before{border-color:var(--chan)}
+  details.ch[open]{box-shadow:inset 2px 0 0 var(--chan)}
+  details.ch summary:hover::before{border-color:var(--chan)}
+
   details[open]{border-color:var(--ink);position:relative;z-index:1}
+  /* Ranged left rather than spread across the row: with the affordance beside
+     the heading there is nothing to push to the other edge. */
   summary{cursor:pointer;padding:15px 17px;font-size:var(--t-body);list-style:none;
-    display:flex;justify-content:space-between;align-items:center;gap:14px}
+    display:flex;align-items:center;gap:12px}
   summary::-webkit-details-marker{display:none}
-  summary::after{content:"read";font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;
-    text-transform:uppercase;color:var(--ink3)}
-  details[open] summary::after{content:"close"}
+  /* Nothing at the right edge any more. The affordance sits with the heading,
+     below. */
+  summary::after{content:none}
+  /* A chevron at the left of the heading, drawn from two borders so it costs
+     no markup and no image. It points right when the panel is shut and down
+     when it is open, turning rather than swapping. */
+  summary::before{content:"";width:6px;height:6px;flex:none;
+    border-right:1.5px solid var(--ink3);border-bottom:1.5px solid var(--ink3);
+    transform:rotate(-45deg);margin-right:2px;
+    transition:transform .28s cubic-bezier(.2,.8,.2,1),border-color .16s ease}
+  details[open] summary::before{transform:rotate(45deg);border-color:var(--ink)}
+  summary:hover::before{border-color:var(--ink)}
   summary:hover{background:var(--paper)}
   .code{padding:0 17px 17px;font-family:var(--mono);font-size:var(--t-meta);line-height:1.85;
     color:var(--ink2);white-space:pre-wrap;border-top:1px solid var(--rule2);padding-top:15px}
@@ -733,9 +757,15 @@
     margin:22px 0 6px}
   .code b.lbl:first-child{margin-top:0}
 
-  .code b.eq{background:var(--paper);box-shadow:-10px 0 0 var(--paper),
-    10px 0 0 var(--paper),inset 2px 0 0 var(--rule);
+  /* The equation ground follows its panel. A neutral grey block on a warm red
+     panel reads as a hole punched in it rather than as a mark on it, so the
+     tint deepens the channel colour instead of ignoring it. */
+  .code b.eq{background:var(--eqbg,var(--paper));
+    box-shadow:-10px 0 0 var(--eqbg,var(--paper)),
+    10px 0 0 var(--eqbg,var(--paper)),inset 2px 0 0 var(--eqrule,var(--rule));
     padding:1px 0}
+  details.ch{--eqbg:color-mix(in srgb, var(--chan) 11%, var(--mount));
+    --eqrule:color-mix(in srgb, var(--chan) 40%, var(--mount))}
 
   /* ---- richter plate ---- */
   .plate{display:grid;grid-template-columns:repeat(16,1fr);width:100%;max-width:390px;
@@ -1060,8 +1090,8 @@
     <h2>Everything, in the open</h2>
     <p>These are the exact rules the contract runs. Nothing here is simplified for the page. If you want to know why your pixel is the colour it is, this is where it is decided.</p>
 
-    <details open>
-      <summary><span><span class="swatch" style="background:var(--vel)"></span>Red: how often it sells</span></summary>
+    <details open class="ch vel">
+      <summary><span>Red: how often it sells</span></summary>
       <div class="code"><b>What is measured</b>
 Total sales. A sale is any transfer where the caller is not the sender, which is
 what a marketplace fill looks like. Moving a token between your own wallets does
@@ -1085,8 +1115,8 @@ tone when nobody is standing near you: climbing from a crowded part of the
 distribution is cheap, climbing from a sparse part is not.</div>
     </details>
 
-    <details>
-      <summary><span><span class="swatch" style="background:var(--rhy)"></span>Green: how uneven the gaps are</span></summary>
+    <details class="ch rhy">
+      <summary><span>Green: how uneven the gaps are</span></summary>
       <div class="code"><b>What is measured</b>
 The population standard deviation of the intervals between consecutive sales.
 Steady cadence scores low. A flurry, then years of silence, then another flurry
@@ -1116,8 +1146,8 @@ manufacture a two year gap in an afternoon. The only way to score high is to
 have actually traded unpredictably across real time.</div>
     </details>
 
-    <details>
-      <summary><span><span class="swatch" style="background:var(--pat)"></span>Blue: longest unbroken hold</span></summary>
+    <details class="ch pat">
+      <summary><span>Blue: longest unbroken hold</span></summary>
       <div class="code"><b>What is measured</b>
     <b class="eq">open = now - lastSale</b>
     <b class="eq">hold = max(open, longestGap)</b>

@@ -19,14 +19,14 @@
 
 ## YOUR PIXELS
 - [x] **12 · Y1** The same sentence on all nine cards
-- [ ] **13 · Y2** Nine sets of empty bars
-- [ ] **14 · Y3** The swatch is invisible
-- [ ] **15 · Y4** No way to connect from the empty state
+- [x] **13 · Y2** Nine sets of empty bars
+- [x] **14 · Y3** The swatch is invisible
+- [x] **15 · Y4** No way to connect from the empty state
 
 ## TYPOGRAPHIC
-- [ ] **16 · T1** Hard line breaks in the Method intro
-- [ ] **17 · T2** Code not distinguished from prose
-- [ ] **18 · T3** Weak hierarchy inside the Method panels
+- [x] **16 · T1** Hard line breaks in the Method intro
+- [x] **17 · T2** Code not distinguished from prose
+- [x] **18 · T3** Weak hierarchy inside the Method panels
 - [ ] **19 · T4** The Richter quote is not set as a quote
 - [ ] **20 · T5** The Richter image is unframed
 
@@ -67,3 +67,30 @@
       Candidates: give them the paper ground and let a rule do the work, tint
       the white closer to the paper, or let them bleed to the measure rather
       than sitting inside it as objects.
+- [ ] **36** The pixel swatch. Now a paper tile with the colour mounted inside
+      it, which reads better than white on white but has not been designed so
+      much as corrected twice. Worth looking at properly: the size, whether the
+      mount belongs at all once pixels have colour, and whether it should match
+      the frame treatment used everywhere else.
+
+## AFTER THE LIST — the two that change how it feels
+
+Everything above is correction. Correct is not modern. These two are what
+Apple and X actually do that this site does not.
+
+- [ ] **37 · Motion that means something.** Their interfaces move constantly and
+      every movement reports a state: a sheet rising, a list settling, a value
+      counting to its new figure. This site is almost entirely still. The nav
+      rule and the frame flash are the only motion on it, and one of those
+      fires perhaps twice a month. Candidates: the mint counter counting rather
+      than snapping, a pixel visibly taking colour when it trades, the canvas
+      settling in rather than appearing, section changes that move rather than
+      cut.
+
+- [ ] **38 · Density.** They pack information and let hierarchy separate it.
+      These pages are generous with space and thin with information: four
+      paragraphs and a table on a 1160px canvas. A technical audience reads
+      density as respect and emptiness as having little to say. Candidates:
+      more on screen at once, tighter vertical rhythm, figures beside prose
+      rather than under it, and the numbers that already exist surfaced where
+      they are relevant rather than only on the page that owns them.
