@@ -818,6 +818,25 @@
     z-index:0;pointer-events:none}
   .miniframe > *{position:relative;z-index:1}
   .miniframe canvas{outline:1px solid #3c3c3a}
+
+  /* ---- fullscreen ---- */
+  /* The paper ground, not black. Most of this canvas is still white, and on
+     a dark field white stops being paper and starts being light. */
+  #fsOverlay{position:fixed;inset:0;z-index:200;background:var(--paper);
+    display:none;overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none}
+  #fsOverlay[data-open]{display:block}
+  #fsCanvas{position:absolute;top:0;left:0;image-rendering:pixelated;
+    transform-origin:0 0;will-change:transform}
+  /* Shown on a tap and gone again. A control that stays visible is a
+     control competing with the work for the screen. */
+  #fsExit{position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);right:14px;
+    z-index:201;font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink2);background:var(--mount);
+    border:1px solid var(--rule);padding:11px 14px;min-height:44px;cursor:pointer;
+    opacity:0;transition:opacity .32s ease;pointer-events:none}
+  #fsExit[data-show]{opacity:1;pointer-events:auto}
+  #fsBtn svg{display:block}
   #auctionCanvas{display:block;image-rendering:pixelated;width:244px;height:244px}
   .boxes{display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:530px;
     border:1px solid var(--rule);background:var(--mount)}
@@ -994,6 +1013,14 @@
       <div class="hlbar">
         <button class="ghost" id="hlMine" aria-pressed="false">Highlight my pixels</button>
         <button class="ghost" id="exportBtn">Frame &amp; export</button>
+        <!-- Corner marks rather than arrows. The same crop marks the heart
+             plate uses, which already mean "the edges of the work" here. -->
+        <button class="ghost" id="fsBtn" aria-label="Fullscreen">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+            <path d="M1 4.4V1h3.4M12 4.4V1H8.6M1 8.6V12h3.4M12 8.6V12H8.6"
+                  stroke="currentColor" stroke-width="1.3"/>
+          </svg>
+        </button>
         <button class="ghost" id="hlClear" hidden>Clear highlight</button>
         <span id="hlNote" class="muted"></span>
       </div>
@@ -2960,6 +2987,190 @@ async function restoreConnection(){
     PROVIDER = null;
   }catch(e){ console.log("restoreConnection:", e); }
 }
+/* ---------- fullscreen canvas ----------------------------------------------
+   The work with nothing else on the screen. Its own canvas drawn from IMGDATA,
+   because the real one is bound up with sizeCanvas and the zoomstage and both
+   have been got wrong before.                                              */
+(function(){
+  const ov = document.createElement("div"); ov.id = "fsOverlay";
+  const cvf = document.createElement("canvas"); cvf.id = "fsCanvas";
+  cvf.width = 64; cvf.height = 64;
+  const exit = document.createElement("button"); exit.id = "fsExit";
+  exit.type = "button"; exit.textContent = "Close";
+  ov.appendChild(cvf); document.body.appendChild(ov); document.body.appendChild(exit);
+  const fctx = cvf.getContext("2d");
+
+  let S = 1, ox = 0, oy = 0, open = false, hideT = null, spring = null;
+
+  const vw = () => window.innerWidth, vh = () => window.innerHeight;
+  const fit = () => Math.min(vw(), vh()) / GRID;   // whole work on screen
+  const MINS = () => fit() * 0.9;                  // a little smaller than fit
+  const MAXS = 42;                                 // one pixel, very large
+
+  // Where the work is allowed to sit. Smaller than the screen on an axis and
+  // it centres on that axis rather than pinning to a corner.
+  function bounds(){
+    const w = GRID*S, hh = GRID*S;
+    return {
+      xlo: w  <= vw() ? (vw()-w)/2  : vw()-w,  xhi: w  <= vw() ? (vw()-w)/2  : 0,
+      ylo: hh <= vh() ? (vh()-hh)/2 : vh()-hh, yhi: hh <= vh() ? (vh()-hh)/2 : 0
+    };
+  }
+  // Past the edge it still moves, at a third of the distance. An edge that
+  // stops dead is the thing that feels like software rather than like paper.
+  function rubber(v, lo, hi){
+    if(v < lo) return lo - (lo-v)*0.34;
+    if(v > hi) return hi + (v-hi)*0.34;
+    return v;
+  }
+  function apply(){ cvf.style.transform = `translate(${ox}px,${oy}px) scale(${S})`; }
+
+  function settle(){
+    if(spring) cancelAnimationFrame(spring);
+    const b = bounds();
+    const tx = Math.min(b.xhi, Math.max(b.xlo, ox));
+    const ty = Math.min(b.yhi, Math.max(b.ylo, oy));
+    if(Math.abs(tx-ox) < 0.5 && Math.abs(ty-oy) < 0.5){ ox=tx; oy=ty; apply(); return; }
+    (function step(){
+      ox += (tx-ox)*0.22; oy += (ty-oy)*0.22;
+      apply();
+      if(Math.abs(tx-ox) > 0.5 || Math.abs(ty-oy) > 0.5) spring = requestAnimationFrame(step);
+      else { ox=tx; oy=ty; apply(); spring=null; }
+    })();
+  }
+
+  function flash(){
+    exit.setAttribute("data-show","");
+    clearTimeout(hideT);
+    hideT = setTimeout(()=>exit.removeAttribute("data-show"), 2000);
+  }
+
+  function show(){
+    if(!IMGDATA) { toast("The canvas has not loaded yet."); return; }
+    fctx.putImageData(IMGDATA, 0, 0);
+    // Opens beyond fit, so there is always somewhere to go.
+    S = fit() * 1.9;
+    const b = bounds(); ox = (b.xlo+b.xhi)/2; oy = (b.ylo+b.yhi)/2;
+    apply();
+    ov.setAttribute("data-open","");
+    document.body.style.overflow = "hidden";
+    open = true; flash();
+  }
+  function hide(){
+    ov.removeAttribute("data-open");
+    exit.removeAttribute("data-show");
+    document.body.style.overflow = "";
+    open = false; clearTimeout(hideT);
+  }
+  exit.onclick = hide;
+  document.addEventListener("keydown", e=>{ if(open && e.key === "Escape") hide(); });
+
+  const btn = document.getElementById("fsBtn");
+  if(btn) btn.onclick = show;
+
+  // ---- pan and pinch ----
+  let px=0, py=0, d0=0, s0=1, moved=false;
+  const dst = (a,b)=>Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+
+  ov.addEventListener("touchstart", e=>{
+    if(spring){ cancelAnimationFrame(spring); spring=null; }
+    moved = false;
+    if(e.touches.length === 2){ d0 = dst(e.touches[0],e.touches[1]); s0 = S; }
+    else { px = e.touches[0].clientX; py = e.touches[0].clientY; }
+  }, {passive:false});
+
+  ov.addEventListener("touchmove", e=>{
+    e.preventDefault(); moved = true;
+    if(e.touches.length === 2 && d0){
+      const mx = (e.touches[0].clientX+e.touches[1].clientX)/2;
+      const my = (e.touches[0].clientY+e.touches[1].clientY)/2;
+      const next = Math.min(MAXS, Math.max(MINS(), s0 * (dst(e.touches[0],e.touches[1])/d0)));
+      const k = next/S;
+      ox = mx - (mx-ox)*k; oy = my - (my-oy)*k; S = next;
+      apply();
+    } else if(e.touches.length === 1){
+      const b = bounds();
+      ox = rubber(ox + (e.touches[0].clientX-px), b.xlo, b.xhi);
+      oy = rubber(oy + (e.touches[0].clientY-py), b.ylo, b.yhi);
+      px = e.touches[0].clientX; py = e.touches[0].clientY;
+      apply();
+    }
+  }, {passive:false});
+
+  ov.addEventListener("touchend", ()=>{ d0=0; settle(); if(!moved) flash(); }, {passive:true});
+
+  // desktop: drag with the mouse, wheel to zoom
+  let down=false;
+  ov.addEventListener("mousedown", e=>{ down=true; moved=false; px=e.clientX; py=e.clientY; });
+  window.addEventListener("mousemove", e=>{
+    if(!down || !open) return;
+    moved = true;
+    const b = bounds();
+    ox = rubber(ox + (e.clientX-px), b.xlo, b.xhi);
+    oy = rubber(oy + (e.clientY-py), b.ylo, b.yhi);
+    px = e.clientX; py = e.clientY; apply();
+  });
+  window.addEventListener("mouseup", ()=>{ if(down){ down=false; settle(); if(!moved) flash(); } });
+  ov.addEventListener("wheel", e=>{
+    if(!open) return;
+    e.preventDefault();
+    const next = Math.min(MAXS, Math.max(MINS(), S * (e.deltaY < 0 ? 1.12 : 1/1.12)));
+    const k = next/S;
+    ox = e.clientX - (e.clientX-ox)*k; oy = e.clientY - (e.clientY-oy)*k; S = next;
+    apply(); settle();
+  }, {passive:false});
+
+  window.addEventListener("resize", ()=>{ if(open) settle(); });
+  window.__fs = { isOpen: ()=>open };
+})();
+
+/* ---------- swipe between tabs -----------------------------------------------
+   Left advances through the nav in written order, right goes back, and neither
+   end wraps: this is a list, not a circle.
+
+   It stays off anything that already owns the horizontal axis — the canvas
+   pans, the glow table scrolls sideways deliberately, tables scroll — and off
+   the first 24px of the left edge, which iOS keeps for its own back gesture. */
+(function(){
+  const EDGE = 24, MIN_X = 56, RATIO = 1.4;
+  let x0=0, y0=0, live=false;
+
+  const tabs = () => [...document.querySelectorAll('nav#nav button[data-tab]')]
+                       .map(b => b.dataset.tab);
+
+  function blocked(t){
+    return !!(t.closest("#zoomstage") || t.closest(".hscroll") ||
+              t.closest(".tablewrap") || t.closest("#fsOverlay") ||
+              t.closest("nav#nav")    || t.closest("input,textarea,select"));
+  }
+
+  document.addEventListener("touchstart", e=>{
+    live = false;
+    if(!window.matchMedia("(max-width:760px)").matches) return;
+    if(window.__fs && window.__fs.isOpen()) return;
+    if(e.touches.length !== 1) return;
+    const t = e.touches[0];
+    if(t.clientX < EDGE) return;              // iOS owns this strip
+    if(blocked(e.target)) return;
+    x0 = t.clientX; y0 = t.clientY; live = true;
+  }, {passive:true});
+
+  document.addEventListener("touchend", e=>{
+    if(!live) return;
+    live = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    // Mostly horizontal, or a scroll that drifted sideways becomes navigation.
+    if(Math.abs(dx) < MIN_X || Math.abs(dx) < Math.abs(dy)*RATIO) return;
+    const list = tabs();
+    const cur = list.indexOf((location.hash||"#canvas").slice(1));
+    const i = cur < 0 ? 0 : cur;
+    const next = dx < 0 ? i+1 : i-1;
+    if(next < 0 || next >= list.length) return;   // no wrap at either end
+    goTab(list[next]);
+  }, {passive:true});
+})();
+
 /* ---------- boot ---------- */
 (async()=>{
   STEPS=computeSteps();
