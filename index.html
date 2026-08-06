@@ -1933,6 +1933,29 @@ let IMGDATA=null, ASSIGNED=true;
    the shuffle made it. Kept as its own array rather than read back out of
    POSOF, which is the inverse and would have to be walked to be useful. */
 let ORDER=null;
+
+/* A sequence that scatters and then resolves. Temporary, and honest about
+   being temporary: it is in use only while positions are unassigned, when
+   drawing in the true order would fill the canvas in rows.
+
+   It carries no meaning. When the shuffle runs, mint order scatters on its
+   own and this is thrown away.
+
+   The first three quarters are shuffled, the last quarter is left in grid
+   order, so the canvas stops looking like static and starts looking like a
+   picture completing itself. Seeded, not random: the same performance every
+   time, and the same one for everybody. */
+function holdingOrder(n){
+  const a=Array.from({length:n},(_,i)=>i);
+  const cut=Math.floor(n*0.75);
+  let s=4096;
+  for(let i=cut-1;i>0;i--){
+    s=(s*1664525+1013904223)>>>0;
+    const j=s%(i+1);
+    const t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
 let REVEAL=null;
 const REVEAL_MS=1500;
 
@@ -2041,9 +2064,11 @@ async function drawCanvas(quiet){
       img0.data[o]=on?255:214; img0.data[o+1]=on?255:213; img0.data[o+2]=on?255:205;
       img0.data[o+3]=255;
     }
-    // Positions are only assigned once minting closes, so until then a
-    // token is its own place and the reveal fills from the top.
-    ORDER=POSOF.slice();
+    // Positions are only assigned once minting closes, so until then a token
+    // is its own place and drawing in mint order would fill the canvas in
+    // rows. The holding sequence stands in until the shuffle gives the real
+    // order something to say.
+    ORDER=holdingOrder(SUPPLY);
     ctx.putImageData(img0,0,0);
     IMGDATA=img0;
     _loading(false);
