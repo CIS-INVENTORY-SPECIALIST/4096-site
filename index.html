@@ -2831,19 +2831,47 @@ function drawPlate(){
    while people watched it. Poll while the tab is visible, back off when it
    is not, and bust the canvas cache so colours move too.                   */
 let POLL=null;
+/* The sale count as of the last draw. A colour can only change when a pixel
+   sells, so this is what decides whether the heavy read is worth making. */
+let LAST_SALES=null;
+
+/* Colours live in two places: CACHE.colours, which allColours fills, and
+   COLOURS, which drawCanvas fills once and then never asks about again.
+   Clearing only the first leaves drawCanvas drawing from the second, which
+   is why the canvas never changed. Both, or neither. */
+async function refreshColours(){
+  bustCache();
+  COLOURS=null;
+  await drawCanvas(true);
+  await drawCounter();
+}
+
 function startPolling(){
   if(DEMO || POLL) return;
   POLL = setInterval(async ()=>{
     if(document.hidden) return;
     try{
       await drawMintProgress();
-      if(cacheStale()){ bustCache(); await drawCanvas(true); }
-      if(cacheStale()){ bustCache(); COLOURS=null; await drawCanvas(true); }
+
+      // One word from the contract, every twenty seconds. The 4,096 pixel
+      // read only happens when this has actually moved, which at current
+      // rates is twice a year rather than three times a minute.
+      const ts = await chain.totalSales();
+      if(LAST_SALES === null){
+        LAST_SALES = ts;
+      } else if(ts !== LAST_SALES){
+        LAST_SALES = ts;
+        await refreshColours();
+      }
+
       const t=document.querySelector('nav button[aria-current="page"]');
       if(t && t.dataset.tab==="auction") await drawAuction();
     }catch(_){}
   }, 20000);
 }
+/* Coming back to a tab that has been hidden for an hour: bust the fetch
+   cache so the next read is fresh, and let the interval decide whether the
+   colours need paying for. */
 document.addEventListener("visibilitychange",()=>{
   if(!document.hidden && !DEMO){ bustCache(); }
 });
