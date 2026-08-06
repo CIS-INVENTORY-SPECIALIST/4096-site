@@ -923,7 +923,11 @@
     </nav>
   </header>
 
-  <div class="banner" id="demoBanner">
+  <!-- Hidden until demo mode asks for it. Previously it shipped visible and
+       was removed at the end of boot, which meant it held space through four
+       chain reads on a live load and then collapsed, moving the page under
+       whoever was reading it. -->
+  <div class="banner" id="demoBanner" hidden>
     Live on Ethereum mainnet. Every read comes straight from the contract.
   </div>
 
@@ -1453,6 +1457,13 @@ const RPC_ENDPOINTS = (window.CONFIG && window.CONFIG.RPC_ENDPOINTS) || [
   "https://eth.llamarpc.com"
 ];
 const DEMO = CONTRACT === null;
+/* Decided here rather than at the end of boot. CONTRACT comes from config.js
+   synchronously, so the answer is already known before the first chain read
+   and the banner never has to appear and then leave. */
+document.addEventListener("DOMContentLoaded",()=>{
+  const b=document.getElementById("demoBanner");
+  if(b && DEMO) b.hidden=false;
+});
 
 const SUPPLY = 4096, GRID = 64, PER_WALLET = 10;
 // Fallback only. The live price is read from mintPrice() before any mint,
@@ -2927,7 +2938,6 @@ async function restoreConnection(){
   drawPixels();
   startPolling();
   if(location.hash){const tb=document.querySelector(`nav button[data-tab="${location.hash.slice(1)}"]`); if(tb) tb.click();}
-  if(!DEMO) document.getElementById("demoBanner").remove();
   // a footer that reports on the work rather than only linking away from it
   (async()=>{
     try{
