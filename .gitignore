@@ -9,3 +9,6 @@ merge_step*.py
 index.pre*.html
 proofs_*.py
 tools_*.py
+
+# spent patch scripts, run from ~/Downloads
+*.py
