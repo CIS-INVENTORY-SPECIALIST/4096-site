@@ -270,10 +270,6 @@
   .wstatus{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
     text-transform:uppercase;color:var(--ink3);margin:0 0 18px;
     display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .wdisc{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
-    text-transform:uppercase;color:var(--ink3);background:none;border:none;padding:0;
-    text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-  .wdisc:hover{color:var(--ink)}
   .small{font-size:var(--t-small);line-height:1.65}
   strong,b{font-weight:700}
   em{font-style:italic}
@@ -2242,10 +2238,10 @@ async function drawPixels(){
       `<div class="notice">Your pixels, their colour, and why they are that colour. <button type="button" class="ghost" id="pxConnect">Connect a wallet</button></div>`;
     return;
   }
-  // type="button" or it defaults to submit. Both controls are wired by the
-  // delegated listener below, not here: this markup is rebuilt on every
-  // render and anything bound directly to it is discarded by the next one.
-  const bar = `<div class="wstatus">${shortAddr(ACCOUNT)} connected<button type="button" class="wdisc" id="pxDisconnect">Disconnect</button></div>`;
+  // A report, not a control. Ending a connection is the wallet's job and it
+  // already has a place to do it; this line only has to be true. It is
+  // rebuilt on every render, which is why nothing is bound to it directly.
+  const bar = `<div class="wstatus">${shortAddr(ACCOUNT)} connected</div>`;
   body.innerHTML=bar+`<div class="notice">Loading your pixels…</div>`;
   const ids=await chain.tokensOf(ACCOUNT);
   if(!ids.length){ body.innerHTML=bar+`<div class="notice">No pixels in this wallet.</div>`; return; }
@@ -2717,34 +2713,12 @@ function paintWallet(){
 
 function shortAddr(a){ return a.slice(0,6)+"…"+a.slice(-4); }
 
-/* The wallet still has the site authorised after this: no page can revoke
-   that, only the wallet can, from its own settings. What this remembers is
-   that you asked the site to forget you, so the next load does not quietly
-   pick the account back up and contradict the line that reports it. */
-const WALLET_OFF = "4096:wallet-off";
-function walletDismissed(){
-  try{ return localStorage.getItem(WALLET_OFF) === "1"; }catch(e){ return false; }
-}
-function setWalletDismissed(v){
-  try{ v ? localStorage.setItem(WALLET_OFF,"1") : localStorage.removeItem(WALLET_OFF); }catch(e){}
-}
-
-function disconnectWallet(){
-  ACCOUNT=null;
-  PROVIDER=null;
-  setWalletDismissed(true);
-  drawPixels();
-}
-
-/* One listener on the panel rather than one per render. Both controls are
-   rebuilt every time drawPixels runs, so a handler bound to the element
-   itself is thrown away by the next render. stopPropagation because the
-   document routes any click with a [data-tab] ancestor through goTab, and
-   this panel has one: without it, disconnecting re-rendered the tab, which
-   read as the page reloading. */
+/* One listener rather than one per render: the connect button is rebuilt
+   every time drawPixels runs, so a handler bound to the element itself is
+   discarded by the next render. stopPropagation because the document routes
+   any click with a [data-tab] ancestor through goTab, and this panel has
+   one: without it the click re-rendered the tab instead. */
 document.addEventListener("click", e => {
-  const d = e.target.closest("#pxDisconnect");
-  if(d){ e.preventDefault(); e.stopPropagation(); disconnectWallet(); return; }
   const c = e.target.closest("#pxConnect");
   if(c){ e.preventDefault(); e.stopPropagation(); requireWallet(); }
 }, true);
@@ -2757,7 +2731,6 @@ async function requireWallet(){
   const a = await chain.connect();
   if(!a) return false;
   ACCOUNT = a;
-  setWalletDismissed(false);   // an explicit connect undoes an explicit disconnect
   drawPixels();
   return true;
 }
@@ -2864,8 +2837,9 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 async function restoreConnection(){
-  // Asked to be forgotten, stay forgotten across reloads.
-  if(walletDismissed()) return;
+  // eth_accounts is the only source for this. If the wallet still authorises
+  // the site the line stays true through a refresh; revoke it in the wallet
+  // and this comes back empty and the line changes on its own.
   try{
     let prov = null;
     const list = walletList();
