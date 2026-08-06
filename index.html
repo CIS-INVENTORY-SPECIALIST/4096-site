@@ -2944,7 +2944,11 @@ function goTab(t){
   document.getElementById("nav").classList.remove("open");
   const _t=document.getElementById("navToggle");
   if(_t) _t.setAttribute("aria-expanded","false");
-  history.replaceState(null,"","#"+t);
+  // The canvas is what the bare domain opens, so it leaves no trace. Every
+  // other tab writes its hash, because those are the ones a shared link
+  // has to carry.
+  if(t === "canvas") history.replaceState(null,"",location.pathname+location.search);
+  else               history.replaceState(null,"","#"+t);
   document.querySelectorAll("section").forEach(s=>s.removeAttribute("data-active"));
   sec.setAttribute("data-active","");
   window.scrollTo(0,0);
