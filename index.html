@@ -146,19 +146,12 @@
   /* The icon carries the phone, the words carry the desktop. A bare icon on a
      wide screen makes people hesitate before clicking something they cannot
      name; a wide button on a narrow one crowds the wordmark. */
-  .wallet{display:inline-flex;align-items:center;gap:8px}
-  .wicon{display:none;flex:none}
-
-  .wallet{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
-    border:1px solid var(--rule);background:var(--mount);color:var(--ink2);padding:9px 13px;cursor:pointer}
-  .wallet[data-state="idle"]{text-transform:uppercase}
-  .wallet:hover{border-color:var(--ink);color:var(--ink)}
   /* Three strokes that become a cross, each half a channel colour and half
      paper, so the mark only takes colour once it is open. The middle stroke
      leaves first and the outer two follow, which reads as the thing folding
      rather than snapping. */
-  /* No box, to match the wallet beside it. Two controls in a header, one in a
-     bordered white square and one bare, read as two different kinds of thing. */
+  /* No box. The burger is the only control in the masthead now, and a
+     bordered white square beside a wordmark reads as a form field. */
   .navtoggle{display:none;width:44px;height:44px;padding:0;border:none;
     background:none;cursor:pointer;position:relative;
     -webkit-tap-highlight-color:transparent}
@@ -185,15 +178,16 @@
   .navtoggle span{display:block;width:22px;height:2px;background:var(--ink)}
   @media(max-width:760px){
     header{flex-wrap:wrap;align-items:center;position:relative}
-    .brand{order:1}
-    /* The wallet sits inboard and the burger on the outside edge, where a
-       thumb reaches it. The menu is the more frequent action. */
-    .wallet{order:2;margin-left:auto}
-    .navtoggle{display:flex;order:3}
-    nav#nav{display:none !important;position:absolute;top:100%;right:0;z-index:50;
-      /* Sized to the longest label rather than to a round number. Ranged right
+    /* The burger takes the outside edge where a thumb reaches it and the
+       wordmark takes the far side. The auto margin lives on the burger now:
+       it used to sit on the wallet between them, and with the wallet gone
+       nothing was left to push the wordmark across. */
+    .navtoggle{display:flex;order:1;margin-right:auto}
+    .brand{order:2}
+    nav#nav{display:none !important;position:absolute;top:100%;left:0;z-index:50;
+      /* Sized to the longest label rather than to a round number. Ranged left
          under the button, a fixed width left most of the panel empty on the
-         left of every row. */
+         right of every row. */
       width:max-content;min-width:132px;background:var(--mount);border:1px solid var(--ink);margin-top:6px;box-shadow:0 8px 24px rgba(0,0,0,.12);
       /* the sweeping rule travels to the panel's full height, so it has to be
          clipped at the edge rather than continuing down the page */
@@ -237,10 +231,11 @@
       nav#nav button{opacity:1}
     }
     nav#nav button{display:block;width:100%;
-      /* Ranged right, under the button they hang from. Left aligned labels
-         under a control on the far edge leave the panel reading as two objects
-         that happen to overlap. */
-      text-align:right;
+      /* Ranged left, under the button they hang from. Ranged the other way,
+         under a control on the far edge, the panel and the button read as two
+         objects that happen to overlap. This now matches a.navlink below,
+         which was already left and had been disagreeing with it. */
+      text-align:left;
       /* forty four is the smallest comfortable target; fourteen of padding on
          a line of 1.3 landed just under it, and the rows read as cramped. */
       padding:15px 18px;min-height:46px;
@@ -269,6 +264,16 @@
   h2{font-size:var(--t-head);font-weight:400;letter-spacing:-.012em;margin:0 0 14px;line-height:1.35}
   p{margin:0 0 17px;max-width:60ch}
   .muted{color:var(--ink2)}
+  /* The wallet reports itself here rather than in the masthead: this is the
+     one page that is empty without one. Mono and small, because it is a
+     fact about the session rather than part of the reading. */
+  .wstatus{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink3);margin:0 0 18px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .wdisc{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink3);background:none;border:none;padding:0;
+    text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  .wdisc:hover{color:var(--ink)}
   .small{font-size:var(--t-small);line-height:1.65}
   strong,b{font-weight:700}
   em{font-style:italic}
@@ -642,12 +647,12 @@
      press that visibly gives, since on touch there is no hover to fall back
      on. 120ms is under the threshold where a delay is felt as lag but above
      where a change is felt as a jump. */
-  .cta, .ghost, .wallet, nav button {
+  .cta, .ghost, nav button {
     transition: background .12s ease, color .12s ease,
                 border-color .12s ease, transform .08s ease;
     -webkit-tap-highlight-color: transparent;
   }
-  .cta:active, .ghost:active, .wallet:active {
+  .cta:active, .ghost:active {
     transform: translateY(1px);
   }
   .cta[disabled]:active { transform: none; }
@@ -883,18 +888,7 @@
     .tablewrap table{min-width:0}
     .counter .v{font-size:var(--t-lead)}
     .box .v{font-size:var(--t-head)}
-    .cta,.ghost,.wallet{min-height:44px}
-    /* No box. Beside a burger that is also just strokes on paper, a bordered
-       white square reads as a third thing in the header rather than a second
-       control. The touch target stays forty four; only the border goes. */
-    .wallet{width:44px;padding:0;justify-content:center;gap:0;
-      border:none;background:none;color:var(--ink)}
-    .wallet .wlabel{display:none}
-    .wallet .wicon{display:block;width:21px;height:21px}
-    /* Once connected the address is the only thing identifying which wallet
-       you are in, so the button widens again to show it. */
-    .wallet[data-state="connected"]{width:auto;padding:9px 13px}
-    .wallet[data-state="connected"] .wlabel{display:inline}
+    .cta,.ghost{min-height:44px}
     .qty button{width:44px;height:44px}
     .readout{gap:14px}
     /* pre-wrap plus source line breaks makes shredded text at this width.
@@ -931,13 +925,6 @@
       <button data-tab="richter">Richter</button>
       <button data-tab="auction">Auction</button>
     </nav>
-    <button class="wallet" id="wallet" data-state="idle">
-      <svg class="wicon" width="17" height="17" viewBox="0 0 17 17" fill="none" aria-hidden="true">
-        <rect x="1.6" y="3.6" width="13.8" height="9.8" stroke="currentColor" stroke-width="1.2"/>
-        <path d="M1.6 6.6h13.8" stroke="currentColor" stroke-width="1.2"/>
-        <rect x="10.4" y="8.6" width="3" height="2.2" fill="currentColor"/>
-      </svg><span class="wlabel">Connect wallet</span>
-    </button>
   </header>
 
   <div class="banner" id="demoBanner">
@@ -2249,18 +2236,28 @@ function fmtDur(s){
 async function drawPixels(){
   const body=document.getElementById("pixelsBody");
   if(!ACCOUNT){
-    body.innerHTML=`<div class="notice">Connect a wallet to see your pixels, their colour, and why they are that colour.</div>`;
+    // The place you notice the lack is the place to offer the remedy. A
+    // notice that names a control elsewhere on the page is a dead end.
+    body.innerHTML=`<div class="notice">No wallet connected. <button class="ghost" id="pxConnect">Connect one to see your pixels</button></div>`;
+    const pc=document.getElementById("pxConnect");
+    if(pc) pc.onclick=()=>requireWallet();
     return;
   }
-  body.innerHTML=`<div class="notice">Loading your pixels…</div>`;
+  const bar = `<div class="wstatus">${shortAddr(ACCOUNT)} connected<button class="wdisc" id="pxDisconnect">Disconnect</button></div>`;
+  const wireBar = () => {
+    const d=document.getElementById("pxDisconnect");
+    if(d) d.onclick=()=>disconnectWallet();
+  };
+  body.innerHTML=bar+`<div class="notice">Loading your pixels…</div>`;
+  wireBar();
   const ids=await chain.tokensOf(ACCOUNT);
-  if(!ids.length){ body.innerHTML=`<div class="notice">No pixels in this wallet.</div>`; return; }
+  if(!ids.length){ body.innerHTML=bar+`<div class="notice">No pixels in this wallet.</div>`; wireBar(); return; }
   const cards=await Promise.all(ids.map(i=>chain.pixelOf(i)));
   const chans=[["Velocity","R","var(--vel)"],["Rhythm","G","var(--rhy)"],["Patience","B","var(--pat)"]];
   const allUntraded = cards.every(p=>!p.traded);
   body.onclick=e=>{const c=e.target.closest(".card"); if(c) openPixel(+c.dataset.id)};
   body.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){const c=e.target.closest(".card"); if(c){e.preventDefault();openPixel(+c.dataset.id)}}};
-  body.innerHTML =
+  body.innerHTML = bar +
     // When every pixel is in the same state the per card line is the same
     // sentence printed once for each of them, which reads as a template rather
     // than a description. Say it once, above.
@@ -2309,8 +2306,10 @@ async function drawAuction(){
           <div class="sub">${live?"each bid must clear the last by 0.05 ETH":"where bidding starts. there is no ceiling and no closing date"}</div>
         </div>
         <div class="box">
-          <div class="k">Time remaining</div>
-          <div class="v" id="clock">24:00:00</div>
+          <div class="k">${live?"Time remaining":"Auction length"}</div>
+          <!-- The id exists only while the auction is open. An element
+               that cannot count should not carry the name of a clock. -->
+          <div class="v"${live?' id="clock"':""}>${live?"24:00:00":"24 hours"}</div>
           <div class="sub">${live?"every bid pushes this back five minutes":"nothing moves until someone bids"}</div>
         </div>
       </div>
@@ -2499,8 +2498,7 @@ async function connectWallet(){
   if(!DEMO) await ensureChain(PROVIDER);
   PROVIDER.on && PROVIDER.on("accountsChanged",a=>{
     ACCOUNT=a[0]||null;
-    document.getElementById("wallet").textContent=
-      ACCOUNT ? ACCOUNT.slice(0,6)+"…"+ACCOUNT.slice(-4) : "Connect wallet";
+    paintWallet();
     drawPixels();
   });
   return accts[0];
@@ -2522,11 +2520,9 @@ async function loadMintPrice(){
 const pad32 = n => n.toString(16).padStart(64,"0");
 async function sendMint(qty){
   if(DEMO){ toast("Demo mode: no transaction sent."); return; }
-  if(!PROVIDER||!ACCOUNT){
-    if(TOUCH || /iPhone|iPad|Android/i.test(navigator.userAgent)) mobileWalletPrompt();
-    else toast("Connect a wallet first.");
-    return;
-  }
+  // connectWallet already falls back to the mobile prompt when no wallet
+  // is injected, so the special case here was a second copy of that.
+  if(!(await requireWallet())) return;
   if(!(await ensureChain(PROVIDER))) return;
   const wei = MINT_PRICE_WEI * BigInt(qty);   // exact, from the contract
   try{
@@ -2568,7 +2564,7 @@ async function waitForTx(hash, tries=60){
 
 /* ---------- bidding and claiming ---------------------------------------- */
 async function sendBid(eth){
-  if(!PROVIDER||!ACCOUNT){ toast("Connect a wallet first."); return; }
+  if(!(await requireWallet())) return;
   if(!(await ensureChain(PROVIDER))) return;
   const wei = BigInt(Math.round(Number(eth)*1e6)) * (10n**12n);
   try{
@@ -2585,7 +2581,7 @@ async function sendBid(eth){
 }
 
 async function sendClaim(){
-  if(!PROVIDER||!ACCOUNT){ toast("Connect a wallet first."); return; }
+  if(!(await requireWallet())) return;
   if(!(await ensureChain(PROVIDER))) return;
   const ids = await chain.tokensOf(ACCOUNT);
   if(!ids.length){ toast("Nothing to claim from this wallet."); return; }
@@ -2692,7 +2688,7 @@ document.addEventListener("click",e=>{
 
 document.getElementById("hlMine").onclick=async(e)=>{
   if(!ASSIGNED){ toast("Pixels take their places when minting closes."); return; }
-  if(!ACCOUNT){ toast("Connect a wallet first."); return; }
+  if(!(await requireWallet())) return;
   const on=e.currentTarget.getAttribute("aria-pressed")==="true";
   if(on){ setHighlight(null); e.currentTarget.setAttribute("aria-pressed","false"); return; }
   const ids=await chain.tokensOf(ACCOUNT);
@@ -2707,25 +2703,40 @@ document.getElementById("hlClear").onclick=()=>{
 };
 
 /* ---------- wallet + tabs ---------- */
-document.getElementById("wallet").onclick=async()=>{
-  const wb=document.getElementById("wallet");
-  // if already connected, this click disconnects
-  if(ACCOUNT){
-    if(!confirm("Disconnect wallet?")) return;
-    ACCOUNT=null;
-    PROVIDER=null;
-    wb.setAttribute("data-state","idle");
-    wb.textContent="Connect wallet";
-    drawPixels();
-    return;
-  }
-  const a=await chain.connect();
-  if(!a) return;
-  ACCOUNT=a;
-  wb.removeAttribute("data-state");
-  wb.textContent=a.slice(0,6)+"…"+a.slice(-4);
+/* One place that renders the wallet button. Writes to the label span
+   rather than to the button, because the button also contains the svg
+   icon and textContent on the parent removes it. Sets data-state, which
+   is what the mobile rules key off: previously every path removed that
+   attribute instead of setting it, so the connected state never applied
+   and the address never appeared on a phone. */
+/* The masthead no longer reports the wallet, so there is nothing to repaint
+   there. Your pixels is the one page that is empty without a wallet, so it
+   is the page that says whether there is one. Kept as a named function
+   because six call sites already route through it and what they mean is
+   "the wallet changed, show that", not "redraw the pixel grid". */
+function paintWallet(){
   drawPixels();
-};
+}
+
+function shortAddr(a){ return a.slice(0,6)+"…"+a.slice(-4); }
+
+function disconnectWallet(){
+  ACCOUNT=null;
+  PROVIDER=null;
+  drawPixels();
+}
+
+/* Ask for a wallet at the moment one is needed. A no-op when connected, so
+   every gated action can call it unconditionally. Returns false if the
+   person declined or has no wallet, and the caller simply stops. */
+async function requireWallet(){
+  if(PROVIDER && ACCOUNT) return true;
+  const a = await chain.connect();
+  if(!a) return false;
+  ACCOUNT = a;
+  drawPixels();
+  return true;
+}
 
 (function(){
   const h=(location.hash||"").replace("#","");
@@ -2836,17 +2847,13 @@ async function restoreConnection(){
     else if(window.ethereum) prov = window.ethereum;
     if(!prov) return;
     PROVIDER = prov;
-    const accts = await prov.request({method:"eth_accounts"}); console.log("restore got accounts:", accts);
+    const accts = await prov.request({method:"eth_accounts"});
     if(accts && accts[0]){
       ACCOUNT = accts[0];
-      const wb = document.getElementById("wallet");
-      wb.removeAttribute("data-state");
-      wb.textContent = ACCOUNT.slice(0,6)+"…"+ACCOUNT.slice(-4);
+      paintWallet();
       prov.on && prov.on("accountsChanged", a=>{
         ACCOUNT = a[0]||null;
-        const b=document.getElementById("wallet");
-        if(ACCOUNT){ b.removeAttribute("data-state"); b.textContent=ACCOUNT.slice(0,6)+"…"+ACCOUNT.slice(-4); }
-        else { b.setAttribute("data-state","idle"); b.textContent="Connect wallet"; }
+        paintWallet();
         drawPixels();
       });
     } else {
