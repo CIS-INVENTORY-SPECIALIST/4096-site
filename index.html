@@ -639,19 +639,18 @@
 
   /* ---- pixel cards ---- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));gap:16px;margin-top:10px}
-  /* Paper, not mount. The swatch is the only white on the card, so a pixel that
-     has never sold reads as white rather than as an empty box, and one that has
-     reads as colour against a ground instead of against more white. */
-  .card{border:1px solid var(--rule);padding:16px;background:var(--paper);cursor:pointer;
-    transition:border-color .14s ease,background .14s ease}
-  .card:hover{background:var(--mount)}
+  .card{border:1px solid var(--rule);padding:16px;background:var(--mount);cursor:pointer;
+    transition:border-color .14s ease}
   .card:hover{border-color:var(--ink)}
   .cardtop{display:flex;align-items:center;gap:11px;margin-bottom:14px}
-  /* Hung like everything else on this site: a mount, an ink hairline, and the
-     colour inside it. At this size the border is the frame. */
-  .chip{width:38px;height:38px;flex:none;background:var(--mount);
-    box-shadow:inset 0 0 0 1px var(--ink);
-    background-clip:padding-box}
+  /* The colour sits on a paper tile rather than directly on the card, so a
+     pixel that has never sold has something to be white against. Hung the way
+     everything else here is: a ground, a hairline, the work inside it. */
+  .chip{width:38px;height:38px;flex:none;position:relative;
+    background:var(--paper);padding:5px;box-sizing:border-box;
+    box-shadow:inset 0 0 0 1px var(--rule)}
+  .chip::after{content:"";position:absolute;inset:5px;
+    background:inherit;box-shadow:inset 0 0 0 1px rgba(27,27,25,.28)}
   .cardid{font-size:var(--t-body);font-weight:400;line-height:1.2}
   .cardpos{font-family:var(--mono);font-size:var(--t-micro);color:var(--ink3);margin-top:3px;
     overflow-wrap:anywhere}
