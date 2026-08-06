@@ -420,9 +420,15 @@
     font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;background:var(--mount);
     border:1px solid var(--ink);color:var(--ink);padding:7px 11px;cursor:pointer;line-height:1}
   #canvas{display:block;image-rendering:pixelated;cursor:crosshair}
+  /* Two lines' worth of room, always. This field swaps between a prompt and a
+     pixel's details as the pointer moves, and at a narrow width the details
+     wrap where the prompt does not, so the column below it jumped on every
+     hover. Reserving the space costs twenty pixels and stops everything
+     moving. */
   .readout{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;
+    min-height:42px;align-content:flex-start;
     font-family:var(--mono);font-size:var(--t-meta);color:var(--ink2);
-    font-variant-numeric:tabular-nums;min-height:20px;letter-spacing:.02em}
+    font-variant-numeric:tabular-nums;letter-spacing:.02em}
   .readout b{color:var(--ink);font-weight:500}
   .swatch{display:inline-block;width:10px;height:10px;border:1px solid var(--rule);
     vertical-align:-1px;margin-right:6px}
@@ -910,7 +916,7 @@
         </div>
         <button class="zoomreset" id="zoomReset" hidden>Reset</button>
       </div>
-      <div class="readout" id="readout"><span class="muted" id="hint">Zoom in. Every pixel is a token, and every one of them belongs to somebody.</span></div>
+      <div class="readout" id="readout"><span class="muted" id="hint">Hover a pixel</span></div>
       <p class="small muted" id="stateNote" style="max-width:52ch;text-align:center;margin:0"></p>
       <p class="small muted" id="zoomHint" style="text-align:center;margin:0;display:none">
         Pinch to zoom. One pixel is small on purpose.</p>
@@ -1779,12 +1785,12 @@ const TOUCH = window.matchMedia("(hover: none)").matches;
 // An invitation rather than an instruction. The controls are discoverable
 // once somebody has a reason to reach for them; what they did not know is
 // that the canvas zooms, and that every square in it is owned.
-const HINT_BROWSE = TOUCH
-  ? "Pinch to zoom. Every pixel is a token, and every one of them belongs to somebody."
-  : "Zoom in. Every pixel is a token, and every one of them belongs to somebody.";
-const HINT_MINTING = TOUCH
-  ? "Pinch to zoom. Every pixel is a token, and every one of them belongs to somebody."
-  : "Zoom in. Every pixel is a token, and every one of them belongs to somebody.";
+// The readout is a live field: it swaps between a prompt and a pixel's
+// details as the pointer moves. Anything long enough to wrap differently at
+// two window widths makes the column below it jump every time. The invitation
+// lives in the caption instead, where it can be as long as it needs to be.
+const HINT_BROWSE  = TOUCH ? "Tap a pixel" : "Hover a pixel";
+const HINT_MINTING = HINT_BROWSE;
 
 /* ---------- rendering ---------- */
 let COLOURS=null, POSOF=null;
@@ -1928,7 +1934,10 @@ async function drawCanvas(quiet){
     const cap=document.getElementById("stateNote");
     if(cap) cap.textContent =
       `${minted.toLocaleString()} of 4,096 minted. Grid positions are shuffled when minting closes, `+
-      `so this is token order, not the layout. Every pixel is white until it sells.`;
+      `so this is token order, not the layout. Every pixel is white until it sells. `+
+      // The invitation lives here rather than in the readout above, which swaps
+      // its contents on every hover and cannot afford to change height.
+      `Zoom in: every pixel is a token, and every one of them belongs to somebody.`;
     return;
   }
   const cap=document.getElementById("stateNote"); if(cap) cap.textContent="";
