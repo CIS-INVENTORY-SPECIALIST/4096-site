@@ -1929,102 +1929,6 @@ function drawOverlay(){
 }
 let IMGDATA=null, ASSIGNED=true;
 
-/* Token index to grid position. Identity until minting closes, then whatever
-   the shuffle made it. Kept as its own array rather than read back out of
-   POSOF, which is the inverse and would have to be walked to be useful. */
-let ORDER=null;
-
-/* A sequence that scatters and then resolves. Temporary, and honest about
-   being temporary: it is in use only while positions are unassigned, when
-   drawing in the true order would fill the canvas in rows.
-
-   It carries no meaning. When the shuffle runs, mint order scatters on its
-   own and this is thrown away.
-
-   The first three quarters are shuffled, the last quarter is left in grid
-   order, so the canvas stops looking like static and starts looking like a
-   picture completing itself. Seeded, not random: the same performance every
-   time, and the same one for everybody. */
-function holdingOrder(n){
-  const a=Array.from({length:n},(_,i)=>i);
-  // Every pixel, scattered. An ordered tail was meant to let the sequence
-  // resolve, but until positions are assigned a token is its own place, so
-  // an ordered run is a contiguous strip and it wiped across the bottom of
-  // the grid. Order is position here; there is no tidy ending available.
-  const cut=n;
-  let s=4096;
-  for(let i=cut-1;i>0;i--){
-    s=(s*1664525+1013904223)>>>0;
-    const j=s%(i+1);
-    const t=a[i]; a[i]=a[j]; a[j]=t;
-  }
-  return a;
-}
-let REVEAL=null;
-const REVEAL_MS=1500;
-
-/* The canvas arrives in the order its pixels were minted.
-
-   Drawn incrementally: each frame only writes the pixels that have landed
-   since the last one, rather than rebuilding all 4,096 sixty times a second.
-
-   Nothing here touches IMGDATA, so a highlight, an export or a hover works
-   the moment it finishes, and the last thing it does is put the real image
-   back so no rounding from the animation survives. */
-function revealCanvas(ms){
-  if(!IMGDATA || !ORDER) return;
-  // Already in flight: leave it alone. Boot calls this, and so does
-  // goTab, and on a url carrying #canvas both fire within a frame of
-  // each other. Restarting on the second call showed two animations and
-  // left whatever the first had not reached to arrive in one step.
-  if(REVEAL) return;
-
-  // Motion is the presentation, not the work. Without it the canvas is
-  // simply there, which is what it would have been anyway.
-  if(window.matchMedia("(prefers-reduced-motion:reduce)").matches){
-    ctx.putImageData(IMGDATA,0,0);
-    return;
-  }
-
-  const total=GRID*GRID;
-  const work=ctx.createImageData(GRID,GRID);
-  // Between the mount and the unminted grey, so neither disappears into
-  // it. Blanking to white made a minted pixel invisible as it arrived and
-  // left the reveal looking like grey filling a shape.
-  const REVEAL_GROUND=[236,235,229];
-  for(let i=0;i<total;i++){
-    const o=i*4;
-    work.data[o]=REVEAL_GROUND[0];
-    work.data[o+1]=REVEAL_GROUND[1];
-    work.data[o+2]=REVEAL_GROUND[2];
-    work.data[o+3]=255;
-  }
-  ctx.putImageData(work,0,0);
-
-  const dur=ms||REVEAL_MS;
-  const t0=performance.now();
-  let drawn=0;
-
-  (function step(now){
-    const p=Math.min(1,(now-t0)/dur);
-    // Eases out: the first pixels land quickly and the last few take their
-    // time, so it finishes rather than stopping.
-    const e=1-Math.pow(1-p,3);
-    const n=Math.floor(e*ORDER.length);
-    for(; drawn<n; drawn++){
-      const g=ORDER[drawn];
-      if(g===undefined) continue;
-      const o=g*4;
-      work.data[o]=IMGDATA.data[o];
-      work.data[o+1]=IMGDATA.data[o+1];
-      work.data[o+2]=IMGDATA.data[o+2];
-      work.data[o+3]=255;
-    }
-    ctx.putImageData(work,0,0);
-    if(p<1){ REVEAL=requestAnimationFrame(step); }
-    else { REVEAL=null; ctx.putImageData(IMGDATA,0,0); }
-  })(t0);
-}
 function _loading(on){
   const l=document.getElementById("canvasLoading"), z=document.getElementById("zoomstage");
   // Size it here rather than only in sizeCanvas. This runs before the first
@@ -2079,11 +1983,6 @@ async function drawCanvas(quiet){
       img0.data[o]=on?255:214; img0.data[o+1]=on?255:213; img0.data[o+2]=on?255:205;
       img0.data[o+3]=255;
     }
-    // Positions are only assigned once minting closes, so until then a token
-    // is its own place and drawing in mint order would fill the canvas in
-    // rows. The holding sequence stands in until the shuffle gives the real
-    // order something to say.
-    ORDER=holdingOrder(SUPPLY);
     ctx.putImageData(img0,0,0);
     IMGDATA=img0;
     _loading(false);
@@ -2124,7 +2023,6 @@ async function drawCanvas(quiet){
     }
     img.data[o]=R; img.data[o+1]=G2; img.data[o+2]=B; img.data[o+3]=255;
   }
-  ORDER=Array.from(POS);
   ctx.putImageData(img,0,0);
   IMGDATA=img;
   _loading(false);
@@ -2911,12 +2809,7 @@ function goTab(t){
   window.scrollTo(0,0);
   // Sizing was skipped while this section was hidden, so do it now that it has
   // geometry. Cheap, and it is the only moment the measurement is valid.
-  if(t==="canvas" && typeof sizeCanvas==="function"){
-    sizeCanvas();
-    // Every arrival, not only the first. What you are looking at is the
-    // painting as it stands today, and it says so each time you come to it.
-    if(typeof revealCanvas==="function") revealCanvas();
-  }
+  if(t==="canvas" && typeof sizeCanvas==="function") sizeCanvas();
   if(t==="pixels") drawPixels();
   if(t==="auction") drawAuction();
   if(t==="richter") drawPlate();
@@ -3043,7 +2936,6 @@ async function restoreConnection(){
 (async()=>{
   STEPS=computeSteps();
   await drawCanvas();
-  revealCanvas();
   await drawCounter();
   await drawMintProgress();
   await loadMintPrice();
