@@ -1969,7 +1969,11 @@ const REVEAL_MS=1500;
    back so no rounding from the animation survives. */
 function revealCanvas(ms){
   if(!IMGDATA || !ORDER) return;
-  if(REVEAL) cancelAnimationFrame(REVEAL);
+  // Already in flight: leave it alone. Boot calls this, and so does
+  // goTab, and on a url carrying #canvas both fire within a frame of
+  // each other. Restarting on the second call showed two animations and
+  // left whatever the first had not reached to arrive in one step.
+  if(REVEAL) return;
 
   // Motion is the presentation, not the work. Without it the canvas is
   // simply there, which is what it would have been anyway.
