@@ -471,6 +471,65 @@
   .ghost:hover{border-color:var(--ink);color:var(--ink)}
   .ghost[aria-pressed="true"]{border-color:var(--ink);color:var(--ink)}
 
+  /* Looking closer at a picture needs no label, so the frame is the control.
+     The canvas inside it is not: a tap there already answers with the
+     readout, and a double tap opens the pixel. */
+  section[data-tab="canvas"] .frame{cursor:zoom-in}
+  section[data-tab="canvas"] #zoomstage{cursor:default}
+  /* Above 760 the wrapper and the menu are not boxes at all: their children
+     lay out in the bar as though neither existed. */
+  .morewrap, #moreMenu{display:contents}
+  #moreBtn{display:none;letter-spacing:.08em;line-height:1}
+
+  @media(max-width:760px){
+    /* The work first. Three children here and one of them is hidden, so a
+       flex column costs nothing and lets the prose follow the picture. */
+    section[data-tab="canvas"][data-active]{display:flex;flex-direction:column}
+    section[data-tab="canvas"] .stage2col{order:1}
+    section[data-tab="canvas"] .standfirst{order:2;margin:26px 0 0;text-align:center}
+
+    /* The two secondary controls hang under the button they belong to,
+       revealed by the same hairline that reveals the nav. Same keyframes,
+       not a second set: one gesture, described once. */
+    .morewrap{display:inline-block;position:relative}
+    #moreBtn{display:inline-block}
+    .hlbar[data-more] #moreBtn{border-color:var(--ink);color:var(--ink)}
+    /* Fullscreen first: it is the one you actually want on a phone. */
+    .hlbar #fsBtn{order:-1}
+    #moreMenu{display:none;position:absolute;top:100%;left:0;z-index:50;
+      width:max-content;min-width:168px;margin-top:6px;overflow:hidden;
+      background:var(--mount);border:1px solid var(--ink);
+      box-shadow:0 8px 24px rgba(0,0,0,.12)}
+    .hlbar[data-more] #moreMenu{display:block;
+      animation:navreveal .52s cubic-bezier(.4,0,.2,1) forwards}
+    #moreMenu::before{content:"";position:absolute;left:0;right:0;top:0;height:1.5px;
+      background:var(--ink);opacity:0;z-index:2;pointer-events:none}
+    .hlbar[data-more] #moreMenu::before{
+      animation:navsweep .52s cubic-bezier(.4,0,.2,1) forwards}
+    #moreMenu .ghost{display:block;width:100%;text-align:left;border:none;
+      border-bottom:1px solid var(--rule);background:none;
+      padding:15px 18px;min-height:46px;font-size:var(--t-meta);line-height:1.3;
+      opacity:0}
+    #moreMenu .ghost:last-child{border-bottom:none}
+    .hlbar[data-more] #moreMenu .ghost{animation:navink .01s linear forwards}
+    .hlbar[data-more] #moreMenu .ghost:nth-child(1){animation-delay:.10s}
+    .hlbar[data-more] #moreMenu .ghost:nth-child(2){animation-delay:.20s}
+    @media(prefers-reduced-motion:reduce){
+      .hlbar[data-more] #moreMenu{animation:none;clip-path:none}
+      .hlbar[data-more] #moreMenu::before{animation:none;opacity:0}
+      #moreMenu .ghost{opacity:1}
+      .hlbar[data-more] #moreMenu .ghost{animation:none}
+    }
+
+    /* The count is already in the panel above. */
+    #stateNote .mdrop{display:none}
+
+    .sidebar .counter{border:none;margin-top:0}
+    .sidebar .counter > div{padding-left:0;padding-right:0}
+    .sidebar .counter,
+    .sidebar .counter > div{background:none}
+  }
+
   /* ---- ledger of figures ---- */
   /* A closed box: the container owns the outline, the cells own the dividers.
      Previously the container drew only a top rule and each cell drew bottom and
@@ -634,6 +693,17 @@
      it is supposed to be joined to. */
   .mint{border:1px solid var(--ink);padding:24px 24px 26px;background:var(--mount);
     display:block;width:100%}
+  /* No box on a phone. The panel is the full width of the screen there, so
+     its border draws a container around the page rather than around a
+     panel, and a hairline is all the separation it needed.
+
+     This has to sit after the rule above, not with the rest of the mobile
+     block: same specificity, so source order decides, and from up there the
+     border simply came back. */
+  @media(max-width:760px){
+    .mint{border:none;background:none;padding:22px 0 20px;
+      border-top:1px solid var(--rule)}
+  }
   .mint h3{font-size:var(--t-lead);font-weight:400;margin:0 0 6px;letter-spacing:-.01em}
   .mint .price{font-family:var(--mono);font-size:var(--t-meta);letter-spacing:.14em;
     text-transform:uppercase;color:var(--ink3);margin-bottom:16px}
@@ -822,7 +892,13 @@
   /* ---- fullscreen ---- */
   /* The paper ground, not black. Most of this canvas is still white, and on
      a dark field white stops being paper and starts being light. */
-  #fsOverlay{position:fixed;inset:0;z-index:200;background:var(--paper);
+  #fsOverlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;
+    background:var(--paper);
+    /* To the glass. A percentage viewport stops at Safari's own chrome,
+       which left the work inside a strip of paper top and bottom. */
+    height:100%;
+    height:-webkit-fill-available;
+    height:100dvh;
     display:none;overflow:hidden;touch-action:none;
     -webkit-user-select:none;user-select:none}
   #fsOverlay[data-open]{display:block}
@@ -1011,8 +1087,15 @@
       <p class="small muted" id="zoomHint" style="text-align:center;margin:0;display:none">
         Pinch to zoom. One pixel is small on purpose.</p>
       <div class="hlbar">
-        <button class="ghost" id="hlMine" aria-pressed="false">Highlight my pixels</button>
-        <button class="ghost" id="exportBtn">Frame &amp; export</button>
+        <!-- display:contents above 760, so on a desktop these two sit in the
+             bar exactly as before and the wrapper does nothing at all. -->
+        <span class="morewrap">
+          <button class="ghost" id="moreBtn" aria-expanded="false" aria-label="More">&#183;&#183;&#183;</button>
+          <div id="moreMenu">
+            <button class="ghost" id="hlMine" aria-pressed="false">Highlight my pixels</button>
+            <button class="ghost" id="exportBtn">Frame &amp; export</button>
+          </div>
+        </span>
         <!-- Corner marks rather than arrows. The same crop marks the heart
              plate uses, which already mean "the edges of the work" here. -->
         <button class="ghost" id="fsBtn" aria-label="Fullscreen">
@@ -2045,8 +2128,11 @@ async function drawCanvas(quiet){
     const ro=document.getElementById("readout");
     if(ro) ro.innerHTML=`<span class="muted">${HINT_MINTING}</span>`;
     const cap=document.getElementById("stateNote");
-    if(cap) cap.textContent =
-      `${minted.toLocaleString()} of 4,096 minted. Grid positions are shuffled when minting closes, `+
+    // The first sentence is wrapped so a phone can drop it: the mint panel
+    // states the same count a few lines above.
+    if(cap) cap.innerHTML =
+      `<span class="mdrop">${minted.toLocaleString()} of 4,096 minted. </span>`+
+      `Grid positions are shuffled when minting closes, `+
       `so this is token order, not the layout. Every pixel is white until it sells. `+
       // The invitation lives here rather than in the readout above, which swaps
       // its contents on every hover and cannot afford to change height.
@@ -3121,7 +3207,55 @@ async function restoreConnection(){
   }, {passive:false});
 
   window.addEventListener("resize", ()=>{ if(open) settle(); });
-  window.__fs = { isOpen: ()=>open };
+  window.__fs = { isOpen: ()=>open, show: show };
+})();
+
+/* ---------- the frame is a control ------------------------------------------
+   Tapping the work's frame opens it fullscreen. Not the canvas itself, which
+   already answers a tap with the readout and a double tap by opening the pixel
+   on OpenSea. The mat and the moulding do nothing else, so they can do this. */
+(function(){
+  const fr = document.querySelector('section[data-tab="canvas"] .frame');
+  if(!fr) return;
+  fr.addEventListener("click", e=>{
+    if(e.target.closest("#zoomstage") || e.target.closest("#zoomReset")) return;
+    if(window.__fs && window.__fs.show) window.__fs.show();
+  });
+})();
+
+/* ---------- the secondary controls ------------------------------------------
+   Shown behind one button on a phone. The attribute is on the bar rather than
+   a class on each button, so the stylesheet decides what is secondary and this
+   only decides whether the bar is open. */
+(function(){
+  const bar = document.querySelector(".hlbar");
+  const btn = document.getElementById("moreBtn");
+  if(!bar || !btn) return;
+  const shut = ()=>{ bar.removeAttribute("data-more"); btn.setAttribute("aria-expanded","false"); };
+  btn.onclick = e=>{
+    e.stopPropagation();
+    const on = bar.hasAttribute("data-more");
+    if(on) shut(); else { bar.setAttribute("data-more",""); btn.setAttribute("aria-expanded","true"); }
+  };
+  // Anywhere else closes it, including one of its own items: having chosen,
+  // there is nothing left to choose.
+  document.addEventListener("click", e=>{
+    if(!bar.hasAttribute("data-more")) return;
+    if(e.target.closest("#moreBtn")) return;
+    shut();
+  });
+})();
+
+/* ---------- the zoom hint is said once --------------------------------------
+   It explains a gesture. Once the gesture has been made it is an instruction
+   nobody needs, sitting under the work for the rest of the visit. */
+(function(){
+  const stage = document.getElementById("zoomstage");
+  const hint  = document.getElementById("zoomHint");
+  if(!stage || !hint) return;
+  const done = ()=>{ hint.style.display = "none"; };
+  stage.addEventListener("touchend", done, {passive:true, once:true});
+  stage.addEventListener("wheel",    done, {passive:true, once:true});
 })();
 
 /* ---------- swipe between tabs -----------------------------------------------
