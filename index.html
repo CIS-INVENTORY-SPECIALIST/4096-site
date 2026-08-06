@@ -2393,6 +2393,17 @@ window.dispatchEvent(new Event("eip6963:requestProvider"));
 let PROVIDER=null;
 const CHAIN_ID=(window.CONFIG && window.CONFIG.CHAIN_ID) || "0x1";                     // Ethereum mainnet
 
+/* Which wallet you last connected with. An identifier, not a state: it says
+   where to look, and eth_accounts still decides what is true. Stored because
+   EIP-6963 announcement order is not stable and is no basis for choosing. */
+const PICKED_WALLET = "4096:wallet-uuid";
+function rememberWallet(uuid){
+  try{ uuid ? localStorage.setItem(PICKED_WALLET, uuid) : localStorage.removeItem(PICKED_WALLET); }catch(e){}
+}
+function rememberedWallet(){
+  try{ return localStorage.getItem(PICKED_WALLET); }catch(e){ return null; }
+}
+
 function walletList(){
   const out=[...WALLETS.values()];
   if(!out.length && window.ethereum){
@@ -2487,6 +2498,7 @@ async function connectWallet(){
     return null;
   }
   PROVIDER=w.provider;
+  rememberWallet(w.info && w.info.uuid);
   const accts=await PROVIDER.request({method:"eth_requestAccounts"});
   if(!DEMO) await ensureChain(PROVIDER);
   PROVIDER.on && PROVIDER.on("accountsChanged",a=>{
@@ -2841,24 +2853,38 @@ async function restoreConnection(){
   // the site the line stays true through a refresh; revoke it in the wallet
   // and this comes back empty and the line changes on its own.
   try{
-    let prov = null;
     const list = walletList();
-    if(list.length) prov = list[0].provider;
-    else if(window.ethereum) prov = window.ethereum;
-    if(!prov) return;
-    PROVIDER = prov;
-    const accts = await prov.request({method:"eth_accounts"});
-    if(accts && accts[0]){
+    if(!list.length && window.ethereum){
+      list.push({info:{uuid:"injected",name:"Browser wallet"},provider:window.ethereum});
+    }
+    if(!list.length) return;
+
+    // The one you picked last time goes first. Everything else follows, in
+    // case you have since connected a different wallet or cleared storage.
+    const picked = rememberedWallet();
+    const order = picked
+      ? [...list].sort((a,b)=> (b.info.uuid===picked) - (a.info.uuid===picked))
+      : list;
+
+    for(const w of order){
+      let accts = [];
+      // A wallet that throws or holds nothing is not an error, it is just
+      // not the one. Keep asking the rest.
+      try{ accts = await w.provider.request({method:"eth_accounts"}); }catch(e){ continue; }
+      if(!(accts && accts[0])) continue;
+
+      PROVIDER = w.provider;
       ACCOUNT = accts[0];
+      rememberWallet(w.info && w.info.uuid);
       paintWallet();
-      prov.on && prov.on("accountsChanged", a=>{
+      w.provider.on && w.provider.on("accountsChanged", a=>{
         ACCOUNT = a[0]||null;
         paintWallet();
         drawPixels();
       });
-    } else {
-      PROVIDER = null;
+      return;
     }
+    PROVIDER = null;
   }catch(e){ console.log("restoreConnection:", e); }
 }
 /* ---------- boot ---------- */
