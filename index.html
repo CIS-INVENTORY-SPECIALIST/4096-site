@@ -594,6 +594,21 @@
   .standfirst{font-size:var(--t-body);line-height:1.75;color:var(--ink2);
     max-width:54ch;margin:0 0 30px}
 
+  /* The one place on this site where somebody else is speaking. Set in the
+     reading face rather than the mono, with a rule at the left and the source
+     beneath it, the way a catalogue sets a quoted passage. */
+  .quote{margin:26px 0;padding:0 0 0 22px;border-left:2px solid var(--ink);
+    max-width:none}
+  .quote blockquote{margin:0;font-size:var(--t-lead);line-height:1.45;
+    color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .quote figcaption{margin-top:11px;font-family:var(--mono);
+    font-size:var(--t-micro);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink3)}
+  @media(max-width:640px){
+    .quote{padding-left:16px;margin:20px 0}
+    .quote blockquote{font-size:var(--t-body)}
+  }
+
   /* ---- mint ---- */
   /* The column sets the width, not the panel. Two rules each declaring a
      max-width meant the ledger and the mint box could disagree, and between
@@ -709,6 +724,15 @@
      left, so the eye can find the arithmetic without reading the paragraph.
      Marked in the markup rather than by selector, because b does three jobs in
      here: headings, standalone equations, and emphasis mid sentence. */
+  /* The section labels inside a panel. Uppercase and letterspaced, the way
+     every other label on this site is set, so they read as labels rather than
+     as body text in bold. The eyebrow treatment already exists; this borrows
+     it rather than inventing a fifth kind of heading. */
+  .code b.lbl{display:block;font-size:var(--t-micro);letter-spacing:.2em;
+    text-transform:uppercase;color:var(--ink3);font-weight:400;
+    margin:22px 0 6px}
+  .code b.lbl:first-child{margin-top:0}
+
   .code b.eq{background:var(--paper);box-shadow:-10px 0 0 var(--paper),
     10px 0 0 var(--paper),inset 2px 0 0 var(--rule);
     padding:1px 0}
@@ -1043,18 +1067,18 @@ Total sales. A sale is any transfer where the caller is not the sender, which is
 what a marketplace fill looks like. Moving a token between your own wallets does
 not count. Gifts do not count. The mint does not count.
 
-<b>How it becomes a number</b>
+<b class="lbl">How it becomes a number</b>
     <b class="eq">key_velocity = min(sales, 1023)</b>
 The sale count maps straight to a key. No scaling. An earlier version divided by
 supply, which crushed everything under five sales into one bucket and left most
 of the range unreachable.
 
-<b>How it becomes a colour</b>
+<b class="lbl">How it becomes a colour</b>
 Every pixel that has ever sold is ranked by that key. The ranking is split into
 sixteen equal groups. Equal counts share a tone, so if four hundred pixels all
 have two sales, all four hundred share a tone.
 
-<b>What this means for you</b>
+<b class="lbl">What this means for you</b>
 Red is buyable. Each sale costs only gas, and the price of the pixel barely
 matters because you set it yourself in a private sale. What you cannot buy is a
 tone when nobody is standing near you: climbing from a crowded part of the
@@ -1068,7 +1092,7 @@ The population standard deviation of the intervals between consecutive sales.
 Steady cadence scores low. A flurry, then years of silence, then another flurry
 scores high.
 
-<b>How it is computed</b>
+<b class="lbl">How it is computed</b>
 The contract keeps two running totals, updated on every sale:
     <b class="eq">gapSum   += gap</b>
     <b class="eq">gapSumSq += gap x gap</b>
@@ -1081,12 +1105,12 @@ Quantised on a log scale so a gap of minutes and a gap of decades fit one axis:
     <b class="eq">e    = floor(log2(v))</b>
     <b class="eq">key  = e x 32 + ((v - 2^e) x 32) / 2^e</b>, capped at 1023
 
-<b>Below three sales it does not exist</b>
+<b class="lbl">Below three sales it does not exist</b>
 One sale has no gap at all. Two sales have a single gap, whose spread is
 trivially zero. Neither is low rhythm, both are no rhythm, so those pixels sit
 at the midpoint, tone 8, and are left out of the ranking entirely.
 
-<b>What this means for you</b>
+<b class="lbl">What this means for you</b>
 Green cannot be bought quickly. Its whole substance is duration, and you cannot
 manufacture a two year gap in an afternoon. The only way to score high is to
 have actually traded unpredictably across real time.</div>
@@ -1101,14 +1125,14 @@ have actually traded unpredictably across real time.</div>
 The longest stretch without selling, including the one running right now.
 Absolute seconds, never a ratio.
 
-<b>Why absolute and not a share of its life</b>
+<b class="lbl">Why absolute and not a share of its life</b>
 An earlier version measured the hold as a fraction of the pixel's life. That
 fails: as a pixel sits unsold, the hold and the life converge, so the ratio
 marches toward one for everybody at once and the channel stops telling pixels
 apart. Absolute holds grow at the same rate for everyone, so the distance
 between two holders never blurs.
 
-<b>What this means for you</b>
+<b class="lbl">What this means for you</b>
 Blue is the one channel where doing nothing is the action. It rises on its own
 every day you hold, and it resets the moment you sell. It is also the only
 channel that changes without any transaction anywhere in the collection.</div>
@@ -1122,7 +1146,7 @@ erratically. Left alone, red and green measure much the same thing, colours
 collapse onto a diagonal, and most of the cube goes unused. Before this step was
 added there was not one pure red pixel on the canvas.
 
-<b>The correction</b>
+<b class="lbl">The correction</b>
 Least squares slopes across the defined population, with n tokens:
     <b class="eq">den = n x Svv - Sv x Sv</b>
     <b class="eq">m1  = (n x Svg - Sv x Sg) / den</b>      red out of green
@@ -1133,7 +1157,7 @@ Residuals, then blue out of green:
 What survives in green is not "how erratic is this pixel" but "how erratic
 compared to others that traded about as much."
 
-<b>The arithmetic</b>
+<b class="lbl">The arithmetic</b>
 A slope is a fraction and Solidity has no fractions, so a naive integer divide
 rounds m1 and m2 to zero and the correction silently does nothing. Every slope is
 therefore held in fixed point:
@@ -1142,7 +1166,7 @@ therefore held in fixed point:
 and unwound by S wherever it is applied. If den is 0, which happens when every
 token has identical velocity, the slope is set to 0 rather than dividing.
 
-<b>Honesty about the result</b>
+<b class="lbl">Honesty about the result</b>
 Measured pairwise correlation afterwards is around minus 0.21, minus 0.20 and
 zero. Not perfect. Linear regression removes a linear relationship and what
 remains between these measures is not linear.</div>
@@ -1157,18 +1181,18 @@ Each channel is ranked and split into sixteen:
     <b class="eq">colour = (R x 65536) + (G x 256) + B</b>
 Sixteen cubed is 4,096 possible colours, from 4,096 pixels.
 
-<b>Ties</b>
+<b class="lbl">Ties</b>
 Equal measurements share a tone, always. That means the sixteen tones are
 approximately, not exactly, equal in size, and the low end of red will always be
 lumpy because sale counts are whole numbers.
 
-<b>White</b>
+<b class="lbl">White</b>
 A pixel that has never sold renders pure white, identical for every untraded
 pixel, with no tiebreaking. Pure white is reserved: a pixel at the maximum of all
 three channels would otherwise compute to the same value, so it renders one shade
 below instead.
 
-<b>Everything moves</b>
+<b class="lbl">Everything moves</b>
 Because colour is a rank, a tone gained by one pixel is a tone lost by another.
 Across any meaningful stretch of trading, roughly nine in ten pixels that have
 ever sold end up a different colour, whether or not their owner did anything.</div>
@@ -1339,10 +1363,14 @@ ever sold end up a different colour, whether or not their owner did anything.</d
        stops.</p>
 
     <h2 style="margin-top:30px">The system, in his words</h2>
-    <p>Richter described how he built the palette by repeated multiplication:
-       <em>"4 x 4 = 16 x 4 = 64 x 4 = 256 x 4 = 1024,"</em> he wrote, keeping the image size, the
-       square size and the number of squares in constant proportion.
-       <span class="small muted">(Palais des Beaux-Arts catalogue, Brussels, 1974)</span></p>
+    <p>Richter described how he built the palette by repeated multiplication.</p>
+
+    <figure class="quote">
+      <blockquote>4 x 4 = 16 x 4 = 64 x 4 = 256 x 4 = 1024</blockquote>
+      <figcaption>Gerhard Richter &middot; Palais des Beaux-Arts catalogue, Brussels, 1974</figcaption>
+    </figure>
+
+    <p>He kept the image size, the square size and the number of squares in constant proportion.</p>
     <p>That stepwise, multiply-by-four structure is the same shape our own tones sit on: sixteen
        gradations per channel, spaced so a difference near the bottom and a difference near the top
        feel like the same size of interval. He arrived at it with a pencil. We arrived at it because a
