@@ -12,3 +12,4 @@ tools_*.py
 
 # spent patch scripts, run from ~/Downloads
 *.py
+CLAUDE.md
