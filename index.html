@@ -712,7 +712,7 @@
     font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;text-transform:uppercase;
     color:var(--ink3);margin-bottom:7px}
   .progtop b{font-family:var(--serif);font-size:var(--t-lead);font-weight:400;color:var(--ink);
-    letter-spacing:-.01em;text-transform:none}
+    letter-spacing:-.01em;text-transform:none;font-variant-numeric:tabular-nums}
   .progbar{height:7px;background:var(--rule2);border:1px solid var(--rule);position:relative}
   .progfill{height:100%;background:var(--ink);transition:width .4s ease}
   .progfoot{font-family:var(--mono);font-size:var(--t-micro);color:var(--ink3);margin-top:6px;
@@ -730,15 +730,23 @@
      press that visibly gives, since on touch there is no hover to fall back
      on. 120ms is under the threshold where a delay is felt as lag but above
      where a change is felt as a jump. */
-  .cta, .ghost, nav button {
+  .cta, .ghost, nav button, .qty button {
     transition: background .12s ease, color .12s ease,
                 border-color .12s ease, transform .08s ease;
     -webkit-tap-highlight-color: transparent;
   }
-  .cta:active, .ghost:active {
+  .cta:active, .ghost:active, .qty button:active {
     transform: translateY(1px);
   }
   .cta[disabled]:active { transform: none; }
+
+  /* A section change eases in: a short fade and a small rise, so switching
+     tabs reads as one view giving way to the next rather than a hard cut. The
+     class is added only by goTab, and only after boot, never from [data-active]
+     itself — so it can never fire on load the way the removed reveal did. */
+  @keyframes secin{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+  .secin{ animation:secin .34s cubic-bezier(.2,.8,.2,1) both }
+  @media(prefers-reduced-motion:reduce){ .secin{animation:none} }
 
   .cta{font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.18em;text-transform:uppercase;
     background:var(--ink);color:var(--mount);border:1px solid var(--ink);padding:13px 24px;cursor:pointer}
@@ -829,7 +837,19 @@
   summary:hover::before{border-color:var(--ink)}
   summary:hover{background:var(--paper)}
   .code{padding:0 17px 17px;font-family:var(--mono);font-size:var(--t-meta);line-height:1.85;
-    color:var(--ink2);white-space:pre-wrap;border-top:1px solid var(--rule2);padding-top:15px}
+    color:var(--ink2);white-space:pre-wrap;border-top:1px solid var(--rule2);padding-top:15px;
+    overflow:hidden}
+  /* The panel body eases open and closed. Height is auto at rest and pinned to a
+     pixel value by the summary handler only while a toggle is running, so
+     nothing transitions on load. Reduced motion leaves it to the native snap. */
+  @media(prefers-reduced-motion:no-preference){
+    /* Padding animates with height: with border-box, height alone cannot shrink
+       below padding+border, so it would leave a ~33px stub. Collapsing the
+       padding too lets the panel close to nothing. */
+    .code{transition:height .3s cubic-bezier(.2,.8,.2,1),
+                     padding-top .3s cubic-bezier(.2,.8,.2,1),
+                     padding-bottom .3s cubic-bezier(.2,.8,.2,1)}
+  }
   .code b{color:var(--ink);font-weight:500}
   /* The equations are what the contract actually runs; the prose around them
      describes it. Same size, same face, but on a ground with a rule at the
@@ -849,11 +869,12 @@
      panel reads as a hole punched in it rather than as a mark on it, so the
      tint deepens the channel colour instead of ignoring it. */
   .code b.eq{background:var(--eqbg,var(--paper));
-    box-shadow:-10px 0 0 var(--eqbg,var(--paper)),
-    10px 0 0 var(--eqbg,var(--paper)),inset 2px 0 0 var(--eqrule,var(--rule));
+    /* Tint only, no left rule. It used to carry a 2px inset rule and, before
+       that, -10px/10px tint extensions. Both showed under a text selection: the
+       extensions as a dark stub at the front, the rule as a dark line sitting on
+       the first character. The channel tint alone marks the equation. */
     padding:1px 0}
-  details.ch{--eqbg:color-mix(in srgb, var(--chan) 11%, var(--mount));
-    --eqrule:color-mix(in srgb, var(--chan) 40%, var(--mount))}
+  details.ch{--eqbg:color-mix(in srgb, var(--chan) 11%, var(--mount))}
 
   /* ---- richter plate ---- */
   .plate{display:grid;grid-template-columns:repeat(16,1fr);width:100%;max-width:390px;
@@ -1060,8 +1081,7 @@
          they are looking at before they can read the emptiness as anything
          other than a page that has not loaded. -->
     <p class="standfirst">An experiment in whether a market can paint a
-      picture. 4,096 pixels, one canvas, colour from trading and nothing else.
-      Nobody has seen the result, including me.</p>
+      picture. 4,096 pixels, one canvas, colour from trading and nothing else.</p>
 
     <div class="searchrow" style="display:none">
       <div class="searchwrap">
@@ -1154,8 +1174,7 @@
     <p>4,096 tokens. Each one owns a single pixel on a single 64×64 canvas. No pixel has a colour
        at mint. Every one starts white.</p>
     <p>Colour comes only from what happens to a token afterward: how often it sells, how erratically,
-       how long it rests. Nobody picks it. Nobody can see the finished image, including the person
-       who deployed it.</p>
+       how long it rests.</p>
 
     <h2 style="margin-top:30px">The three channels</h2>
     <div class="tablewrap"><table>
@@ -1199,16 +1218,13 @@
     <p><strong>The sealed number may never be reached.</strong> There is no time limit and no backstop.
        If the total never reaches the sealed number, the painting is never finished.</p>
 
-    <h2 style="margin-top:30px">What cannot change</h2>
-    <p>No admin key, no upgrade path, no pause, no server, no indexer. The colour rules, the auction
-       terms and the royalty destination are fixed at deploy.</p>
   </section>
 
 
   <section data-tab="method">
     <p class="eyebrow">Method</p>
     <h2>Everything, in the open</h2>
-    <p>If you want to know why your pixel is the colour it is, this is where it is decided.</p>
+    <p>Every rule that decides a pixel's colour, written out in full.</p>
 
     <details open class="ch vel">
       <summary><span>Red: how often it sells</span></summary>
@@ -1356,8 +1372,7 @@ ever sold end up a different colour, whether or not their owner did anything.</d
   <p class="small">The canvas is what 4096 is. This is where it came from.</p>
   <p class="small">Everything on this page runs on the collection. The heart brightens when a pixel
   sells. It fades when nothing moves. The arteries were grown from the block 4096 was deployed in,
-  and they reach further the longer the collection lives. None of it is a picture of the project.
-  It is the project, read back.</p>
+  and they reach further the longer the collection lives.</p>
   <p class="small">The work below belongs to people who worked something out before I did. Each one
   built a system, then stepped out of its way. That is the idea I am working from. I am not claiming
   their company. I am showing you where I learned it.</p>
@@ -1448,7 +1463,6 @@ ever sold end up a different colour, whether or not their owner did anything.</d
   </div>
 
   <div class="sources">
-    <span style="color:var(--ink2);margin-bottom:6px">Every number on this page is checkable.</span>
     <span>4096 &mdash; <a href="https://etherscan.io/address/0xEB46ebc19dB1814B6F72eD68ec752631B8F4FF2C" target="_blank" rel="noopener">0xEB46&hellip;FF2C</a></span>
     <span>Heartbeat4096 &mdash; <a href="https://etherscan.io/address/0x4C9db8E4997F3044b9D4CF0a6B255B85ba3ffb61" target="_blank" rel="noopener">0x4C9d&hellip;fb61</a></span>
     <span>The Vessel &mdash; <a href="https://etherscan.io/address/0xECb92Cc7112b80A2234936315BbB493fb48d1463" target="_blank" rel="noopener">0xECb9&hellip;1463</a></span>
@@ -1535,8 +1549,6 @@ ever sold end up a different colour, whether or not their owner did anything.</d
        on purpose. A pixel does not need to be uniquely identifiable. It needs to be somewhere in a
        field, and the field needs to hold together.</p>
 
-    <p class="small muted" style="margin-top:26px">No connection to Gerhard Richter or his estate.
-       The reference is a citation.</p>
   </section>
 
   <!-- ============ AUCTION ============ -->
@@ -2309,12 +2321,31 @@ cv.addEventListener("mouseleave",()=>{
 window.addEventListener("resize",sizeCanvas);
 
 /* ---------- counter ---------- */
+// The minted count ticks from its previous value to the new one, but only
+// after the first paint: shown instantly on load, then animated when it
+// actually changes, which is a mint landing rather than a reveal on load.
+// Cubic ease-out so it decelerates into the figure; tabular figures keep the
+// width from jittering as digits change.
+let mintedShown=null;
+function countUp(el, from, to, ms){
+  const start=performance.now(), diff=to-from;
+  function frame(now){
+    const t=Math.min(1,(now-start)/ms), e=1-Math.pow(1-t,3);
+    el.textContent=Math.round(from+diff*e).toLocaleString();
+    if(t<1) requestAnimationFrame(frame); else el.textContent=to.toLocaleString();
+  }
+  requestAnimationFrame(frame);
+}
 async function drawMintProgress(){
   const m=await chain.minted();
   REMAINING=SUPPLY-m;
   const pct=Math.min(100,(m/SUPPLY)*100);
   const c=document.getElementById("progCount"); if(!c) return;
-  c.textContent=m.toLocaleString();
+  // First paint sets the figure with no motion; later changes tick.
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(mintedShown!==null && m!==mintedShown && !reduce) countUp(c, mintedShown, m, 700);
+  else c.textContent=m.toLocaleString();
+  mintedShown=m;
   document.getElementById("progFill").style.width=pct.toFixed(2)+"%";
   document.getElementById("progPct").textContent=pct.toFixed(1)+"%";
   const box=document.getElementById("mintBox");
@@ -2503,8 +2534,7 @@ async function drawAuction(){
           ${ts > 0
             ? `<b style="color:var(--ink);font-size:var(--t-body)">${ts.toLocaleString()}</b> sales so far.`
             : `Trading has not started. The total begins counting once the collection is minted out.`}
-          The sealed number is committed as a hash and is not public, so nobody knows how close this
-          is, including us, until we reveal it. It may never be reached.
+          The sealed number is committed as a hash and is not public. It may never be reached.
         </div>
       </div>`}
     </div>`;
@@ -2626,8 +2656,6 @@ function mobileWalletPrompt(){
     <button id="mwClose" style="display:block;width:100%;margin-top:8px;background:none;
        border:none;color:var(--ink3);font-family:var(--mono);font-size:var(--t-micro);letter-spacing:.14em;
        text-transform:uppercase;padding:10px;cursor:pointer">Not now</button>
-    <p style="font-size:var(--t-small);color:var(--ink3);margin:12px 0 0">You only need a wallet to mint,
-       bid or claim. Everything else on this page works without one.</p>
   </div>`;
   back.querySelector("#mwClose").onclick=()=>back.remove();
   back.addEventListener("click",e=>{ if(e.target===back) back.remove(); });
@@ -2934,6 +2962,14 @@ function goTab(t){
   document.getElementById("nav").classList.remove("open");
   const _t=document.getElementById("navToggle");
   if(_t) _t.setAttribute("aria-expanded","false");
+  // Already on this tab? Every in-section tap reaches goTab because the
+  // <section> itself carries data-tab, so without this guard a tap on empty
+  // space (or an accordion summary) re-activates the current view: re-fires the
+  // ease, jumps to the top and redraws. Menu-close and nav-highlight above
+  // still run, so tapping the current tab in the open menu still closes it.
+  // Guarded by __navready so boot's own routing — which lands on a section the
+  // IIFE has already marked active — still runs its first draw below.
+  if(window.__navready && sec.hasAttribute("data-active")) return;
   // The canvas is what the bare domain opens, so it leaves no trace. Every
   // other tab writes its hash, because those are the ones a shared link
   // has to carry.
@@ -2941,6 +2977,10 @@ function goTab(t){
   else               history.replaceState(null,"","#"+t);
   document.querySelectorAll("section").forEach(s=>s.removeAttribute("data-active"));
   sec.setAttribute("data-active","");
+  // Ease the incoming section in, but only once the site is interactive. Remove,
+  // force a reflow, re-add so it replays on every switch. Reduced motion nulls
+  // the animation in CSS, so no JS guard is needed for that.
+  if(window.__navready){ sec.classList.remove("secin"); void sec.offsetWidth; sec.classList.add("secin"); }
   window.scrollTo(0,0);
   // Sizing was skipped while this section was hidden, so do it now that it has
   // geometry. Cheap, and it is the only moment the measurement is valid.
@@ -2957,6 +2997,45 @@ document.addEventListener("click",e=>{
   if(!el) return;
   goTab(el.dataset.tab);
 });
+
+/* Method accordions ease open and closed. The native <details> toggle snaps,
+   so the handler takes it over: it holds the panel open, pins .code to a pixel
+   height and animates to or from it, then hands the state back to <details> at
+   the end. Scoped to Method because those are the only accordions. Reduced
+   motion falls through to the native snap; a click mid-animation is ignored so
+   a fast double-tap cannot strand a half-open panel. Nothing runs on load, so
+   the panel that ships open does not animate in. */
+(function initAccordions(){
+  const secM=document.querySelector('section[data-tab="method"]');
+  if(!secM) return;
+  secM.addEventListener("click",e=>{
+    const summary=e.target.closest("summary");
+    if(!summary) return;
+    if(matchMedia("(prefers-reduced-motion: reduce)").matches) return; // native snap
+    const d=summary.parentElement, body=d.querySelector(".code");
+    if(!body) return;
+    e.preventDefault();                       // we control the toggle now
+    if(body.dataset.anim) return;             // a toggle is already in flight
+    // Settle on the height transition specifically; padding transitions finish
+    // alongside it, so keying off height avoids firing three times.
+    const end=(fn)=>body.addEventListener("transitionend",function te(ev){
+      if(ev.propertyName!=="height") return;
+      fn(); delete body.dataset.anim; body.removeEventListener("transitionend",te);
+    });
+    if(!d.open){
+      d.open=true;
+      const h=body.scrollHeight;
+      body.style.height="0px"; body.style.paddingTop="0px"; body.style.paddingBottom="0px";
+      body.dataset.anim="1"; void body.offsetHeight;
+      body.style.height=h+"px"; body.style.paddingTop=""; body.style.paddingBottom="";
+      end(()=>{ body.style.height="auto"; });
+    }else{
+      body.style.height=body.scrollHeight+"px"; body.dataset.anim="1"; void body.offsetHeight;
+      body.style.height="0px"; body.style.paddingTop="0px"; body.style.paddingBottom="0px";
+      end(()=>{ d.open=false; body.style.height=""; body.style.paddingTop=""; body.style.paddingBottom=""; });
+    }
+  });
+})();
 
 /* ---------- richter plate ---------- */
 function drawPlate(){
@@ -3311,6 +3390,7 @@ async function restoreConnection(){
   drawPixels();
   startPolling();
   if(location.hash){const tb=document.querySelector(`nav button[data-tab="${location.hash.slice(1)}"]`); if(tb) tb.click();}
+  window.__navready=true;   // from here on tab switches may animate; the boot-time routing above did not
   // a footer that reports on the work rather than only linking away from it
   (async()=>{
     try{
