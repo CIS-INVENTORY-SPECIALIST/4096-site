@@ -456,6 +456,9 @@ const RPCS = [
   'https://rpc.ankr.com/eth',
   'https://cloudflare-eth.com'
 ];
+let RPC_ID = 0, RPC_INDEX = 0;   // shared by every raw-RPC caller; declared HERE because
+                                  // loadHeroCanvas runs mid-module — a later declaration
+                                  // left ethCall in the TDZ and the first paint waited 60s
 // minted() — selector 0x4f02c420, same call the main site makes. Tries each RPC in
 // order; null on total failure (localhost: Alchemy 403s and the page shows dashes).
 async function readMinted() {
@@ -791,7 +794,7 @@ async function loadHeroCanvas(first) {
       }
       heroLive = true; repaintBase();
     }
-  } catch (e) { /* chain unreachable (localhost) — the snapshot stands, nothing invented */ }
+  } catch (e) { console.warn('hero canvas read failed \u2014 snapshot stands:', e); }
 }
 loadHeroCanvas(true);
 setInterval(() => loadHeroCanvas(false), 60000);   // re-read each minute; flashes = real mints only
@@ -1883,7 +1886,6 @@ window.dispatchEvent(new Event('eip6963:requestProvider'));
 
 let PROVIDER = null, ACCOUNT = null;
 const CHAIN_ID = '0x1';
-let RPC_ID = 0, RPC_INDEX = 0;
 // same key as the main site, so a wallet chosen there is remembered here too
 const PICKED_WALLET = '4096:wallet-uuid';
 function rememberWallet(uuid) { try { uuid ? localStorage.setItem(PICKED_WALLET, uuid) : localStorage.removeItem(PICKED_WALLET); } catch (e) {} }
