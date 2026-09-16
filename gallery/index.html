@@ -717,15 +717,84 @@ function repaintBase() {
   for (let i = 0; i < N * N; i++) drawCell(i, base[i * 3], base[i * 3 + 1], base[i * 3 + 2]);
   heroTex.needsUpdate = true;
 }
+// snapshot fallback ONLY: a static capture of the real canvas, shown until the chain
+// answers. heroLive guards the race — truth, once painted, is never overwritten by a photo.
+let heroLive = false;
 const img = new Image(); img.crossOrigin = 'anonymous'; img.src = 'canvas.png';
 img.onload = () => {
+  if (heroLive) return;
   const tmp = document.createElement('canvas'); tmp.width = N; tmp.height = N;
   const t = tmp.getContext('2d');
   t.drawImage(img, 207, 206, 786, 787, 0, 0, N, N);
   const d = t.getImageData(0, 0, N, N).data;
+  if (heroLive) return;
   for (let i = 0; i < N * N; i++) { base[i * 3] = d[i * 4] / 255; base[i * 3 + 1] = d[i * 4 + 1] / 255; base[i * 3 + 2] = d[i * 4 + 2] / 255; }
   repaintBase();
 };
+
+/* ---------- the LIVE canvas — the same truth the site draws ----------
+   Before positions are assigned (mint still open) there is no layout: the grid
+   fills in token order, minted pixels white, the remainder pulled down so the
+   filled area reads as filling. After assignment: every token's colour at its
+   shuffled grid position. Same rules, same tones, same selectors as the site. */
+const RENDERER = '0x18aCbF40FF1C2Ae97D11fc7d895AF01254116239';
+const SEL_ASSIGNED = '0x5a9d4af1';   // positionsAssigned()
+const SEL_COLOURS  = '0xaef13273';   // allColours() — on the renderer
+const SEL_POSPACK  = '0x57e6c4a4';   // positionsPacked()
+async function ethCall(to, data) {
+  // read path only — walks RPCS directly (a wallet provider may be on another chain)
+  let lastErr;
+  for (let a = 0; a < RPCS.length; a++) {
+    const url = RPCS[(RPC_INDEX + a) % RPCS.length];
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: ++RPC_ID, method: 'eth_call', params: [{ to, data }, 'latest'] }) });
+      const j = await res.json();
+      if (j.error) throw new Error(j.error.message || 'rpc error');
+      RPC_INDEX = (RPC_INDEX + a) % RPCS.length;
+      return j.result;
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('no working rpc endpoint');
+}
+let heroMintedShown = 0;
+async function loadHeroCanvas(first) {
+  try {
+    const assigned = BigInt(await ethCall(CONTRACT, SEL_ASSIGNED)) !== 0n;
+    if (!assigned) {
+      const n = await readMinted();
+      if (n === null) return;                      // chain silent — the snapshot stands
+      for (let i = 0; i < N * N; i++) {
+        const on = i < n;
+        base[i * 3] = on ? 1 : 214 / 255; base[i * 3 + 1] = on ? 1 : 213 / 255; base[i * 3 + 2] = on ? 1 : 205 / 255;
+      }
+      heroLive = true; repaintBase();
+      // real motion only: flash cells that ACTUALLY minted since the last read
+      if (!first) for (let i = heroMintedShown; i < n; i++) mintPixel(i, 1, 1, 1);
+      heroMintedShown = n;
+      if (painted !== n && n !== null) { painted = n; drawCount(); countTex.needsUpdate = true; refreshMintPanel(); }
+    } else {
+      // the painting exists: colours per token, placed by the shuffle
+      const rawC = await ethCall(RENDERER, SEL_COLOURS);
+      const rawP = await ethCall(CONTRACT, SEL_POSPACK);
+      const bodyC = rawC.slice(2 + 64 + 64);
+      for (let i = 0; i < N * N; i++) { base[i * 3] = 1; base[i * 3 + 1] = 1; base[i * 3 + 2] = 1; }
+      for (let w = 0; w < 256; w++) {
+        const v = BigInt('0x' + rawP.slice(2 + w * 64, 2 + w * 64 + 64));
+        for (let k = 0; k < 16; k++) {
+          const tok = w * 16 + k;
+          const g = Number((v >> BigInt(k * 16)) & 0xFFFFn);
+          base[g * 3]     = parseInt(bodyC.slice(tok * 6,     tok * 6 + 2), 16) / 255;
+          base[g * 3 + 1] = parseInt(bodyC.slice(tok * 6 + 2, tok * 6 + 4), 16) / 255;
+          base[g * 3 + 2] = parseInt(bodyC.slice(tok * 6 + 4, tok * 6 + 6), 16) / 255;
+        }
+      }
+      heroLive = true; repaintBase();
+    }
+  } catch (e) { /* chain unreachable (localhost) — the snapshot stands, nothing invented */ }
+}
+loadHeroCanvas(true);
+setInterval(() => loadHeroCanvas(false), 60000);   // re-read each minute; flashes = real mints only
 repaintBase();
 
 // The demo feed keeps the room ALIVE (flash, chime, cove breath) but must not lie on the
@@ -1994,6 +2063,7 @@ async function sendMint(qty) {
       kScreenMat.emissiveMap = kioskScreenTex(); kScreenMat.needsUpdate = true;
       refreshMintPanel();
     }
+    loadHeroCanvas(false);                          // your pixel appears on the wall
     paintMintUI();
   } catch (err) {
     mGo.disabled = false; paintMintUI();
@@ -2179,6 +2249,7 @@ window.__coveState = () => [covePulse, coveStrip.material.emissiveIntensity, cov
 window.__glideTo = n => startGlide(glideTargets[n].view);                                           // debug, strip at final
 window.__glideN = () => glideTargets.length;                                                        // debug, strip at final
 window.__people = () => { visitors.forEach(v => v.viewT = Math.min(v.viewT, 0.1)); walker.position.x = -2; return visitors.map(v => [v.state, v.m.position.x.toFixed(1), v.m.position.z.toFixed(1)]); };
+window.__hero = () => { let white = 0, dark = 0, other = 0; for (let i = 0; i < N * N; i++) { const r = base[i*3], g = base[i*3+1], b = base[i*3+2]; if (r === 1 && g === 1 && b === 1) white++; else if (Math.abs(r - 214/255) < .002 && Math.abs(g - 213/255) < .002) dark++; else other++; } return { live: heroLive, white, dark, other }; };
 }
 
 let lastW = 0, lastH = 0;
@@ -2214,7 +2285,8 @@ function animate() {
   if (!peopleDead) { try { stepPeople(dt, performance.now() / 1000); } catch (err) {
     peopleDead = true; console.error('AMBIENT PEOPLE DISABLED:', err); } }
   rayTimer += dt; if (rayTimer > 0.1) { rayTimer = 0; if (!panelOpen) checkHover(); }
-  if (performance.now() - mintTimer > 2400) { mintTimer = performance.now(); demoMint(); }
+  // (the demo ticker is GONE: it painted random fake trades onto what is now the
+  //  real artwork. Flashes now come only from loadHeroCanvas seeing real mints.)
   composer.render();
 }
 animate();
