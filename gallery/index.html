@@ -479,7 +479,11 @@ async function readMinted() {
 
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+// QUALITY is the one render-resolution knob. The governor below only ever LOWERS it,
+// so weak devices settle smooth and it never oscillates. Touch starts lighter.
+let QUALITY = IS_TOUCH ? Math.min(devicePixelRatio, 1.0) : Math.min(devicePixelRatio, 1.5);
+const Q_FLOOR = IS_TOUCH ? 0.7 : 0.9;
+renderer.setPixelRatio(QUALITY);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -2255,18 +2259,47 @@ window.__hero = () => { let white = 0, dark = 0, other = 0; for (let i = 0; i < 
 }
 
 let lastW = 0, lastH = 0;
+function applySize() {
+  const W = innerWidth || 1280, H = innerHeight || 720;
+  camera.aspect = W / H;
+  camera.fov = H > W ? 78 : 68;   // portrait felt like a keyhole — widen the view on tall aspects
+  camera.updateProjectionMatrix();
+  renderer.setPixelRatio(QUALITY); renderer.setSize(W, H);
+  // the composer sizes every pass by its own pixel ratio (see vendored EffectComposer),
+  // so scaling it here scales the whole post pipeline with the renderer.
+  composer.setPixelRatio(QUALITY); composer.setSize(W, H);
+  // bloom at HALF the scene resolution: it is blurry by nature, so this is ~invisible
+  // and roughly quarters the single most expensive pass.
+  bloom.setSize(Math.max(1, Math.round(W * QUALITY / 2)), Math.max(1, Math.round(H * QUALITY / 2)));
+}
 function fit() {
   const W = innerWidth || 1280, H = innerHeight || 720;
   if (W === lastW && H === lastH) return;
   lastW = W; lastH = H;
-  camera.aspect = W / H;
-  camera.fov = H > W ? 78 : 68;   // portrait felt like a keyhole — widen the view on tall aspects
-  camera.updateProjectionMatrix();
-  renderer.setSize(W, H); composer.setSize(W, H); bloom.setSize(W, H);
+  applySize();
+}
+// perf governor: sample real frame time each second; if we're under target and there's
+// still headroom above the floor, drop one quality step and wait before judging again.
+let govT = performance.now(), govFrames = 0, govCooldown = 0, fpsShown = 0;
+function governor() {
+  // a hidden/background tab is throttled to a crawl by the browser; sampling then would
+  // read a false low fps and drop quality for no reason. Skip and reset while hidden.
+  if (document.hidden) { govT = performance.now(); govFrames = 0; return; }
+  govFrames++;
+  const now = performance.now();
+  if (now - govT < 1000) return;
+  fpsShown = govFrames * 1000 / (now - govT);
+  govT = now; govFrames = 0;
+  if (govCooldown > 0) { govCooldown--; return; }
+  if (fpsShown < 45 && QUALITY > Q_FLOOR) {
+    QUALITY = Math.max(Q_FLOOR, Math.round((QUALITY - 0.25) * 100) / 100);
+    applySize(); govCooldown = 2;   // let it settle two seconds before another drop
+  }
 }
 function animate() {
   requestAnimationFrame(animate);
   fit();
+  governor();
   const dt = Math.min(clock.getDelta(), 0.05);
   if (!panelOpen && (entered || SHOOT) && !glide) step(dt);   // a glide owns the camera
   if (!glide) cursorLook(dt);
@@ -2278,7 +2311,7 @@ function animate() {
   updateVendHum();
   if (entered && DEBUG) {
     lookEuler.setFromQuaternion(camera.quaternion);
-    lookStat.textContent = `b24 · look: ${controls.isLocked ? 'locked' : (lockBroken ? 'cursor (no lock)' : 'cursor')} · yaw ${(lookEuler.y * 57.3).toFixed(0)}° · Q/E also turns${peopleDead ? ' · people:ERR' : ''}`;
+    lookStat.textContent = `${fpsShown | 0}fps · q${QUALITY} · look: ${controls.isLocked ? 'locked' : (lockBroken ? 'cursor (no lock)' : 'cursor')} · yaw ${(lookEuler.y * 57.3).toFixed(0)}°${peopleDead ? ' · people:ERR' : ''}`;
     lookStat.classList.add('on');
   } else lookStat.classList.remove('on');
   stepFlashes(dt); stepCove(dt);
