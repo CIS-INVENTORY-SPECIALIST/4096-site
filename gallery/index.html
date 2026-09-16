@@ -1,0 +1,1983 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>4096 — Gallery</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23eeeeea'/><rect x='1.5' y='1.5' width='6' height='6' fill='%23a02f1c'/><rect x='8.5' y='1.5' width='6' height='6' fill='%232c6338'/><rect x='1.5' y='8.5' width='6' height='6' fill='%23283a86'/><rect x='8.9' y='8.9' width='5.2' height='5.2' fill='%23f4f2ec' stroke='%23b9b9ae' stroke-width='0.8'/></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* 4096 brand tokens, lifted from the site itself */
+  :root{--paper:#eeeeea;--ink:#1b1b19;--rule:#d2d2ca;--mount:#ffffff;
+    --serif:"Libre Baskerville",Georgia,"Times New Roman",serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;}
+  html,body{margin:0;height:100%;background:#e9e7e0;overflow:hidden;overscroll-behavior:none;
+    font-family:ui-sans-serif,system-ui,-apple-system,Helvetica,Arial,sans-serif;color:#26241f;}
+  /* HUD layer: never selectable, no iOS long-press callout, no double-tap zoom on controls */
+  #cross,#hint,#lookstat,#pixhud,#prompt,#sticks,#broDock,#mute,#enter{
+    user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+  #mute,#broDock,#wizok,#brox{touch-action:manipulation;}
+  #c{display:block;opacity:0;transition:opacity 1.4s ease;}
+  #c.lit{opacity:1;}
+  #c.walk{cursor:none;}   /* the crosshair is the cursor while walking */
+  #cross{position:fixed;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;
+    background:transparent;border:1.5px solid rgba(255,255,255,.92);
+    box-shadow:0 0 0 1px rgba(0,0,0,.5),inset 0 0 0 1px rgba(0,0,0,.4);
+    pointer-events:none;opacity:0;transition:opacity .3s,transform .2s;}
+  #cross.on{opacity:1;}
+  #cross.hot{transform:scale(1.5);border-color:#ffd9a0;}
+  #enter{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(60% 60% at 50% 45%,rgba(247,246,241,.82),rgba(233,231,224,.96));cursor:pointer;z-index:10;
+    text-align:center;padding:24px;}
+  #enter h1{font-size:13px;letter-spacing:.42em;font-weight:600;margin:0 0 18px;color:#26241f;text-indent:.42em;}
+  #enter .sub{font-size:13px;letter-spacing:.02em;color:#6b675e;max-width:340px;line-height:1.6;}
+  #enter .go{margin-top:30px;font-size:11px;letter-spacing:.3em;color:#3a382f;border:1px solid rgba(40,38,32,.28);
+    padding:13px 26px;border-radius:2px;text-indent:.3em;}
+  #enter .keys{margin-top:22px;font-size:10.5px;letter-spacing:.16em;color:#96928a;}
+  #hint{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-size:10.5px;letter-spacing:.16em;
+    color:#f1f1f3;background:rgba(22,22,26,.62);padding:9px 18px 9px 20px;border-radius:22px;
+    pointer-events:none;opacity:0;transition:opacity .4s;z-index:5;text-indent:.16em;box-shadow:0 2px 12px rgba(0,0,0,.25);}
+  #hint.on{opacity:1;}
+  #lookstat{position:fixed;left:12px;bottom:12px;z-index:7;font-family:var(--mono);font-size:10px;
+    letter-spacing:.08em;color:#84847c;background:rgba(22,22,26,.5);color:#cfcfd4;
+    padding:5px 10px;border-radius:12px;display:none;}
+  #lookstat.on{display:block;}
+  /* pixel inspector: paper card, mono data — appears when the crosshair is on the hero */
+  #pixhud{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:7;
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:#1b1b19;
+    background:#eeeeea;border:1px solid #d2d2ca;padding:9px 14px;border-radius:3px;
+    display:none;pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.18);}
+  #pixhud.on{display:flex;align-items:center;gap:12px;}
+  #pixhud .sw{width:22px;height:22px;border:1px solid #d2d2ca;flex:none;}
+  #pixhud .rows{line-height:1.55;}
+  #pixhud .dim{color:#84847c;}
+  /* touch: bottom-centre belongs to the sticks — the inspector rides top-centre instead */
+  body.touch #pixhud{bottom:auto;top:calc(64px + env(safe-area-inset-top,0px));font-size:10px;padding:7px 11px;}
+  body.touch #pixhud .rows div{white-space:nowrap;}
+  #prompt{position:fixed;left:50%;top:calc(50% + 34px);transform:translateX(-50%);font-size:10.5px;
+    letter-spacing:.18em;color:#fff;background:rgba(22,22,26,.72);padding:8px 16px;border-radius:20px;
+    pointer-events:none;opacity:0;transition:opacity .2s;z-index:6;text-indent:.18em;}
+  #prompt.on{opacity:1;}
+  #mute{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px));z-index:8;width:38px;height:38px;border-radius:50%;
+    background:rgba(22,22,26,.55);color:#f1f1f3;border:none;cursor:pointer;font-size:16px;
+    display:none;align-items:center;justify-content:center;}
+  #mute.on{display:flex;}
+  /* first-load wizard: one-time onboarding card, brand paper/ink */
+  #wizwrap{position:fixed;inset:0;z-index:13;display:none;align-items:center;justify-content:center;
+    background:rgba(27,27,25,.45);backdrop-filter:blur(2px);}
+  #wizwrap.on{display:flex;}
+  #wizard{width:min(430px,92vw);background:var(--paper);border:1px solid var(--rule);
+    padding:34px 36px 30px;box-shadow:0 24px 70px rgba(27,27,25,.45);color:var(--ink);text-align:center;}
+  #wizard h2{margin:0 0 8px;font-family:var(--serif);font-style:italic;font-weight:400;font-size:22px;}
+  #wizard .wsub{margin:0 0 22px;font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;color:#84847c;text-indent:.3em;}
+  #wizard .wrow{display:flex;justify-content:space-between;gap:18px;padding:11px 2px;border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-align:left;}
+  #wizard .wrow b{font-weight:500;white-space:nowrap;}
+  #wizard .wrow span{color:#6b675e;text-align:right;}
+  #wizard button{display:block;width:100%;margin-top:24px;padding:13px;border:1px solid var(--ink);
+    background:var(--ink);color:var(--paper);font-family:var(--mono);font-weight:500;font-size:11px;
+    letter-spacing:.26em;text-indent:.26em;cursor:pointer;}
+  #wizard button:hover{background:var(--paper);color:var(--ink);}
+  /* mobile twin sticks: quiet HUD rings, only on touch devices while walking */
+  #sticks{display:none;}
+  #sticks.on{display:block;}
+  .stickpad{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:180px;height:180px;z-index:7;touch-action:none;}
+  #padL{left:calc(10px + env(safe-area-inset-left,0px));} #padR{right:calc(10px + env(safe-area-inset-right,0px));}
+  .stickring{position:absolute;left:50%;top:50%;width:112px;height:112px;margin:-56px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.34);background:rgba(22,22,26,.13);}
+  .stickknob{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px;border-radius:50%;
+    background:rgba(245,244,238,.55);box-shadow:0 1px 6px rgba(0,0,0,.28);transition:transform .08s;}
+  /* GALLERY GUIDE brochure: a folded pamphlet docked bottom-right; opens as a printed fold-out.
+     On touch the right stick owns that corner, so the pamphlet tucks under the mute button. */
+  body.touch #broDock{top:calc(14px + env(safe-area-inset-top,0px));bottom:auto;left:calc(14px + env(safe-area-inset-left,0px));right:auto;transform:rotate(-4deg) scale(.72);transform-origin:top left;}
+  body.touch #broDock .bd-key{display:none;}
+  /* the printed gallery guide, resting on the glass: a cover carrying the REAL 4096 mark
+     (RGB + white channels), a folded leaf peeking out the right, stacked sheets beneath */
+  #broDock{position:fixed;right:22px;bottom:20px;z-index:8;width:90px;height:126px;cursor:pointer;
+    display:none;color:var(--ink);transform:rotate(-4deg);transform-origin:bottom right;
+    transition:transform .2s,filter .2s;}
+  #broDock.on{display:block;}
+  #broDock::before{content:'';position:absolute;right:-6px;top:6px;bottom:10px;width:20px;   /* folded leaf peeking behind */
+    background:linear-gradient(90deg,#e2dfd6,#ebe8e0);transform:rotate(2.4deg);
+    box-shadow:3px 7px 13px rgba(27,27,25,.2);}
+  #broDock .bd-cover{position:absolute;inset:0;box-sizing:border-box;padding:15px 9px 12px;text-align:center;
+    background:linear-gradient(158deg,#f6f4ee,#efece4 58%,#e9e6dc);
+    border-left:1px solid rgba(27,27,25,.09);   /* the saddle-stitch spine */
+    box-shadow:0 2px 0 #e7e4db,0 4px 0 -1px #dedbd1,0 6px 0 -2px #d5d2c8,   /* the page stack */
+      5px 12px 24px rgba(27,27,25,.3);}
+  #broDock .bd-cover::after{content:'';position:absolute;left:5px;top:0;bottom:0;width:1px;background:rgba(27,27,25,.06);}
+  #broDock .bd-mark{display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;width:26px;height:26px;margin:3px auto 0;}
+  #broDock .bd-mark i{display:block;}
+  #broDock .bd-mark i:nth-child(1){background:#a02f1c;} #broDock .bd-mark i:nth-child(2){background:#2c6338;}
+  #broDock .bd-mark i:nth-child(3){background:#283a86;} #broDock .bd-mark i:nth-child(4){background:#f4f2ec;box-shadow:inset 0 0 0 2px #b9b9ae;}
+  #broDock .bd-num{font-family:var(--serif);font-size:20px;letter-spacing:.01em;margin-top:11px;}
+  #broDock .bd-rule{width:24px;height:1px;background:#cfccc2;margin:8px auto 7px;}
+  #broDock .bd-sub{font-family:var(--mono);font-size:6.5px;letter-spacing:.22em;color:#6b675e;text-indent:.22em;}
+  #broDock:hover{transform:rotate(-2.5deg) translateY(-7px);filter:brightness(1.02);}
+  #broDock:hover .bd-cover{box-shadow:0 2px 0 #e7e4db,0 4px 0 -1px #dedbd1,0 6px 0 -2px #d5d2c8,
+      8px 20px 34px rgba(27,27,25,.36);}
+  #broDock .bd-key{position:absolute;left:-30px;bottom:6px;font-family:var(--mono);font-size:9px;
+    color:#cfcfd4;background:rgba(22,22,26,.5);padding:3px 7px;border-radius:9px;transform:rotate(5deg);}
+  #browrap{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
+    background:rgba(27,27,25,.5);backdrop-filter:blur(3px);}
+  #browrap.on{display:flex;}
+  #brochure{width:min(1180px,95vw);height:min(660px,86vh);background:var(--paper);border:1px solid var(--rule);
+    box-shadow:0 24px 70px rgba(27,27,25,.45);position:relative;color:var(--ink);display:flex;flex-direction:column;}
+  #brochure .ribbon{flex:none;display:flex;justify-content:space-between;align-items:center;
+    padding:14px 46px 12px 26px;border-bottom:1px solid var(--rule);
+    font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:#6b675e;text-indent:.3em;}
+  #brochure .rib-l{display:flex;align-items:center;gap:11px;}
+  #brochure .rib-mark{display:inline-grid;grid-template-columns:1fr 1fr;gap:1.5px;width:14px;height:14px;flex:none;}
+  #brochure .rib-mark i{display:block;}
+  #brochure .rib-mark i:nth-child(1){background:#a02f1c;} #brochure .rib-mark i:nth-child(2){background:#2c6338;}
+  #brochure .rib-mark i:nth-child(3){background:#283a86;} #brochure .rib-mark i:nth-child(4){background:#f4f2ec;box-shadow:inset 0 0 0 2px #b9b9ae;}
+  #brochure .leaves{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;}
+  #brochure .leaf{flex:0 0 348px;box-sizing:border-box;padding:24px 26px 30px;overflow-y:auto;
+    border-left:1px solid var(--rule);
+    background:linear-gradient(90deg,rgba(27,27,25,.05),rgba(27,27,25,0) 14px,rgba(27,27,25,0) calc(100% - 6px),rgba(27,27,25,.03));}
+  #brochure .leaf:first-child{border-left:none;}
+  #brochure .leaf h4{margin:0 0 16px;font-family:var(--mono);font-weight:500;font-size:9.5px;
+    letter-spacing:.32em;color:#84847c;}
+  #brochure h3{margin:0 0 14px;font-family:var(--serif);font-style:italic;font-weight:400;font-size:18px;}
+  #brochure p{margin:0 0 13px;font-family:var(--serif);font-size:13px;line-height:1.75;color:#33332e;}
+  #brochure .mono{font-family:var(--mono);font-size:11.5px;}
+  #brochure table{width:100%;border-collapse:collapse;margin:6px 0 16px;font-family:var(--mono);font-size:11px;}
+  #brochure th{text-align:left;font-weight:500;color:#84847c;font-size:9px;letter-spacing:.12em;
+    text-transform:uppercase;padding:7px 8px 7px 0;border-bottom:1px solid var(--rule);}
+  #brochure td{padding:8px 8px 8px 0;border-bottom:1px solid var(--rule);vertical-align:top;}
+  #brochure pre{font-family:var(--mono);font-size:10.5px;line-height:1.7;background:var(--mount);
+    border:1px solid var(--rule);padding:11px 13px;overflow-x:auto;margin:6px 0 15px;}
+  #brochure .dim{color:#84847c;}
+  #brochure .x{position:absolute;top:10px;right:12px;border:none;background:none;font-size:18px;
+    color:#84847c;cursor:pointer;line-height:1;font-family:var(--mono);z-index:2;}
+  @media (max-width:760px){
+    #brochure .ribbon{padding:12px 40px 10px 18px;letter-spacing:.16em;text-indent:.16em;}
+    #brochure .ribbon span:nth-child(2){display:none;}   /* the URL wraps the ribbon on narrow screens */
+    #brochure{height:88vh;}
+    #brochure .leaves{flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+    #brochure .leaf{flex:none;border-left:none;border-top:1px solid var(--rule);overflow-y:visible;background:none;}
+    #brochure .leaf:first-child{border-top:none;}
+  }
+  /* mint panel */
+  /* mint panel: the site's paper-and-ink editorial language — serif prose, mono data, hairline rules */
+  #mintwrap{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
+    background:rgba(27,27,25,.5);backdrop-filter:blur(3px);}
+  #mintwrap.on{display:flex;}
+  #mint{width:min(400px,92vw);background:var(--paper);border:1px solid var(--rule);
+    padding:30px 32px 26px;box-shadow:0 24px 70px rgba(27,27,25,.4);position:relative;color:var(--ink);}
+  #mint h2{margin:0 0 12px;font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.34em;}
+  #mint .lede{margin:0 0 22px;font-family:var(--serif);font-style:italic;font-size:13.5px;color:#4c4c46;
+    line-height:1.75;}
+  #mint .row{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;}
+  #mint .row b{font-weight:500;}
+  #mint .row span:first-child{color:#84847c;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    align-self:center;}
+  #mint .cta{display:block;width:100%;margin-top:20px;padding:13px;border:1px solid var(--ink);
+    background:var(--ink);color:var(--paper);font-family:var(--mono);font-weight:500;font-size:11px;
+    letter-spacing:.26em;text-indent:.26em;cursor:pointer;text-align:center;text-decoration:none;
+    box-sizing:border-box;}
+  #mint .cta:hover{background:var(--paper);color:var(--ink);}
+  #mint .note{margin:12px 0 0;font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:#84847c;
+    line-height:1.6;text-align:center;}
+  #mint .x{position:absolute;top:10px;right:12px;border:none;background:none;font-size:18px;color:#84847c;
+    cursor:pointer;line-height:1;font-family:var(--mono);}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="cross"></div>
+<div id="lookstat"></div>
+<div id="prompt">CLICK TO OPEN</div>
+<div id="pixhud"><div class="sw"></div><div class="rows">
+  <div><b id="ph-id">—</b> <span class="dim" id="ph-xy"></span></div>
+  <div class="dim" id="ph-state">—</div>
+  <div class="dim">owner — &nbsp;·&nbsp; last trade —</div>
+</div></div>
+<button id="mute" title="mute / unmute">♪</button>
+<div id="wizwrap">
+  <div id="wizard">
+    <h2>Welcome to the gallery</h2>
+    <p class="wsub">4096 · A CANVAS PAINTED BY ITS MARKET</p>
+    <div id="wizrows"></div>
+    <button id="wizok">ENTER</button>
+  </div>
+</div>
+
+<div id="sticks">
+  <div class="stickpad" id="padL"><div class="stickring"></div><div class="stickknob" id="knobL"></div></div>
+  <div class="stickpad" id="padR"><div class="stickring"></div><div class="stickknob" id="knobR"></div></div>
+</div>
+
+<div id="broDock" title="gallery guide (G)">
+  <div class="bd-cover">
+    <span class="bd-mark"><i></i><i></i><i></i><i></i></span>
+    <div class="bd-num">4096</div>
+    <div class="bd-rule"></div>
+    <div class="bd-sub">GALLERY GUIDE</div>
+  </div>
+  <span class="bd-key">G</span>
+</div>
+
+<div id="browrap">
+  <div id="brochure">
+    <button class="x" id="brox">×</button>
+    <div class="ribbon"><span class="rib-l"><span class="rib-mark"><i></i><i></i><i></i><i></i></span>4096 · GALLERY GUIDE</span><span>FOURZERONINESIX.XYZ</span></div>
+    <div class="leaves">
+      <section class="leaf" id="bro-about">
+        <h4>ABOUT</h4>
+        <h3>A canvas painted by its own market</h3>
+        <p>4,096 tokens. Each one owns a single pixel on a single 64×64 canvas. No pixel has a
+        colour at mint — every one starts white. Colour comes only from what happens to a token
+        afterward: how often it sells, how erratically, how long it rests.</p>
+        <table>
+          <tr><th>Channel</th><th>Measures</th><th>To raise it</th></tr>
+          <tr><td>Red</td><td>How many times it has sold</td><td>Trade often</td></tr>
+          <tr><td>Green</td><td>How uneven the gaps between sales are</td><td>Trade unpredictably</td></tr>
+          <tr><td>Blue</td><td>Longest unbroken hold, including the one running now</td><td>Out-hold everyone else</td></tr>
+          <tr><td>White</td><td>Never sold</td><td>Never sell</td></tr>
+        </table>
+        <p>Each channel is ranked across the whole collection and split into sixteen tones. Your
+        pixel's colour describes where it stands against every other pixel, not an absolute number.
+        It moves when other people trade, even if you do nothing — holding is never passive.</p>
+        <p><b>The last sale.</b> The total climbs with every sale. At a hidden target — the sealed
+        number, committed as a hash before launch — the canvas sets forever. It then mints as a
+        single artwork and opens at 1 ETH with no deadline. Proceeds split equally across all
+        4,096 pixels. The winner inherits the royalties: from settlement on, the 5% royalty on
+        every pixel sale is paid to whoever holds the canvas. Hold it and you collect; sell it and
+        the income passes with it.</p>
+        <p class="dim">The sealed number may never be reached. There is no time limit and no
+        backstop. If the total never reaches it, the painting is never finished.</p>
+      </section>
+      <section class="leaf" id="bro-method">
+        <h4>METHOD</h4>
+        <h3>Everything, in the open</h3>
+        <p>Every rule that decides a pixel's colour, written out in full. The short version:</p>
+        <p><b>Red — how often it sells.</b> Total sales; a sale is any transfer where the caller
+        is not the sender (a marketplace fill). Self-transfers, gifts, and the mint do not count.</p>
+        <pre>key_velocity = min(sales, 1023)</pre>
+        <p>Red is buyable — each sale costs only gas. What you cannot buy is a tone when nobody is
+        standing near you: climbing from a crowded part of the distribution is cheap, from a
+        sparse part it is not.</p>
+        <p><b>Green — how uneven the gaps are.</b> The population standard deviation of the
+        intervals between consecutive sales. Steady cadence scores low; a flurry, then years of
+        silence, then another flurry scores high.</p>
+        <pre>gapSum   += gap
+gapSumSq += gap × gap
+n        = sales − 1
+variance = gapSumSq/n − (gapSum/n)²   (floored at 0)
+rhythm   = √variance                  (seconds, log-quantised)</pre>
+        <p>Below three sales, rhythm does not exist — those pixels sit at the midpoint, tone 8,
+        and are left out of the ranking. Green cannot be bought quickly: its whole substance is
+        duration. You cannot manufacture a two-year gap in an afternoon.</p>
+        <p><b>Blue — longest unbroken hold.</b></p>
+        <pre>open = now − lastSale
+hold = max(open, longestGap)
+key  = qLog(hold)</pre>
+        <p>The hold running right now counts. Blue is the patient channel — it rewards the thing
+        the other two punish.</p>
+        <p class="dim">The full write-up, including every edge case, lives on the site's Method
+        tab.</p>
+      </section>
+      <section class="leaf" id="bro-richter">
+        <h4>RICHTER</h4>
+        <h3>4096 Farben, Gerhard Richter, 1974</h3>
+        <p>In 1974 Richter finished a painting of 4,096 coloured squares on a square canvas — the
+        last work in a series he had been circling since 1966. He worked out exactly 1,024 unique
+        tones by grading the primaries against greys and greens with a fixed system, made four
+        copies of each, and ran a random lottery to decide where all 4,096 squares would land. He
+        painted none of the decisions himself. The original sold at Sotheby's in May 2023 for
+        $21.8 million.</p>
+        <p>He painted it decades before computers were on every desk, and it looks exactly like
+        modern digital pixels. A math experiment on pure colour quietly predicted the world we now
+        live in.</p>
+        <p><b>Why it matters here.</b> Richter was refusing authorship — building a system strict
+        enough that his taste could not get into it, and then letting the system decide. 4096
+        borrows that structure and swaps the system. Where Richter used arithmetic and slips of
+        paper, this uses a market. Nobody picks the colours here either: they are produced by
+        thousands of people trading, none of whom can see what they are painting.</p>
+        <p>Richter was the hand that held the brush while a system decided the colours. We are not
+        even the hand. The market is the brush, every trade is a stroke — we built the instrument
+        and let go of it, and that letting go is the whole point.</p>
+      </section>
+      <section class="leaf" id="bro-heart">
+        <h4>THE HEART</h4>
+        <h3>The heart of 4096</h3>
+        <p>The canvas is what 4096 is. This is where it came from. Everything here runs on the
+        collection: the heart brightens when a pixel sells and fades when nothing moves, and the
+        arteries were grown from the block 4096 was deployed in, reaching further the longer the
+        collection lives.</p>
+        <p><b>It lives inside somebody else's contract.</b> The heart is craft #1154 on The
+        Vessel. Machine crafts there store no image at all — they hold a pointer to another
+        contract. The contract on the other end is Heartbeat4096: The Vessel calls it, it reads
+        4096's state, and it answers with 1,154 grayscale values. Nothing is stored anywhere
+        along that chain. No image file, no server, no cache. The heart does not exist between
+        the moments somebody looks at it.</p>
+        <p><b>Brightness.</b> One number decides everything: the time since a 4096 pixel last
+        sold, anywhere in the collection. A sale takes it to 255; from there it decays
+        front-loaded — a fast drop that flattens into a crawl.</p>
+        <pre>day    0    1    2    3    4    5    6    7
+level  255  202  153  110  71   38   13   0</pre>
+        <p>Past seven days it is zero. One sale puts it straight back to full. No partial
+        recovery, no memory of how long it was out.</p>
+        <p><b>The beat.</b> Every artery cell knows its distance from the heart; the crest starts
+        at the muscle and travels to the tips. Rate and strength both come from brightness —
+        about a second per beat at full, stretching past three by day six, stopped at zero. A
+        dying heart pulses faintly before it stops.</p>
+        <p><b>The arteries.</b> Not drawn — grown. Five trunks leave the heart and walk outward
+        one cell at a time, splitting and thinning, every decision from a single seeded random
+        number generator. The seed is block <span class="mono">25,621,173</span> — the block 4096
+        and its renderer were deployed in, fixed before any of this existed. The mint builds the
+        trunks; trading builds the fine branches at the tips. Both only ever add. It is nowhere
+        near finished.</p>
+        <p class="dim mono" style="font-size:10.5px">4096 0xEB46…FF2C · Heartbeat4096 0x4C9d…fb61 · The Vessel 0xECb9…1463 · seed block 25,621,173</p>
+      </section>
+      <section class="leaf" id="bro-auction">
+        <h4>THE AUCTION</h4>
+        <h3>The last sale</h3>
+        <table>
+          <tr><th>Reserve</th><td>1.00 ETH — where bidding starts. There is no ceiling and no closing date.</td></tr>
+          <tr><th>Length</th><td>24 hours — nothing moves until someone bids.</td></tr>
+        </table>
+        <p><b>How it ends.</b> There is no closing date. There is only a clock, and anyone
+        can push it back.</p>
+        <p>The first bid starts twenty four hours. Every bid after it adds five more minutes,
+        whenever it lands, on the first morning or in the last thirty seconds. The additions
+        accumulate. A hundred bids add more than eight hours to the end, even if they all
+        arrive inside an hour.</p>
+        <p>So a quiet auction closes in a day. A contested one runs for days, and a genuinely
+        fought one could run for weeks. The painting does not end when a timer says so. It
+        ends when people stop wanting it.</p>
+        <p><b>Holder claim.</b> Proceeds split equally across all 4,096 pixels and are paid to
+        whoever held each one at the last-sale block. Payment is pulled, not pushed: the claim
+        goes live once the auction settles, and it stays available indefinitely. Selling a
+        pixel afterward does not transfer the claim.</p>
+        <p class="dim">Bidding unlocks the moment the total reaches the sealed number. Until
+        then this is inert. The sealed number is committed as a hash and is not public. It
+        may never be reached.</p>
+      </section>
+      <section class="leaf" id="bro-visit">
+        <h4>VISIT</h4>
+        <h3>Your pixels</h3>
+        <p class="dim">Wallet view is coming to the gallery. For now, connect on
+        <span class="mono">fourzeroninesix.xyz</span> to see the pixels you hold, their colours,
+        and their full trade history.</p>
+        <p>Minting is open at the kiosk beside the canvas, or any time at
+        <span class="mono">fourzeroninesix.xyz</span>. The auction opens only when the last sale
+        happens — the roped piece on the charcoal wall is waiting for it.</p>
+      </section>
+    </div>
+  </div>
+</div>
+<div id="hint">WASD / ARROWS TO MOVE&nbsp;&nbsp;·&nbsp;&nbsp;MOVE MOUSE TO LOOK&nbsp;&nbsp;·&nbsp;&nbsp;ESC TO RELEASE</div>
+<div id="enter">
+  <h1>4096</h1>
+  <div class="sub">A room built by its own market. Walk in — the canvas is on the far wall, and it's alive.</div>
+  <div class="go">CLICK TO ENTER</div>
+  <div class="keys">WASD or ARROW KEYS to move · MOVE MOUSE to look</div>
+</div>
+
+<div id="mintwrap">
+  <div id="mint">
+    <button class="x" id="mintx">×</button>
+    <h2>4096</h2>
+    <p class="lede">One pixel of a single 64×64 canvas. Colour is a rank against every other pixel and cannot be chosen.</p>
+    <div class="row"><span>Minted</span><b id="m-painted">—</b></div>
+    <div class="row"><span>Remaining</span><b id="m-left">—</b></div>
+    <div class="row"><span>Price</span><b id="m-price">—</b></div>
+    <a class="cta" id="m-go" href="https://fourzeroninesix.xyz" target="_blank" rel="noopener">MINT A PIXEL</a>
+    <p class="note" id="m-note">Opens the mint on fourzeroninesix.xyz</p>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three/three.module.js",
+  "three/addons/": "./vendor/three/addons/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+RectAreaLightUniformsLib.init();
+
+// ---- room (enlarged so collab sections breathe) ----
+const RW = 32, RD = 34, RH = 6.2;
+const SHOOT = location.search.includes('shoot');
+const DEBUG = location.search.includes('debug');   // ?debug: status line + window.__ hooks, hidden for visitors
+// touch UI only when the PRIMARY pointer is coarse AND touch exists — an OR here gave
+// touchscreen laptops (mouse + touch) the mobile sticks by mistake. Declared early:
+// baked textures (kiosk card) and HUD wording read it at draw time.
+const IS_TOUCH = navigator.maxTouchPoints > 0 && matchMedia('(pointer:coarse)').matches;
+if (IS_TOUCH) {
+  document.body.classList.add('touch');
+  document.getElementById('hint').textContent = 'STICKS TO MOVE & LOOK  ·  TAP A PIECE TO VIEW';
+  document.getElementById('prompt').textContent = 'TAP TO OPEN';
+  document.querySelector('#enter .go').textContent = 'TAP TO ENTER';
+  document.querySelector('#enter .keys').textContent = 'LEFT STICK to move · RIGHT STICK to look';
+}
+
+// live numbers — read from the 4096 contract itself. Truth or a dash, never invented.
+const TOTAL = 4096, PRICE = '0.005 ETH';
+const CONTRACT = '0xEB46ebc19dB1814B6F72eD68ec752631B8F4FF2C';
+const RPCS = [
+  'https://eth-mainnet.g.alchemy.com/v2/alch_3fiqFg8RuxP3NIcBqSEz5',
+  'https://ethereum-rpc.publicnode.com',
+  'https://eth.llamarpc.com',
+  'https://rpc.ankr.com/eth',
+  'https://cloudflare-eth.com'
+];
+// minted() — selector 0x4f02c420, same call the main site makes. Tries each RPC in
+// order; null on total failure (localhost: Alchemy 403s and the page shows dashes).
+async function readMinted() {
+  const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call',
+    params: [{ to: CONTRACT, data: '0x4f02c420' }, 'latest'] });
+  for (const url of RPCS) {
+    try {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+      const j = await r.json();
+      if (typeof j.result === 'string' && /^0x[0-9a-fA-F]+$/.test(j.result)) {
+        const n = parseInt(j.result, 16);
+        if (Number.isFinite(n) && n >= 0 && n <= TOTAL) return n;
+      }
+    } catch (_) { /* next endpoint */ }
+  }
+  return null;
+}
+
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeae8e1);
+// NO fog: tried a subtle depth haze (Fog 0xeae8e1, 20, 85) — user verdict: makes the room
+// feel too big / hazy. Removed. Don't re-add without asking.
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.05, 160);
+camera.position.set(0, 1.6, 15);   // spawn just inside the door, looking down the long axis at the hero
+
+// ---- procedural wood ----
+function woodTexture() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+  const g = c.getContext('2d');
+  g.fillStyle = '#b07d47'; g.fillRect(0, 0, 512, 512);
+  const planks = 6, ph = 512 / planks;
+  for (let i = 0; i < planks; i++) {
+    const y = i * ph, base = 108 + Math.floor(Math.random() * 46);
+    g.fillStyle = `rgb(${base + 60},${base + 18},${base - 30})`; g.fillRect(0, y, 512, ph - 2);
+    for (let s = 0; s < 26; s++) {
+      const gy = y + 3 + Math.random() * (ph - 6);
+      g.strokeStyle = `rgba(60,38,18,${0.05 + Math.random() * 0.12})`; g.lineWidth = 0.5 + Math.random();
+      g.beginPath(); g.moveTo(0, gy);
+      g.bezierCurveTo(170, gy + (Math.random() * 6 - 3), 340, gy + (Math.random() * 6 - 3), 512, gy); g.stroke();
+    }
+    g.fillStyle = 'rgba(40,24,10,0.5)'; g.fillRect(0, y + ph - 2, 512, 2);
+    for (let j = 0; j < 3; j++) {                       // plank end-joints so lanes don't run forever
+      g.fillStyle = 'rgba(40,24,10,0.55)'; g.fillRect(Math.random() * 512, y, 2, ph - 2);
+    }
+  }
+  g.fillStyle = 'rgba(232,224,210,0.14)'; g.fillRect(0, 0, 512, 512);   // calm the contrast
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(7, 6); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;   // fewer, longer planks — calmer than the busy 14×15 parquet
+}
+
+const wallMat = new THREE.MeshStandardMaterial({ color: 0xefede7, roughness: 0.94 });
+const ceilMat = new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 1.0, emissive: 0xf0eee8, emissiveIntensity: 0.09 });
+
+// floor: faint sheen only — mirror kept very dim under near-opaque wood
+const reflector = new Reflector(new THREE.PlaneGeometry(RW, RD), {
+  textureWidth: 512, textureHeight: 512, color: 0x0c0c0c });   // darker = fainter mirror; the floor was reading polished-marble
+reflector.rotation.x = -Math.PI / 2; scene.add(reflector);
+const woodTop = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD),
+  new THREE.MeshStandardMaterial({ map: woodTexture(), roughness: 0.9, metalness: 0.0, transparent: true, opacity: 0.994,
+    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));   // offset beats the 1mm-away reflector in the depth buffer — no shimmer at grazing angles
+woodTop.rotation.x = -Math.PI / 2; woodTop.position.y = 0.001; woodTop.receiveShadow = true; scene.add(woodTop);
+
+// SKYLIGHT: a real one — an actual opening in the ceiling with a recessed well rising to a
+// sky-gradient pane, divided by mullions. The three tells of a skylight: depth, glass grid, sky.
+const SKY_W = 3.5, SKY_L = 24, WELL_H = 0.55;
+{
+  // ceiling = four slabs framing the opening (a plane can't have a hole)
+  const sideW = (RW - SKY_W) / 2, endD = (RD - SKY_L) / 2;
+  [[-(SKY_W / 2 + sideW / 2), 0, sideW, RD], [SKY_W / 2 + sideW / 2, 0, sideW, RD],
+   [0, -(SKY_L / 2 + endD / 2), SKY_W, endD], [0, SKY_L / 2 + endD / 2, SKY_W, endD]]
+    .forEach(([cx, cz, w, d]) => {
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(w, d), ceilMat);
+      p.rotation.x = Math.PI / 2; p.position.set(cx, RH, cz); scene.add(p);
+    });
+  // the well: light walls rising from the opening to the glass — depth is what sells it
+  const wellMat = new THREE.MeshStandardMaterial({ color: 0xedf0f1, roughness: 0.95, side: THREE.DoubleSide });
+  for (const sx of [-1, 1]) {
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(SKY_L, WELL_H), wellMat);
+    w.position.set(sx * SKY_W / 2, RH + WELL_H / 2, 0); w.rotation.y = sx === 1 ? -Math.PI / 2 : Math.PI / 2; scene.add(w);
+  }
+  for (const sz of [-1, 1]) {
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(SKY_W, WELL_H), wellMat);
+    w.position.set(0, RH + WELL_H / 2, sz * SKY_L / 2); w.rotation.y = sz === 1 ? Math.PI : 0; scene.add(w);
+  }
+  // the sky itself: cool gradient pane, brighter at centre — unlit, it IS the light source
+  const sc = document.createElement('canvas'); sc.width = 128; sc.height = 512;
+  const sg = sc.getContext('2d');
+  const grad = sg.createLinearGradient(0, 0, 128, 0);
+  grad.addColorStop(0, '#cfdde9'); grad.addColorStop(0.5, '#f4f9fc'); grad.addColorStop(1, '#cfdde9');
+  sg.fillStyle = grad; sg.fillRect(0, 0, 128, 512);
+  const skyTex = new THREE.CanvasTexture(sc); skyTex.colorSpace = THREE.SRGBColorSpace;
+  const sky = new THREE.Mesh(new THREE.PlaneGeometry(SKY_W, SKY_L), new THREE.MeshBasicMaterial({ map: skyTex }));
+  sky.rotation.x = Math.PI / 2; sky.position.set(0, RH + WELL_H, 0); scene.add(sky);
+  // mullions: the glass grid — cross bars + a centre spine, silhouetted against the sky
+  const mulMat = new THREE.MeshStandardMaterial({ color: 0x8f9494, roughness: 0.6, metalness: 0.3 });
+  for (let mz = -10.8; mz <= 10.8; mz += 2.4) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(SKY_W, 0.05, 0.07), mulMat);
+    bar.position.set(0, RH + WELL_H - 0.09, mz); scene.add(bar);
+  }
+  const spine = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, SKY_L), mulMat);
+  spine.position.set(0, RH + WELL_H - 0.09, 0); scene.add(spine);
+  // the actual daylight cast into the room: two long soft area lights, cool-neutral
+  for (const dz of [-6, 6]) {
+    const day = new THREE.RectAreaLight(0xf1f5f6, 0.9, SKY_W, 12);
+    day.position.set(0, RH - 0.02, dz); day.lookAt(0, 0, dz); scene.add(day);
+  }
+}
+// quiet ceiling structure: two recessed vent/service slots running the room's length,
+// low-contrast — looking up shouldn't read as a void, but this must stay restrained
+for (const vx of [-5.5, 5.5]) {
+  const slot = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 25),
+    new THREE.MeshStandardMaterial({ color: 0xd2d0c7, roughness: 1 }));
+  slot.rotation.x = Math.PI / 2; slot.position.set(vx, RH - 0.008, 0); scene.add(slot);
+  // crossbars hint at vent grating; bars at ±12.5 CAP the slot ends so they don't stop dead.
+  // bars sit 16mm below the slot plane — at 1mm they z-fought it and shimmered in motion
+  for (let gz = -12.5; gz <= 12.5; gz += 5) {
+    const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.06),
+      new THREE.MeshStandardMaterial({ color: 0xbfbdb4, roughness: 1 }));
+    bar.rotation.x = Math.PI / 2; bar.position.set(vx, RH - 0.024, gz); scene.add(bar);
+  }
+}
+function wall(w, h, x, y, z, ry, mat = wallMat) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+  m.position.set(x, y, z); m.rotation.y = ry; m.receiveShadow = true; scene.add(m);
+}
+// charcoal feature wall behind the hero: the alive canvas glows against a dark ground,
+// visible from spawn — the room's one strong axis
+const heroWallMat = new THREE.MeshStandardMaterial({ color: 0x1c1c22, roughness: 0.92 });   // a touch deeper: the hero chamber reads more enveloping
+wall(RW, RH, 0, RH / 2, -RD / 2, 0, heroWallMat);
+// deliberate light cove along the top of the charcoal wall: a thin warm strip + a downward
+// wash. reads as designed architecture, not the accidental glow the hero spot was throwing.
+// refs kept module-scoped so the mint handler can pulse the cove — the room breathes
+// with the market (motion reports state: fires on mint events only, never idly)
+let coveStrip = null, coveWash = null, covePulse = 0;
+const COVE_STRIP_REST = 1.6, COVE_WASH_REST = 2.2;
+{
+  const coveY = RH - 0.28, coveZ = -RD / 2 + 0.12;
+  coveStrip = new THREE.Mesh(new THREE.BoxGeometry(RW - 0.1, 0.07, 0.07),   // spans nearly wall-to-wall; the RW-1.2 version left floating ends at the corners
+    new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffdca8, emissiveIntensity: COVE_STRIP_REST, roughness: 1 }));
+  coveStrip.position.set(0, coveY, coveZ); scene.add(coveStrip);
+  coveWash = new THREE.RectAreaLight(0xffe6bf, COVE_WASH_REST, RW - 1.2, 1.4);
+  coveWash.position.set(0, coveY - 0.1, coveZ + 0.05); coveWash.lookAt(0, coveY - 2.2, coveZ); scene.add(coveWash);
+}
+function stepCove(dt) {
+  if (covePulse <= 0) return;
+  covePulse = Math.max(0, covePulse - dt / 0.8);          // one breath: swell handed in, ~0.8s decay
+  const e = covePulse * covePulse;                        // ease-out
+  coveStrip.material.emissiveIntensity = COVE_STRIP_REST + 3.4 * e;
+  coveWash.intensity = COVE_WASH_REST + 4.2 * e;
+}
+// spawn wall in three segments — a real doorway at x=0 (1.4 x 2.5) opens to the street outside
+{
+  const segW = RW / 2 - 0.7;
+  wall(segW, RH, -(0.7 + segW / 2), RH / 2, RD / 2, Math.PI);
+  wall(segW, RH, (0.7 + segW / 2), RH / 2, RD / 2, Math.PI);
+  wall(1.4, RH - 2.5, 0, 2.5 + (RH - 2.5) / 2, RD / 2, Math.PI);
+}
+wall(RD, RH, -RW / 2, RH / 2, 0, Math.PI / 2); wall(RD, RH, RW / 2, RH / 2, 0, -Math.PI / 2);
+
+// baseboard + ceiling reveal: walls used to meet floor and ceiling with no transition, so
+// they read pasted-on. A low skirting grounds every wall; a thin recessed shadow line at the
+// top separates wall from ceiling. This is the single biggest "it's a real room" tell.
+{
+  const skirtMat = new THREE.MeshStandardMaterial({ color: 0xc8c5bb, roughness: 0.85 });   // darker than 0xdedcd4 so it registers against the white walls
+  const skirtDarkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1d, roughness: 0.8 });   // charcoal return: the line continues around the back wall
+  const revealMat = new THREE.MeshStandardMaterial({ color: 0xb5b3aa, roughness: 1 });   // softer — 0x9a988f read as a gap, not a shadow
+  const SK = 0.11, IN = 0.03;                 // skirting height, inward offset off the wall
+  // one entry per wall; the back wall gets a CHARCOAL skirt so the baseboard line turns the
+  // corner instead of stopping dead where white meets charcoal
+  const runs = [
+    { len: RW, x: 0, z: -RD / 2 + IN, ry: 0, mat: skirtDarkMat },      // back / charcoal
+    { len: RW, x: 0, z: RD / 2 - IN, ry: Math.PI, mat: skirtMat },     // spawn / door
+    { len: RD, x: -RW / 2 + IN, z: 0, ry: Math.PI / 2, mat: skirtMat },   // left
+    { len: RD, x: RW / 2 - IN, z: 0, ry: -Math.PI / 2, mat: skirtMat },   // right
+  ];
+  runs.forEach(r => {
+    const s = new THREE.Mesh(new THREE.BoxGeometry(r.len, SK, 0.05), r.mat);
+    s.position.set(r.x, SK / 2, r.z); s.rotation.y = r.ry; s.receiveShadow = true; scene.add(s);
+    const rev = new THREE.Mesh(new THREE.PlaneGeometry(r.len, 0.035), revealMat);   // thin shadow line under the ceiling
+    rev.position.set(r.x, RH - 0.03, r.z); rev.rotation.y = r.ry; scene.add(rev);
+  });
+}
+
+// ---- lighting: HDRI image-based + fill ----
+const ambient = new THREE.AmbientLight(0xffffff, 0.66);
+const hemi = new THREE.HemisphereLight(0xffffff, 0xd5cfc2, 0.4);
+scene.add(ambient, hemi);
+const pmrem = new THREE.PMREMGenerator(renderer);
+new RGBELoader().load('studio_small_08_1k.hdr', hdr => {
+  scene.environment = pmrem.fromEquirectangular(hdr).texture;
+  hdr.dispose(); pmrem.dispose();
+  ambient.intensity = 0.22; hemi.intensity = 0.14;
+  scene.traverse(o => { if (o.isMesh && o.material && 'envMapIntensity' in o.material) { o.material.envMapIntensity = 0.55; o.material.needsUpdate = true; } });
+  woodTop.material.envMapIntensity = 0.12;
+  markReady();
+}, undefined, () => { markReady(); });   // proceed even if the HDRI 404s
+// the room fades up when you ENTER (arrival), not on load — the paper overlay hides load anyway.
+// SHOOT mode reveals as soon as the scene is lit, since there's no enter click.
+let sceneReady = false, revealWanted = false;
+function litUp() { requestAnimationFrame(() => requestAnimationFrame(() => renderer.domElement.classList.add('lit'))); }
+function markReady() { sceneReady = true; if (SHOOT || revealWanted) litUp(); }
+function revealScene() { revealWanted = true; if (sceneReady) litUp(); }   // called on enter
+setTimeout(markReady, 2500);   // hard fallback so the room can never stay dark
+
+const key = new THREE.DirectionalLight(0xfff6ea, 0.32);
+key.position.set(4, 11, 7); key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024); key.shadow.camera.near = 1; key.shadow.camera.far = 48;
+key.shadow.camera.left = -20; key.shadow.camera.right = 20; key.shadow.camera.top = 20; key.shadow.camera.bottom = -20;
+key.shadow.bias = -0.0004; scene.add(key);
+
+const fixtureMat = new THREE.MeshStandardMaterial({ color: 0x18181c, roughness: 0.55, metalness: 0.5 });
+// slim ceiling track rails the spot fixtures hang from — structure overhead instead of floating cans
+for (const sx of [-1, 1]) {
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, RD - 2), fixtureMat);
+  rail.position.set(sx * (RW / 2 - 1.6), RH - 0.03, 0); scene.add(rail);   // near the walls, over the art — was mid-walkway
+}
+function aimedSpot(tx, ty, tz, px, pz, intensity = 48) {
+  const py = RH - 0.18;
+  const grp = new THREE.Group(); grp.position.set(px, py, pz);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.32, 18), fixtureMat);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(0.085, 18),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff0dc, emissiveIntensity: 2.6, roughness: 1 }));
+  lens.position.y = -0.16; lens.rotation.x = -Math.PI / 2; grp.add(body, lens);
+  const dir = new THREE.Vector3(tx - px, ty - py, tz - pz).normalize();
+  grp.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir); scene.add(grp);
+  // vertical stem up to the ceiling so the tilted fixture reads as mounted, not floating
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 8), fixtureMat);
+  stem.position.set(px, RH - 0.1, pz); scene.add(stem);
+  // wide cone + high penumbra: an accent glow, not a flashlight — the tight bright
+  // cone was blowing a glare circle onto the top of every main piece
+  const s = new THREE.SpotLight(0xfff2e2, intensity, 16, Math.PI / 4.4, 0.9, 1.2);   // wider + near-full penumbra: no oval hotspot on the wall
+  s.position.set(px, py, pz); s.target.position.set(tx, ty, tz); scene.add(s, s.target);
+}
+
+// ---- HERO: live 64x64 canvas that glows + flashes on "mint" ----
+const N = 64;
+const heroCanvas = document.createElement('canvas'); heroCanvas.width = N; heroCanvas.height = N;
+const hctx = heroCanvas.getContext('2d');
+hctx.fillStyle = '#f4f2ec'; hctx.fillRect(0, 0, N, N);
+const heroTex = new THREE.CanvasTexture(heroCanvas);
+heroTex.magFilter = THREE.NearestFilter; heroTex.minFilter = THREE.NearestFilter; heroTex.colorSpace = THREE.SRGBColorSpace;
+
+let base = new Float32Array(N * N * 3).fill(0.95);
+const flashes = [];
+function drawCell(i, r, g, b) {
+  const x = i % N, y = (i / N) | 0;
+  hctx.fillStyle = `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
+  hctx.fillRect(x, y, 1, 1);
+}
+function repaintBase() {
+  for (let i = 0; i < N * N; i++) drawCell(i, base[i * 3], base[i * 3 + 1], base[i * 3 + 2]);
+  heroTex.needsUpdate = true;
+}
+const img = new Image(); img.crossOrigin = 'anonymous'; img.src = 'canvas.png';
+img.onload = () => {
+  const tmp = document.createElement('canvas'); tmp.width = N; tmp.height = N;
+  const t = tmp.getContext('2d');
+  t.drawImage(img, 207, 206, 786, 787, 0, 0, N, N);
+  const d = t.getImageData(0, 0, N, N).data;
+  for (let i = 0; i < N * N; i++) { base[i * 3] = d[i * 4] / 255; base[i * 3 + 1] = d[i * 4 + 1] / 255; base[i * 3 + 2] = d[i * 4 + 2] / 255; }
+  repaintBase();
+};
+repaintBase();
+
+// The demo feed keeps the room ALIVE (flash, chime, cove breath) but must not lie on the
+// wall: bumpPainted() is reserved for GENUINE mint events (real chain wiring calls it),
+// so the count holds at the true baseline instead of inflating on ambiance.
+function mintPixel(i, tr, tg, tb) { flashes.push({ i, tr, tg, tb, t: 0 }); playChime(); covePulse = 1; }
+function stepFlashes(dt) {
+  if (!flashes.length) return;
+  for (let k = flashes.length - 1; k >= 0; k--) {
+    const f = flashes[k]; f.t += dt / 1.2;
+    if (f.t >= 1) { base[f.i * 3] = f.tr; base[f.i * 3 + 1] = f.tg; base[f.i * 3 + 2] = f.tb; drawCell(f.i, f.tr, f.tg, f.tb); flashes.splice(k, 1); continue; }
+    const e = 1 - Math.pow(1 - f.t, 3);
+    drawCell(f.i, f.tr + (1 - f.tr) * (1 - e), f.tg + (1 - f.tg) * (1 - e), f.tb + (1 - f.tb) * (1 - e));
+  }
+  heroTex.needsUpdate = true;
+}
+
+const HS = 5.2;
+const heroGrp = new THREE.Group(); heroGrp.position.set(0, 3.1, -RD / 2 + 0.06); scene.add(heroGrp);
+heroGrp.add(new THREE.Mesh(new THREE.BoxGeometry(HS + 0.3, HS + 0.3, 0.12),
+  new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.5, metalness: 0.3 })));
+const hero = new THREE.Mesh(new THREE.PlaneGeometry(HS, HS),
+  new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: heroTex, emissiveIntensity: 1.08, roughness: 1 }));
+hero.position.z = 0.08; heroGrp.add(hero);   // the living canvas IS the chamber's light source
+// click-to-glide: every major piece registers a viewing spot {pos, look}; clicking the
+// piece tweens the camera there. Doubles as the escape hatch when mouse-look fails.
+const glideTargets = [];
+glideTargets.push({ obj: hero, view: { pos: [0, 1.6, -10.4], look: [0, 3.1, -16.94] } });
+const heroLight = new THREE.RectAreaLight(0xffffff, 1.5, HS + 1.8, HS + 1.8);
+heroLight.position.set(0, 0, 1.4); heroLight.lookAt(0, 0, 0); heroGrp.add(heroLight);
+// (the dark floor "runner" was removed — it read as a grey slab and z-fought the wood
+// floor, causing movement flicker. The hero approach is now lit by a floor pool instead.)
+const heroPool = new THREE.RectAreaLight(0xfff4e4, 1.15, 4.6, 3.4);
+heroPool.position.set(0, 2.6, -14.6); heroPool.lookAt(0, 0, -14.6); scene.add(heroPool);
+// the hero's light gets a SOURCE: a short ceiling track with three aimed cans over the
+// approach, matching the bay fixtures — visual only, the existing lights do the work
+{
+  const heroRail = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.05, 0.09), fixtureMat);
+  heroRail.position.set(0, RH - 0.03, -14.4); scene.add(heroRail);
+  for (const fx of [-2.1, 0, 2.1]) {
+    const g = new THREE.Group(); g.position.set(fx, RH - 0.18, -14.4);
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 8), fixtureMat);
+    stem.position.y = 0.08; g.add(stem);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.32, 18), fixtureMat);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.085, 18),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff0dc, emissiveIntensity: 2.6, roughness: 1 }));
+    lens.position.y = -0.16; lens.rotation.x = -Math.PI / 2;
+    const can = new THREE.Group(); can.add(body, lens);
+    const dir = new THREE.Vector3(fx - fx, 3.1 - (RH - 0.18), -16.94 - (-14.4)).normalize();
+    can.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+    g.add(can); scene.add(g);
+  }
+}
+
+function plaque(title, sub, w, accent, dark = false) {
+  // brand type: Baskerville title over a Plex Mono sub, on paper/charcoal card.
+  // redraws once real fonts load (canvas bakes whatever font is ready at draw time).
+  const cc = document.createElement('canvas'); cc.width = 768; cc.height = 192;
+  const g = cc.getContext('2d');
+  const draw = () => {
+    g.clearRect(0, 0, 768, 192);
+    g.fillStyle = dark ? '#2a2a30' : '#f4f2ec'; g.fillRect(0, 0, 768, 192);
+    g.strokeStyle = dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)'; g.lineWidth = 4; g.strokeRect(3, 3, 762, 186);
+    if (accent) { g.fillStyle = accent; g.fillRect(3, 3, 13, 186); }
+    g.textAlign = 'left';
+    g.fillStyle = dark ? '#f4f2ec' : '#26241f'; g.font = '400 44px "Libre Baskerville", Georgia, serif'; g.fillText(title, 44, 82);
+    g.fillStyle = dark ? '#9a958c' : '#8a867d'; g.font = '400 26px "IBM Plex Mono", monospace'; g.letterSpacing = '1px'; g.fillText(sub, 46, 134);
+    g.letterSpacing = '0px';
+  };
+  draw();
+  const tx = new THREE.CanvasTexture(cc); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4;
+  document.fonts.ready.then(() => { draw(); tx.needsUpdate = true; });
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, w / 4), new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9 }));
+}
+// quiet live-count signage: museum vinyl-text on the charcoal wall, whisper-contrast.
+// `painted` holds the REAL minted() count once readMinted answers; null shows a dash.
+let painted = null;
+const countCanvas = document.createElement('canvas'); countCanvas.width = 768; countCanvas.height = 128;
+const countCtx = countCanvas.getContext('2d');
+function drawCount() {
+  countCtx.clearRect(0, 0, 768, 128);
+  countCtx.fillStyle = '#71717a'; countCtx.textAlign = 'center';
+  countCtx.font = '400 44px "IBM Plex Mono", monospace'; countCtx.letterSpacing = '10px';
+  countCtx.fillText(`${painted ?? '\u2014'} / ${TOTAL} MINTED`, 384, 80);
+  countCtx.letterSpacing = '0px';
+}
+drawCount();
+const countTex = new THREE.CanvasTexture(countCanvas); countTex.colorSpace = THREE.SRGBColorSpace; countTex.anisotropy = 4;
+document.fonts.ready.then(() => { drawCount(); countTex.needsUpdate = true; });
+const countSign = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.25),
+  new THREE.MeshStandardMaterial({ map: countTex, transparent: true, roughness: 1 }));
+countSign.position.set(-3.55, -0.55, 0.02); heroGrp.add(countSign);   // left of the canvas, aligned with its lower third
+function bumpPainted() { if (painted === null) return; painted++; drawCount(); countTex.needsUpdate = true; }
+const hp = plaque('4096', 'the canvas · painted by its market', 1.3, null, true);   // dark plaque for the charcoal wall
+hp.position.set(HS / 2 + 1.0, -0.75, 0.01); heroGrp.add(hp);
+
+// ---- MINT KIOSK: floor stand + angled screen beside the hero ----
+const kiosk = new THREE.Group(); kiosk.position.set(8.9, 0, -14.4); kiosk.rotation.y = -0.55; scene.add(kiosk);
+const postMat = new THREE.MeshStandardMaterial({ color: 0x2a2a30, roughness: 0.42, metalness: 0.55 });
+const kBase = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.05, 28), postMat);
+kBase.position.y = 0.025; kBase.castShadow = true; kiosk.add(kBase);
+const kPost = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 1.05, 20), postMat);
+kPost.position.y = 0.55; kPost.castShadow = true; kiosk.add(kPost);
+function kioskScreenTex() {
+  // paper card on the stand, in the site's own language: mono data, hairline rule, ink on paper
+  const c = document.createElement('canvas'); c.width = 512; c.height = 384; const g = c.getContext('2d');
+  g.fillStyle = '#eeeeea'; g.fillRect(0, 0, 512, 384);
+  g.strokeStyle = '#d2d2ca'; g.lineWidth = 4; g.strokeRect(6, 6, 500, 372);
+  g.fillStyle = '#1b1b19'; g.font = '500 28px "IBM Plex Mono", monospace'; g.textAlign = 'center';
+  g.letterSpacing = '8px';
+  g.fillText('MINT A PIXEL', 256, 140);
+  g.fillStyle = '#d2d2ca'; g.fillRect(146, 170, 220, 2);
+  g.fillStyle = '#1b1b19'; g.font = '400 24px "IBM Plex Mono", monospace'; g.letterSpacing = '2px';
+  g.fillText(`${painted ?? '\u2014'} / ${TOTAL}`, 256, 222);
+  g.fillStyle = '#84847c'; g.font = '400 16px "IBM Plex Mono", monospace';
+  g.fillText(IS_TOUCH ? 'look here and tap' : 'look here and click', 256, 266);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const kScreenMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: kioskScreenTex(), emissiveIntensity: 1.1, roughness: 1 });
+const kScreen = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.46, 0.04),
+  [null, null, null, null, kScreenMat, null].map(m => m || new THREE.MeshStandardMaterial({ color: 0x1c1c22, roughness: 0.45, metalness: 0.4 })));
+document.fonts.ready.then(() => { kScreenMat.emissiveMap = kioskScreenTex(); kScreenMat.needsUpdate = true; });  // redraw once Plex Mono is real
+kScreen.position.set(0, 1.16, 0); kScreen.rotation.x = -0.36; kScreen.castShadow = true;
+kScreen.userData.interactive = 'mint';
+kiosk.add(kScreen);
+
+// ---- AUCTION PIECE: a miniature of the live canvas, roped off, not yet open ----
+const auc = new THREE.Group(); auc.position.set(-5.6, 0, -RD / 2); scene.add(auc);
+// stepped-frame helper shared by the auction + heart so the charcoal-wall pieces speak the
+// same framing language as the bays: deep outer frame → lip catch-light → mat → art frontmost.
+// Same layer-depth rule as pieceMesh: art in front of every box face, ≥0.013 between planes.
+function steppedFrame(w, h, frameColor, matColor) {
+  const g = new THREE.Group();
+  const fw = 0.16, mw = 0.11;
+  const frameM = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.55, metalness: 0.08 });
+  const lipM = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.4, metalness: 0.18 });
+  const outer = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * fw + 2 * mw, h + 2 * fw + 2 * mw, 0.09), frameM);
+  outer.castShadow = true;
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * mw + 0.04, h + 2 * mw + 0.04, 0.034), lipM);
+  lip.position.z = 0.045;                              // front face 0.062
+  const mat = new THREE.Mesh(new THREE.PlaneGeometry(w + 2 * mw, h + 2 * mw),
+    new THREE.MeshStandardMaterial({ color: matColor, roughness: 0.95 }));
+  mat.position.z = 0.082;
+  g.add(outer, lip, mat); return g;                    // caller places the art at z 0.095
+}
+const aucFrame = steppedFrame(0.9, 0.9, 0x1a1a1e, 0xf3f1ea);
+aucFrame.position.set(0, 2.0, 0.08); auc.add(aucFrame);
+const aucArt = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9),
+  new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: heroTex, emissiveIntensity: 0.85, roughness: 1 }));
+aucArt.position.set(0, 2.0, 0.08 + 0.095); auc.add(aucArt);      // shares the live texture — it breathes too
+glideTargets.push({ obj: aucArt, view: { pos: [-5.6, 1.6, -13.7], look: [-5.6, 2.0, -16.9] } });   // settles outside the rope (walk-block at z -15)
+// placard: paper card under the piece
+function aucPlacardTex() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 160; const g = c.getContext('2d');
+  g.fillStyle = '#eeeeea'; g.fillRect(0, 0, 512, 160);
+  g.strokeStyle = '#d2d2ca'; g.lineWidth = 4; g.strokeRect(4, 4, 504, 152);
+  g.fillStyle = '#1b1b19'; g.font = '500 30px "IBM Plex Mono", monospace'; g.textAlign = 'center'; g.letterSpacing = '4px';
+  g.fillText('AUCTION', 256, 62);
+  g.fillStyle = '#a02f1c'; g.font = '400 22px "IBM Plex Mono", monospace'; g.letterSpacing = '2px';
+  g.fillText('NOT ACTIVE', 256, 102);
+  g.fillStyle = '#84847c'; g.font = 'italic 16px Georgia, serif';
+  g.fillText('the last sale has not happened', 256, 136);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const aucPlacMat = new THREE.MeshStandardMaterial({ map: aucPlacardTex(), roughness: 0.9 });
+const aucPlac = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.244), aucPlacMat);
+aucPlac.position.set(0, 1.1, 0.13); auc.add(aucPlac);
+document.fonts.ready.then(() => { aucPlacMat.map = aucPlacardTex(); aucPlacMat.needsUpdate = true; });
+// stanchions + red velvet rope
+const postMat2 = new THREE.MeshStandardMaterial({ color: 0x222226, roughness: 0.35, metalness: 0.7 });
+const brassMat = new THREE.MeshStandardMaterial({ color: 0xb08432, roughness: 0.3, metalness: 0.85 });
+function stanchion(x, z) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.04, 20), postMat2); foot.position.y = 0.02;
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.95, 14), postMat2); pole.position.y = 0.5;
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), brassMat); cap.position.y = 1.0;
+  g.add(foot, pole, cap); foot.castShadow = pole.castShadow = true; auc.add(g); return g;
+}
+stanchion(-1.15, 1.7); stanchion(1.15, 1.7);
+const ropeCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-1.15, 0.97, 1.7), new THREE.Vector3(0, 0.72, 1.78), new THREE.Vector3(1.15, 0.97, 1.7)]);
+const rope = new THREE.Mesh(new THREE.TubeGeometry(ropeCurve, 24, 0.032, 10),
+  new THREE.MeshStandardMaterial({ color: 0x8c1d16, roughness: 0.75 }));
+auc.add(rope);
+
+// ---- VENDING MACHINE: the other way to mint. 4x6 shelves of white pixels, a few sold out. ----
+const vend = new THREE.Group(); vend.position.set(-6, 0, RD / 2 - 0.34); vend.rotation.y = Math.PI; scene.add(vend);
+const vBodyMat = new THREE.MeshStandardMaterial({ color: 0x969aa0, roughness: 0.35, metalness: 0.72 });
+const vBody = new THREE.Mesh(new THREE.BoxGeometry(1.35, 2.15, 0.62), vBodyMat);
+vBody.position.y = 1.075; vBody.castShadow = true; vend.add(vBody);
+// dark interior window recess
+const vBack = new THREE.Mesh(new THREE.BoxGeometry(1.08, 1.34, 0.5),
+  new THREE.MeshStandardMaterial({ color: 0x17171a, roughness: 0.9 }));
+vBack.position.set(0, 1.16, 0.08); vend.add(vBack);
+// shelves + white pixel products (4 cols x 6 rows, some slots empty = sold)
+const shelfMat = new THREE.MeshStandardMaterial({ color: 0x3a3a40, roughness: 0.5, metalness: 0.5 });
+const pixMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, emissive: 0xffffff, emissiveIntensity: 0.18 });
+const SOLD = new Set([1, 6, 11, 16, 21, 14]);                  // empty slots
+for (let r = 0; r < 6; r++) {
+  const sy = 0.52 + r * 0.222;
+  const shelf = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.022, 0.4), shelfMat);
+  shelf.position.set(0, sy, 0.3); vend.add(shelf);
+  for (let cIx = 0; cIx < 4; cIx++) {
+    if (SOLD.has(r * 4 + cIx)) continue;
+    const px = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), pixMat);
+    px.position.set(-0.39 + cIx * 0.26, sy + 0.086, 0.3); vend.add(px);
+  }
+}
+// glass front over the window
+const vGlass = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.36),
+  new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.16 }));
+vGlass.position.set(0, 1.16, 0.325); vend.add(vGlass);
+// paper header label, in-brand
+function vendLabelTex() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = '#eeeeea'; g.fillRect(0, 0, 512, 128);
+  g.strokeStyle = '#d2d2ca'; g.lineWidth = 4; g.strokeRect(4, 4, 504, 120);
+  g.fillStyle = '#1b1b19'; g.font = '500 34px "IBM Plex Mono", monospace'; g.textAlign = 'center'; g.letterSpacing = '6px';
+  g.fillText('4096', 256, 56);
+  g.fillStyle = '#84847c'; g.font = '400 20px "IBM Plex Mono", monospace'; g.letterSpacing = '2px';
+  g.fillText(`WHITE PIXELS · ${PRICE}`, 256, 96);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const vLabelMat = new THREE.MeshStandardMaterial({ map: vendLabelTex(), roughness: 0.9 });
+const vLabel = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.275), vLabelMat);
+vLabel.position.set(0, 2.0, 0.315); vend.add(vLabel);
+document.fonts.ready.then(() => { vLabelMat.map = vendLabelTex(); vLabelMat.needsUpdate = true; });
+// coin slot / tray details
+const vSlot = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.03),
+  new THREE.MeshStandardMaterial({ color: 0x2a2a30, roughness: 0.4, metalness: 0.6 }));
+vSlot.position.set(0, 0.34, 0.325); vend.add(vSlot);
+vGlass.userData.interactive = 'mint'; vBody.userData.interactive = 'mint';
+// small brushed-metal wall label beside the machine — same family as the door signage
+{
+  const lc = document.createElement('canvas'); lc.width = 360; lc.height = 96; const lg = lc.getContext('2d');
+  const drawVLabel = () => {
+    const grad = lg.createLinearGradient(0, 0, 0, 96);
+    grad.addColorStop(0, '#c9cace'); grad.addColorStop(0.5, '#e6e7ea'); grad.addColorStop(1, '#b7b8bc');
+    lg.fillStyle = grad; lg.fillRect(0, 0, 360, 96);
+    lg.strokeStyle = 'rgba(0,0,0,.28)'; lg.lineWidth = 3; lg.strokeRect(2, 2, 356, 92);
+    lg.fillStyle = '#3a3a3f'; lg.textAlign = 'center';
+    lg.font = '400 22px "IBM Plex Mono", monospace'; lg.letterSpacing = '2px';
+    lg.fillText('WHITE PIXELS · 0.005 ETH', 180, 56); lg.letterSpacing = '0px';
+  };
+  drawVLabel();
+  const lt = new THREE.CanvasTexture(lc); lt.colorSpace = THREE.SRGBColorSpace; lt.anisotropy = 4;
+  document.fonts.ready.then(() => { drawVLabel(); lt.needsUpdate = true; });
+  const vWall = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.192),
+    new THREE.MeshStandardMaterial({ map: lt, roughness: 0.3, metalness: 0.7 }));
+  vWall.position.set(-7.85, 1.72, RD / 2 - 0.045); vWall.rotation.y = Math.PI; scene.add(vWall);
+}
+
+// ---- HEART PIECE: the real thing — captured pixel-for-pixel from the live site's heartCanvas ----
+const heartTexReal = new THREE.TextureLoader().load('heart.png?v=2');
+heartTexReal.magFilter = THREE.NearestFilter; heartTexReal.minFilter = THREE.NearestFilter;
+heartTexReal.colorSpace = THREE.SRGBColorSpace;
+const heartGrp = new THREE.Group(); heartGrp.position.set(5.6, 0, -RD / 2 + 0.06); scene.add(heartGrp);
+// matted specimen in the same stepped-frame language as the bays; the mat stays DARK
+// (0x0d0d0f) so the pale heart glows off it. Art frontmost at 0.095 like every piece.
+const heartFrame = steppedFrame(2.1, 2.1 * 74 / 96, 0x1a1a1e, 0x0d0d0f);
+heartFrame.position.set(0, 2.0, 0); heartGrp.add(heartFrame);
+const heartArt = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.1 * 74 / 96),
+  new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: heartTexReal, emissiveIntensity: 0.9, roughness: 1 }));
+heartArt.position.set(0, 2.0, 0.095); heartGrp.add(heartArt);
+heartArt.userData.interactive = 'heart';        // click the piece itself to read
+glideTargets.push({ obj: heartArt, view: { pos: [5.6, 1.6, -13.4], look: [5.6, 2.0, -16.94] } });
+const heartPlq = plaque('the heart', 'craft #1154 · alive on the vessel', 1.15, null, true);
+heartPlq.position.set(0, 0.6, 0.02); heartGrp.add(heartPlq);   // below the stepped frame's bottom edge (~y 0.92)
+
+// ---- THE DOOR: opening onto the street outside (all procedural, nothing downloaded) ----
+const doorG = new THREE.Group(); doorG.position.set(0, 0, RD / 2); scene.add(doorG);
+const jambMat = new THREE.MeshStandardMaterial({ color: 0x26241f, roughness: 0.6, metalness: 0.2 });
+[[-0.73, 1.25, 0.05, 0.1, 2.5, 0.5], [0.73, 1.25, 0.05, 0.1, 2.5, 0.5], [0, 2.55, 0.05, 1.56, 0.1, 0.5]]
+  .forEach(([x, y, z, w, h, d]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), jambMat); m.position.set(x, y, z); doorG.add(m); });
+// Everything out here is scaled off the door (2.5m tall): 3m sidewalk, 7m street, far
+// walk, buildings ~14m out. The old version crammed it into a 4m pocket and read as a
+// painted toy diorama.
+function streetTex() {
+  // sky + distant buildings ONLY — buildings fill the texture's lower half so, mapped
+  // onto a 12m-tall plane, they stand ~5-8m tall like real streetfront blocks
+  const c = document.createElement('canvas'); c.width = 2048; c.height = 512; const g = c.getContext('2d');
+  const sky = g.createLinearGradient(0, 0, 0, 512);
+  sky.addColorStop(0, '#b9c8d2'); sky.addColorStop(0.6, '#d8dcd6'); sky.addColorStop(1, '#efe9da');
+  g.fillStyle = sky; g.fillRect(0, 0, 2048, 512);
+  // streetfront blocks: varied heights AND real tonal depth — a dark near facade, mid
+  // slates, pale distance — with slim gaps between blocks so they separate
+  const blocks = [[0, 254, 250, '#9aa09b'], [268, 296, 300, '#6e7277'], [578, 236, 210, '#b3aca1'],
+    [828, 326, 330, '#57544f'], [1168, 254, 240, '#8f958f'], [1438, 304, 290, '#a89f92'], [1758, 286, 260, '#7e8483']];
+  blocks.forEach(([x, w, h, col]) => {
+    g.fillStyle = col; g.fillRect(x, 512 - h, w, h);
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x, 512 - h, w, 9);       // parapet cap line
+    g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(x + w - 14, 512 - h, 14, h);   // shaded edge = separation
+  });
+  g.fillStyle = 'rgba(40,44,44,0.5)';                        // windows, gridded per storey
+  blocks.forEach(([x, w, h], bi) => {
+    const dens = [0.65, 0.5, 0.75, 0.45, 0.6, 0.7, 0.55][bi];   // per-building window density
+    for (let by = 512 - h + 26; by < 490; by += 56)
+      for (let bx = x + 22; bx < x + w - 30; bx += 52)
+        if (Math.random() < dens) g.fillRect(bx, by, 20, 30);
+  });
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(48, 12), new THREE.MeshBasicMaterial({ map: streetTex() }));
+backdrop.position.set(0, 6, 14); backdrop.rotation.y = Math.PI; doorG.add(backdrop);
+// real ground outside, receding: 3m sidewalk → 7m asphalt street → far walk to the buildings
+const sidewalk = new THREE.Mesh(new THREE.PlaneGeometry(48, 3.0),
+  new THREE.MeshStandardMaterial({ color: 0x9a978d, roughness: 0.95 }));
+sidewalk.rotation.x = -Math.PI / 2; sidewalk.position.set(0, 0.001, 1.5); doorG.add(sidewalk);
+const curb = new THREE.Mesh(new THREE.BoxGeometry(48, 0.12, 0.18),
+  new THREE.MeshStandardMaterial({ color: 0x9d9a90, roughness: 0.9 }));
+curb.position.set(0, 0.06, 3.05); doorG.add(curb);
+const outRoad = new THREE.Mesh(new THREE.PlaneGeometry(48, 7.0),
+  new THREE.MeshStandardMaterial({ color: 0x4e4e49, roughness: 0.95 }));
+outRoad.rotation.x = -Math.PI / 2; outRoad.position.set(0, 0.001, 6.6); doorG.add(outRoad);
+const farWalk = new THREE.Mesh(new THREE.PlaneGeometry(48, 3.9),
+  new THREE.MeshStandardMaterial({ color: 0x8f8c82, roughness: 0.95 }));
+farWalk.rotation.x = -Math.PI / 2; farWalk.position.set(0, 0.001, 12.05); doorG.add(farWalk);
+// low plinth at the building base: gives a clear ground→building edge so the far walk
+// stops reading as a vertical wall base through the door
+const farBase = new THREE.Mesh(new THREE.BoxGeometry(48, 0.5, 0.4),
+  new THREE.MeshStandardMaterial({ color: 0x74726b, roughness: 0.95 }));
+farBase.position.set(0, 0.25, 13.9); doorG.add(farBase);
+// daylight over the street so the cars aren't unlit silhouettes
+const streetSun = new THREE.RectAreaLight(0xf4efe2, 0.85, 30, 14);
+streetSun.position.set(0, 8, 6.5); streetSun.lookAt(0, 0, 6.5); doorG.add(streetSun);
+// threshold sill grounds the opening
+const sill = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.045, 0.5),
+  new THREE.MeshStandardMaterial({ color: 0x26241f, roughness: 0.7 }));
+sill.position.set(0, 0.022, 0.05); doorG.add(sill);
+function parkedCar(x, z, col) {
+  // real sedan proportions off the door ruler: ~4.4m long, ~1.45m tall, parked along the curb
+  const g2 = new THREE.Group(); g2.position.set(x, 0, z); doorG.add(g2);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.62, 1.76),
+    new THREE.MeshStandardMaterial({ color: col, roughness: 0.4, metalness: 0.3 }));
+  body.position.y = 0.55; g2.add(body);
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.52, 1.6),
+    new THREE.MeshStandardMaterial({ color: 0x3a3a40, roughness: 0.3, metalness: 0.4 }));
+  cab.position.set(-0.25, 1.12, 0); g2.add(cab);
+  // glass band so the cabin reads as windows, not a solid block (both long sides + a wrap)
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x9fb0bd, roughness: 0.15, metalness: 0.5 });
+  [[-0.81], [0.81]].forEach(([gz]) => {
+    const gl = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.36, 0.02), glassMat);
+    gl.position.set(-0.25, 1.14, gz); g2.add(gl);
+  });
+  const wsFront = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.36, 1.5), glassMat);
+  wsFront.position.set(0.87, 1.14, 0); g2.add(wsFront);
+  [[-1.45, -0.88], [-1.45, 0.88], [1.45, -0.88], [1.45, 0.88]].forEach(([wx, wz]) => {
+    const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.24, 14),
+      new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.8 }));
+    wh.rotation.x = Math.PI / 2; wh.position.set(wx, 0.33, wz); g2.add(wh);
+  });
+}
+parkedCar(-3.4, 4.2, 0x8c3340); parkedCar(3.8, 4.2, 0x9a978f);   // one colour, one neutral — two jewel tones read staged
+const dayGlow = new THREE.RectAreaLight(0xf4efe2, 5.0, 1.4, 2.5);   // brighter: the daylight spill reads from across the room
+dayGlow.position.set(0, 1.35, -0.05); dayGlow.lookAt(0, 1.35, -6); doorG.add(dayGlow);
+// small brushed-metal gallery plate beside the door — signage, not marketing copy
+{
+  const pc = document.createElement('canvas'); pc.width = 320; pc.height = 132; const pg = pc.getContext('2d');
+  const drawPlate = () => {
+    const grad = pg.createLinearGradient(0, 0, 0, 132);
+    grad.addColorStop(0, '#c9cace'); grad.addColorStop(0.5, '#e6e7ea'); grad.addColorStop(1, '#b7b8bc');
+    pg.fillStyle = grad; pg.fillRect(0, 0, 320, 132);
+    pg.strokeStyle = 'rgba(0,0,0,.28)'; pg.lineWidth = 3; pg.strokeRect(2, 2, 316, 128);
+    pg.fillStyle = '#2a2a2e'; pg.textAlign = 'center';
+    pg.font = '400 60px "Libre Baskerville", Georgia, serif'; pg.fillText('4096', 160, 62);
+    pg.fillStyle = '#5a5a5f'; pg.font = '400 18px "IBM Plex Mono", monospace'; pg.letterSpacing = '3px';
+    pg.fillText('EST. 2026', 160, 100); pg.letterSpacing = '0px';
+  };
+  drawPlate();
+  const pt = new THREE.CanvasTexture(pc); pt.colorSpace = THREE.SRGBColorSpace; pt.anisotropy = 4;
+  document.fonts.ready.then(() => { drawPlate(); pt.needsUpdate = true; });
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.247),
+    new THREE.MeshStandardMaterial({ map: pt, roughness: 0.3, metalness: 0.7 }));
+  plate.position.set(1.35, 1.55, -0.055); plate.rotation.y = Math.PI; doorG.add(plate);
+}
+
+// ---- THRESHOLD: freestanding intro panel just inside the door ----
+// The whole room used to be visible on spawn — a showroom. This panel makes an arc:
+// enter → read the placard → step around it → the hero wall reveals. Offset left of the
+// axis so a sliver of the hero teases past its right edge from spawn (panel spans
+// x -2.3..0.1 at z 11.5; the hero's right edge sightline passes at x≈+0.28).
+const threshold = new THREE.Group(); threshold.position.set(-1.1, 0, 11.5); scene.add(threshold);
+{
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.0, 0.18), heroWallMat);   // same charcoal as the hero wall
+  panel.position.y = 1.5; panel.castShadow = true; panel.receiveShadow = true; threshold.add(panel);
+  const foot = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.06, 0.4),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.6, metalness: 0.3 }));
+  foot.position.y = 0.03; threshold.add(foot);
+  // paper placard on the door-facing side — austere, museum signage, no marketing
+  const tc = document.createElement('canvas'); tc.width = 1024; tc.height = 768; const tg = tc.getContext('2d');
+  const drawIntro = () => {
+    tg.fillStyle = '#eeeeea'; tg.fillRect(0, 0, 1024, 768);
+    tg.strokeStyle = '#d2d2ca'; tg.lineWidth = 6; tg.strokeRect(5, 5, 1014, 758);
+    // the real 4096 mark: 2×2 RGB + outlined-white grid, centred above the wordmark
+    const MS = 58, MG = 4, mx = 512 - MS - MG / 2, my = 86;
+    tg.fillStyle = '#a02f1c'; tg.fillRect(mx, my, MS, MS);
+    tg.fillStyle = '#2c6338'; tg.fillRect(mx + MS + MG, my, MS, MS);
+    tg.fillStyle = '#283a86'; tg.fillRect(mx, my + MS + MG, MS, MS);
+    tg.fillStyle = '#f4f2ec'; tg.fillRect(mx + MS + MG, my + MS + MG, MS, MS);
+    tg.strokeStyle = '#b9b9ae'; tg.lineWidth = 4;
+    tg.strokeRect(mx + MS + MG + 2, my + MS + MG + 2, MS - 4, MS - 4);
+    tg.textAlign = 'center';
+    tg.fillStyle = '#1b1b19'; tg.font = '400 140px "Libre Baskerville", Georgia, serif';
+    tg.fillText('4096', 512, 388);
+    tg.fillStyle = '#d2d2ca'; tg.fillRect(362, 448, 300, 3);
+    tg.fillStyle = '#6b675e'; tg.font = '400 40px "IBM Plex Mono", monospace'; tg.letterSpacing = '4px';
+    tg.fillText('A CANVAS PAINTED', 512, 552);
+    tg.fillText('BY ITS MARKET', 512, 617);
+    tg.letterSpacing = '0px';
+  };
+  drawIntro();
+  const tt = new THREE.CanvasTexture(tc); tt.colorSpace = THREE.SRGBColorSpace; tt.anisotropy = 4;
+  document.fonts.ready.then(() => { drawIntro(); tt.needsUpdate = true; });
+  const placard = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.125),
+    // color multiplier dulls the near-white paper below the bloom threshold —
+    // without it the placard bloomed into a lightbox halo regardless of spot intensity
+    new THREE.MeshStandardMaterial({ map: tt, color: 0xc9c7c0, roughness: 0.9 }));
+  placard.position.set(0, 1.7, 0.096); threshold.add(placard);   // faces the door (+z)
+  // the back (-z, faced when leaving) was a blank black slab — a small etched colophon
+  const bc = document.createElement('canvas'); bc.width = 512; bc.height = 128; const bg = bc.getContext('2d');
+  const drawBack = () => {
+    bg.clearRect(0, 0, 512, 128);
+    bg.textAlign = 'center'; bg.fillStyle = '#4a4a50';
+    bg.font = '400 30px "Libre Baskerville", Georgia, serif'; bg.fillText('4096', 256, 54);
+    bg.fillStyle = '#3a3a40'; bg.font = '400 18px "IBM Plex Mono", monospace'; bg.letterSpacing = '3px';
+    bg.fillText('FOURZERONINESIX.XYZ', 256, 92); bg.letterSpacing = '0px';
+  };
+  drawBack();
+  const bt = new THREE.CanvasTexture(bc); bt.colorSpace = THREE.SRGBColorSpace; bt.anisotropy = 4;
+  document.fonts.ready.then(() => { drawBack(); bt.needsUpdate = true; });
+  const backPlate = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.275),
+    new THREE.MeshStandardMaterial({ map: bt, transparent: true, roughness: 0.9 }));
+  backPlate.position.set(0, 1.7, -0.096); backPlate.rotation.y = Math.PI; threshold.add(backPlate);   // faces into the room (-z)
+  // its own quiet light from above
+  // gentle: at intensity 5 the near-white placard read as a backlit lightbox, not lit paper
+  const tSpot = new THREE.SpotLight(0xfff2e2, 1.3, 8, Math.PI / 6, 0.7, 1.2);
+  tSpot.position.set(-1.1, RH - 0.2, 13.2); tSpot.target.position.set(-1.1, 1.6, 11.6);
+  scene.add(tSpot, tSpot.target);
+}
+
+// ---- bench ----
+// centre spine: two benches + a long low vitrine down the room's axis, so the middle
+// has a path and a purpose instead of a void
+const oakMat = new THREE.MeshStandardMaterial({ color: 0xa8845c, roughness: 0.55, metalness: 0.05 });
+const legMat = new THREE.MeshStandardMaterial({ color: 0x2b2a28, roughness: 0.4, metalness: 0.6 });   // neutral dark steel; 0x3f3f46 read blue under this light
+function bench(x, z, ry = 0) {
+  const b = new THREE.Group(); b.position.set(x, 0, z); b.rotation.y = ry; scene.add(b);
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.07, 0.62), oakMat);   // slimmer slab, sturdier legs — was reading top-heavy
+  seat.position.y = 0.45; seat.castShadow = true; seat.receiveShadow = true; b.add(seat);
+  [[-1.05, -0.2], [-1.05, 0.2], [1.05, -0.2], [1.05, 0.2]].forEach(([lx, lz]) => {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.42, 0.09), legMat);
+    leg.position.set(lx, 0.21, lz); leg.castShadow = true; b.add(leg);
+  });
+}
+bench(0, -9); bench(12.6, 0, Math.PI / 2);   // second bench faces the right-wall bay
+const vit = new THREE.Group(); vit.position.set(0, 0, -3); scene.add(vit);
+const vitBase = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.72, 4.6),
+  new THREE.MeshStandardMaterial({ color: 0x232328, roughness: 0.6, metalness: 0.2 }));
+vitBase.position.y = 0.36; vitBase.castShadow = true; vitBase.receiveShadow = true; vit.add(vitBase);
+const vitTop = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.06, 4.72), oakMat);
+vitTop.position.y = 0.75; vitTop.castShadow = true; vit.add(vitTop);
+// display case: glass cover + three mounted pixels, so it reads as a vitrine and not a bare counter
+const vitGlass = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.34, 4.5),
+  new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.12 }));
+vitGlass.position.y = 0.95; vit.add(vitGlass);
+// the three channels, one cube each in the site's own channel colours, with its rule
+function ruleCard(title, hex, l1, l2) {
+  const c = document.createElement('canvas'); c.width = 640; c.height = 290; const g = c.getContext('2d');
+  g.fillStyle = '#f4f2ec'; g.fillRect(0, 0, 640, 290);
+  g.strokeStyle = '#d2d2ca'; g.lineWidth = 5; g.strokeRect(4, 4, 632, 282);
+  g.fillStyle = hex; g.fillRect(4, 4, 18, 282);
+  g.fillStyle = '#1b1b19'; g.font = '500 58px "IBM Plex Mono", monospace'; g.textAlign = 'left'; g.letterSpacing = '8px';
+  g.fillText(title, 54, 96);
+  g.fillStyle = '#4c4c46'; g.font = 'italic 40px Georgia, serif'; g.letterSpacing = '0px';
+  g.fillText(l1, 54, 172);
+  g.fillStyle = '#84847c'; g.font = '400 34px "IBM Plex Mono", monospace';
+  g.fillText(l2, 54, 240);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+[
+  [-1.5, 0xa02f1c, 'RED',   'how often it sells.',            'trade often'],
+  [ 0,   0x2c6338, 'GREEN', 'how uneven the gaps are.',       'trade unpredictably'],
+  [ 1.5, 0x283a86, 'BLUE',  'longest unbroken hold.',         'out-hold everyone'],
+].forEach(([pz, col, ti, a, b]) => {
+  // cube and card sit SIDE BY SIDE along the case (z), not front/back (x) — from the
+  // walkway the card was eclipsing the cube entirely, and the cube is the exhibit
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.02, 0.36),
+    new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 0.9 }));
+  plate.position.set(0, 0.79, pz + 0.42); vit.add(plate);
+  const pix = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22),
+    new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.5, roughness: 0.5 }));
+  pix.position.set(0, 0.91, pz + 0.42); pix.rotation.y = 0.5; vit.add(pix);   // slight turn so two faces catch light
+  const cardMat = new THREE.MeshStandardMaterial({ map: ruleCard(ti, '#' + col.toString(16).padStart(6, '0'), a, b), roughness: 0.9 });
+  const card = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.281), cardMat);
+  card.position.set(0.1, 0.86, pz - 0.28);
+  card.rotation.y = Math.PI / 2; card.rotateX(-0.6);    // stands tilted, facing the walkway side
+  vit.add(card);
+  document.fonts.ready.then(() => { cardMat.map = ruleCard(ti, '#' + col.toString(16).padStart(6, '0'), a, b); cardMat.needsUpdate = true; });
+});
+
+// ---- COLLAB SECTIONS: each artist gets a numbered bay, own accent + own placeholder style ----
+// Replace placeholderArt() with the artist's real images later; keep the numbers stable.
+// Until collaborators land, the bays hang blank primed canvases that say only COMING SOON.
+function comingSoonArt(w = 512, h = 640) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  const draw = () => {
+    g.fillStyle = '#f2f0ea'; g.fillRect(0, 0, w, h);                     // primed-canvas white
+    g.fillStyle = 'rgba(0,0,0,0.025)';                                   // whisper of weave
+    for (let y = 0; y < h; y += 4) g.fillRect(0, y, w, 1);
+    g.fillStyle = '#84847c'; g.textAlign = 'center';
+    g.font = `500 ${Math.round(w * 0.052)}px "IBM Plex Mono", monospace`;
+    g.letterSpacing = `${Math.round(w * 0.016)}px`;
+    g.fillText('COMING SOON', w / 2 + Math.round(w * 0.008), h / 2 + w * 0.018);
+    g.letterSpacing = '0px';
+  };
+  draw();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  document.fonts.ready.then(() => { draw(); t.needsUpdate = true; });
+  return t;
+}
+function placeholderArt(style, accent, w = 512, h = 640) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  g.fillStyle = '#efece4'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = accent; g.fillStyle = accent;
+  const S = w / 512;                                  // scale so supporting pieces read the same
+  if (style === 'grid') {
+    const s = 46 * S;
+    for (let y = 50 * S; y < h - 40 * S; y += s) for (let x = 50 * S; x < w - 40 * S; x += s)
+      if ((Math.round(x / s) + Math.round(y / s)) % 2 === 0) g.fillRect(x, y, s * .68, s * .68);
+      else { g.lineWidth = 3 * S; g.strokeRect(x, y, s * .68, s * .68); }
+  } else if (style === 'rings') {
+    g.lineWidth = 7 * S;
+    for (let r = 24 * S; r < Math.min(w, h) * .46; r += 26 * S) { g.beginPath(); g.arc(w / 2, h / 2, r, 0, Math.PI * 2); g.stroke(); }
+  } else if (style === 'strata') {
+    for (let i = 0; i < 16; i++) { g.globalAlpha = .35 + (i % 4) * .2; g.fillRect(42 * S, (62 + i * 34) * S, w - 84 * S, 19 * S); }
+  } else if (style === 'weave') {
+    g.lineWidth = 9 * S;
+    for (let i = 0; i < 20; i++) { g.beginPath(); g.moveTo(36 * S, (58 + i * 28) * S); g.lineTo(w - 36 * S, (58 + i * 28 + (i % 2 ? 30 : -30)) * S); g.stroke(); }
+  } else if (style === 'scatter') {
+    for (let i = 0; i < 140; i++) { g.globalAlpha = .45 + Math.random() * .55;
+      const s = (9 + Math.random() * 22) * S; g.fillRect(44 * S + Math.random() * (w - 110 * S), 56 * S + Math.random() * (h - 130 * S), s, s); }
+  } else { // arcs
+    g.lineWidth = 13 * S;
+    for (let i = 0; i < 7; i++) { g.beginPath(); g.arc(w / 2, h - 54 * S, (38 + i * 44) * S, Math.PI, Math.PI * 2); g.stroke(); }
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function numberPlate(num, accent) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256; const g = c.getContext('2d');
+  const draw = () => {
+    g.clearRect(0, 0, 256, 256);
+    g.fillStyle = '#f4f2ec'; g.fillRect(0, 0, 256, 256);
+    g.fillStyle = accent; g.fillRect(0, 0, 256, 12);
+    g.fillStyle = '#26241f'; g.font = '400 116px "Libre Baskerville", Georgia, serif'; g.textAlign = 'center';
+    g.fillText(num, 128, 172);
+  };
+  draw();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  document.fonts.ready.then(() => { draw(); t.needsUpdate = true; });
+  return new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.42), new THREE.MeshStandardMaterial({ map: t, roughness: .9 }));
+}
+
+// real collab art: {url, ar=width/height} per piece so we fit it to its true aspect inside
+// the frame (the mat shows around it). main:null = hero not delivered yet → COMING SOON.
+// order per user: 01 Cake · 02 Daniel Todd · 03 Not The Same. {url, ar=w/h, pixel} per piece;
+// main:null = hero not delivered yet → COMING SOON. pixel:true keeps pixel-art crisp (nearest).
+// interleaved layout: full and empty bays alternate on both walls. Numbered as the walk —
+// down the LEFT wall from the door (01→03), back along the RIGHT (04→06).
+const SECTIONS = [
+  { num: '01', side: -1, z: 10, accent: '#2f5d7c', frame: 0x1a1a1e,
+    collab: 'NOT THE SAME', by: 'Lord',
+    main: { url: 'nts-stock.png', ar: 2014 / 2000 },
+    sides: [{ url: 'lord-orangeman.jpg', ar: 1 }, { url: 'lord-demon.jpg', ar: 1 }] },
+  { num: '02', side: -1, z: 0, accent: '#b08432', frame: 0x2e2619 },   // empty · roped
+  { num: '03', side: -1, z: -10, accent: '#7c4a2f', frame: 0x2e2619,
+    collab: 'THE END OF THE WORLD', by: 'Cake Nygard',
+    main: { url: 'cake-eotw.png', ar: 1 },   // end of the world #282
+    sides: [{ url: 'cake-cowboy.jpg', ar: 1500 / 3000 }, { url: 'cake-rainbow.jpg', ar: 3276 / 4095 }] },
+  { num: '04', side:  1, z: -10, accent: '#6b3f6b', frame: 0x2a1f2a },   // empty · roped
+  { num: '05', side:  1, z: 0, accent: '#3f6b4a', frame: 0x20291f,
+    collab: 'THE KILLERS', by: 'Daniel Todd',
+    main: { url: 'dt-killer89.png', ar: 1, pixel: true },
+    sides: [{ url: 'dt-carpediem.png', ar: 924 / 1232 }, { url: 'dt-lonelyspeck.png', ar: 1, pixel: true }] },
+  { num: '06', side:  1, z: 10, accent: '#8c3340', frame: 0x2c1c20 },   // empty · roped
+];
+function realArtTex(url, pixel) {
+  const t = new THREE.TextureLoader().load(url);
+  t.colorSpace = THREE.SRGBColorSpace;
+  if (pixel) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; } else t.anisotropy = 8;
+  return t;
+}
+
+function pieceMesh(tex, w, h, frameColor, artAR) {
+  // gallery framing: deep outer frame → stepped inner lip → recessed white mat → art.
+  // reads as real framing instead of a flat rectangle. (see CRAFT: small details built in.)
+  // artAR (width/height): fit the art to its true aspect inside the opening so the mat frames
+  // it, instead of stretching. Omit for full-bleed placeholders (COMING SOON fills the frame).
+  const grp = new THREE.Group();
+  // low metalness: at 0.25/0.4 the frames mirrored the white HDRI and read silver-grey,
+  // erasing each bay's frame colour entirely
+  const frameMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.55, metalness: 0.08 });
+  const lipMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.4, metalness: 0.18 });   // brighter catch on the inner step
+  const matMat = new THREE.MeshStandardMaterial({ color: 0xf3f1ea, roughness: 0.95 });                      // the white board around the art
+  const fw = 0.16, mw = 0.11;                       // frame width, mat reveal
+  const outer = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * fw + 2 * mw, h + 2 * fw + 2 * mw, 0.09), frameMat);
+  outer.castShadow = true;
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * mw + 0.04, h + 2 * mw + 0.04, 0.034), lipMat);
+  lip.position.z = 0.045;                            // front face at 0.062
+  // layer spacing: outer front 0.045 → lip front 0.062 → mat 0.082 → art 0.095.
+  // mat + art MUST sit in front of every frame box's front face (else the boxes occlude
+  // them — the black-bay bug), AND ≥0.013 apart from each other or they z-fight and
+  // shimmer as the camera moves. Both failures have happened; keep the gaps.
+  const mat = new THREE.Mesh(new THREE.PlaneGeometry(w + 2 * mw, h + 2 * mw), matMat);
+  mat.position.z = 0.082;
+  let aw = w, ah = h;                                 // art dims — fit to aspect if given
+  if (artAR) { const openAR = w / h; if (artAR >= openAR) { aw = w; ah = w / artAR; } else { ah = h; aw = h * artAR; } }
+  const art = new THREE.Mesh(new THREE.PlaneGeometry(aw, ah), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }));
+  art.position.z = 0.095;
+  grp.add(outer, lip, mat, art); return grp;
+}
+
+const LX = RW / 2 - 0.06;
+SECTIONS.forEach(sec => {
+  const grp = new THREE.Group();
+  grp.position.set(sec.side * LX, 0, sec.z);
+  grp.rotation.y = sec.side === -1 ? Math.PI / 2 : -Math.PI / 2;
+  scene.add(grp);
+
+  // main piece — real hero art if delivered, else COMING SOON
+  const mainTex = sec.main ? realArtTex(sec.main.url, sec.main.pixel) : comingSoonArt();
+  const main = pieceMesh(mainTex, 2.3, 2.9, sec.frame, sec.main && sec.main.ar);
+  main.position.set(0, 2.35, 0); grp.add(main);
+  glideTargets.push({ obj: main, empty: !sec.collab, view: {   // empty: visitors skip roped coming-soon bays
+    pos: [sec.side * (LX - 3.4), 1.6, sec.z], look: [sec.side * LX, 2.35, sec.z] } });
+  // two supporting pieces, flanking — hung LEVEL with each other (the ±0.08 stagger read as a mistake)
+  [-2.45, 2.45].forEach((ox, i) => {
+    const sd = sec.sides && sec.sides[i];
+    const supTex = sd ? realArtTex(sd.url, sd.pixel) : comingSoonArt(384, 480);
+    const sup = pieceMesh(supTex, 1.15, 1.45, sec.frame, sd && sd.ar);
+    sup.position.set(ox, 2.25, 0); grp.add(sup);
+  });
+  // numbered plate + label plaque — BELOW the framing. Collab bays show collab name + artist;
+  // individual piece titles held off the wall until they're all confirmed.
+  const np = numberPlate(sec.num, sec.accent); np.position.set(-1.55, 0.42, 0.02); grp.add(np);
+  const lp = plaque(sec.collab || `BAY ${sec.num}`, sec.by || 'coming soon', 1.35, sec.accent);
+  lp.position.set(-0.05, 0.42, 0.02); grp.add(lp);
+
+  // empty bays are roped off, auction-style: two brass-topped stanchions + a velvet swag.
+  // each bay's swag varies slightly (spacing/droop) so three in view don't read copy-paste
+  if (!sec.collab) {
+    const vi = parseInt(sec.num, 10) % 3;
+    const span = [1.05, 1.2, 1.32][vi], droop = [0.76, 0.7, 0.66][vi], rz = [1.62, 1.72, 1.8][vi];
+    [-span, span].forEach(sx => {
+      const g = new THREE.Group(); g.position.set(sx, 0, rz);
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.04, 20), postMat2); foot.position.y = 0.02;
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.95, 14), postMat2); pole.position.y = 0.5;
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), brassMat); cap.position.y = 1.0;
+      g.add(foot, pole, cap); foot.castShadow = pole.castShadow = true; grp.add(g);
+    });
+    const bayRopeCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-span, 0.97, rz), new THREE.Vector3(0, droop, rz + 0.08), new THREE.Vector3(span, 0.97, rz)]);
+    const bayRope = new THREE.Mesh(new THREE.TubeGeometry(bayRopeCurve, 24, 0.032, 10),
+      new THREE.MeshStandardMaterial({ color: 0x8c1d16, roughness: 0.75 }));
+    grp.add(bayRope);
+  }
+
+  // even wash across the whole bay + one accent spot on the main piece
+  const wash = new THREE.RectAreaLight(0xfff6ea, 0.78, 7.0, 3.4);   // dimmed a touch per review
+  wash.position.set(0, 2.3, 1.5); wash.lookAt(0, 2.3, 0); grp.add(wash);
+  aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5);   // fixture sits on the moved rail, over the piece
+});
+
+// ---- AMBIENT PEOPLE: a few stylized visitors so the gallery reads lived-in ----
+// Abstract matte figures (tapered body + head, no faces, no rigged walking) — silhouettes
+// of gallery-goers, in keeping with the austere look. Continuous quiet life, not decoration.
+function figureMesh(col, h = 1.7) {
+  // human silhouette, still abstract: legs → torso with SHOULDERS → neck gap → head.
+  // the single-taper version read as a chess pawn / stanchion, not a person
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.95, metalness: 0 });
+  const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.13, h * 0.48, 12), mat);
+  legs.position.y = h * 0.24 + 0.01; legs.castShadow = true; g.add(legs);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, h * 0.30, 4, 12), mat);
+  torso.scale.set(1.15, 1, 0.62);                          // broad shoulders, slim profile
+  torso.position.y = h * 0.48 + h * 0.15 + 0.02; torso.castShadow = true; g.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 14, 10), mat);
+  head.position.y = h - 0.085; head.castShadow = true; g.add(head);   // clear neck gap below
+  return g;
+}
+// stations: stand a touch CLOSER to the art than the camera's glide spots — the camera spot
+// at bay 05 lands on a bench; 15% toward the look point clears it and reads more natural
+const stations = glideTargets.filter(g2 => !g2.empty).map(g2 => {   // nobody lingers at a roped empty wall
+  const p = g2.view.pos, l = g2.view.look;
+  return { x: p[0] + (l[0] - p[0]) * 0.15, z: p[2] + (l[2] - p[2]) * 0.15, lx: l[0], lz: l[2] };
+});
+const claimed = new Set();
+const visitors = [];
+const VISITOR_COLS = [0x8a8578, 0xcfc9bd, 0x6d7480];   // warm grey / bone / slate — none charcoal, so no visitor reads as a stanchion
+function pickStation(not) {
+  const free = stations.map((s, i) => i).filter(i => !claimed.has(i) && i !== not);
+  return free[(Math.random() * free.length) | 0];
+}
+for (let v = 0; v < 3; v++) {
+  const si = pickStation(-1); claimed.add(si);
+  const m = figureMesh(VISITOR_COLS[v], 1.62 + v * 0.07);
+  const st = stations[si];
+  m.position.set(st.x, 0, st.z);
+  m.rotation.y = Math.atan2(st.lx - st.x, st.lz - st.z);   // already facing the art
+  scene.add(m);
+  visitors.push({ m, si, state: 'view', viewT: 8 + Math.random() * 22, path: [], phase: Math.random() * 6 });
+}
+// stationary docent near the threshold, facing arrivals — a fixed presence
+const docent = figureMesh(0x4a4e56, 1.74);   // dark slate — distinct but not stanchion-charcoal
+docent.position.set(4.8, 0, 9.5); docent.rotation.y = Math.atan2(0 - 4.8, 15 - 9.5); scene.add(docent);   // beside the route, not in it — visitors pass the panel's right side
+// one distant figure strolling the far sidewalk outside — glimpsed through the door
+const walker = figureMesh(0x8b8880, 1.62);
+walker.position.set(-14, 0, 11.6); doorG.add(walker);
+const walker2 = figureMesh(0x6f6d68, 1.68);              // second stroller, offset lane + pace, opposite direction
+walker2.position.set(8, 0, 10.9); doorG.add(walker2);
+let walkerDir = 1, walker2Dir = -1, peopleDead = false;
+function stepPeople(dt, now) {
+  for (const v of visitors) {
+    if (v.state === 'view') {
+      v.m.rotation.z = Math.sin(now * 0.45 + v.phase) * 0.012;      // barely-there weight shift
+      v.viewT -= dt;
+      if (v.viewT <= 0) {
+        claimed.delete(v.si);
+        const ni = pickStation(v.si);
+        if (ni === undefined) { v.viewT = 10; claimed.add(v.si); continue; }
+        claimed.add(ni); v.si = ni;
+        const st = stations[ni], p = v.m.position;
+        v.path = [];
+        if (Math.sign(st.x) !== Math.sign(p.x) && Math.abs(st.x) > 6 && Math.abs(p.x) > 6)
+          v.path.push({ x: 0, z: 3 });                              // cross-room: route round the vitrine spine
+        v.path.push({ x: st.x, z: st.z });
+        v.state = 'walk';
+      }
+    } else {
+      const wp = v.path[0], p = v.m.position;
+      const dx = wp.x - p.x, dz = wp.z - p.z, d = Math.hypot(dx, dz);
+      if (d < 0.08) { v.path.shift();
+        if (!v.path.length) {
+          const st = stations[v.si];
+          v.state = 'view'; v.viewT = 25 + Math.random() * 10;
+          v.m.rotation.z = 0;
+        }
+        continue;
+      }
+      const sp = 0.8 * dt;
+      p.x += (dx / d) * sp; p.z += (dz / d) * sp;
+      const want = Math.atan2(dx, dz);                              // face travel direction, smoothly
+      let dy = want - v.m.rotation.y;
+      while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
+      v.m.rotation.y += dy * Math.min(1, dt * 6);
+    }
+    if (v.state === 'view') {                                       // settle facing the artwork
+      const st = stations[v.si], want = Math.atan2(st.lx - v.m.position.x, st.lz - v.m.position.z);
+      let dy = want - v.m.rotation.y;
+      while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
+      v.m.rotation.y += dy * Math.min(1, dt * 3);
+    }
+  }
+  // street walkers: slow ping-pong strolls across the door's view, offset lanes + paces
+  walker.position.x += walkerDir * 0.5 * dt;
+  if (walker.position.x > 15) walkerDir = -1;
+  if (walker.position.x < -15) walkerDir = 1;
+  walker.rotation.y = walkerDir > 0 ? Math.PI / 2 : -Math.PI / 2;
+  walker2.position.x += walker2Dir * 0.42 * dt;
+  if (walker2.position.x > 15) walker2Dir = -1;
+  if (walker2.position.x < -15) walker2Dir = 1;
+  walker2.rotation.y = walker2Dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+}
+
+// ---- post-processing ----
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.25, 0.4, 0.985);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+// ---- sound ----
+let actx = null, master = null, vendGain = null, streetGain = null;
+function initAudio() {
+  if (actx) { if (actx.state === 'suspended') actx.resume().catch(() => {}); return; }
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  // iOS Safari creates the context suspended even inside a gesture — resume explicitly
+  // or iPhones get a silent gallery
+  if (actx.state === 'suspended') actx.resume().catch(() => {});
+  master = actx.createGain(); master.gain.value = 0.5; master.connect(actx.destination);
+  const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 340;
+  const dg = actx.createGain(); dg.gain.value = 0.05; lp.connect(dg); dg.connect(master);
+  [55, 82.4, 110].forEach((f, i) => { const o = actx.createOscillator(); o.type = 'sine'; o.frequency.value = f * (1 + i * 0.002); o.connect(lp); o.start(); });
+  // vending machine hum: refrigeration-coil drone, gain driven by proximity each frame
+  const vlp = actx.createBiquadFilter(); vlp.type = 'lowpass'; vlp.frequency.value = 260;
+  vendGain = actx.createGain(); vendGain.gain.value = 0; vlp.connect(vendGain); vendGain.connect(master);
+  [[120, 'sawtooth'], [120.8, 'sawtooth'], [240, 'sine']].forEach(([f, ty]) => {
+    const o = actx.createOscillator(); o.type = ty; o.frequency.value = f;
+    const og = actx.createGain(); og.gain.value = ty === 'sine' ? 0.35 : 0.22;
+    o.connect(og); og.connect(vlp); o.start();
+  });
+  // street outside: a soft low wash (distant traffic/wind) that swells as you near the door
+  const noise = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
+  const nd = noise.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < nd.length; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; nd[i] = last * 3.0; }  // brown-ish noise
+  const nsrc = actx.createBufferSource(); nsrc.buffer = noise; nsrc.loop = true;
+  const slp = actx.createBiquadFilter(); slp.type = 'lowpass'; slp.frequency.value = 480;
+  streetGain = actx.createGain(); streetGain.gain.value = 0;
+  nsrc.connect(slp); slp.connect(streetGain); streetGain.connect(master); nsrc.start();
+}
+function updateVendHum() {
+  if (!vendGain) return;
+  const o = controls.getObject();
+  const d = Math.hypot(o.position.x - (-6), o.position.z - (RD / 2 - 0.34));
+  const t = Math.max(0, 1 - d / 7);                       // audible within ~7m, swells as you close in
+  vendGain.gain.setTargetAtTime(t * t * 0.14, actx.currentTime, 0.12);
+  if (streetGain) {                                       // door ambience: loudest at the threshold
+    const ds = Math.hypot(o.position.x - 0, o.position.z - (RD / 2 - 0.3));
+    const ts = Math.max(0, 1 - ds / 8);
+    streetGain.gain.setTargetAtTime(ts * ts * 0.09, actx.currentTime, 0.15);
+  }
+}
+function playTick() {
+  if (!actx || master.gain.value === 0) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'sine'; o.frequency.value = 110 + Math.random() * 20;
+  g.gain.setValueAtTime(0.0001, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.06, actx.currentTime + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.12);
+  o.connect(g); g.connect(master); o.start(); o.stop(actx.currentTime + 0.14);
+}
+function playChime() {
+  if (!actx || master.gain.value === 0) return;
+  [880, 1320].forEach((f, i) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.05 / (i + 1), actx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.7);
+    o.connect(g); g.connect(master); o.start(); o.stop(actx.currentTime + 0.75);
+  });
+}
+const muteBtn = document.getElementById('mute');
+muteBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!master) return; master.gain.value = master.gain.value === 0 ? 0.5 : 0; muteBtn.textContent = master.gain.value === 0 ? '♪̸' : '♪'; });
+
+// ---- GALLERY GUIDE brochure (replaced the old ≡ tabs menu) ----
+const broDock = document.getElementById('broDock');
+const browrap = document.getElementById('browrap');
+let broOpen = false;
+function openBrochure(leafId) {
+  if (panelOpen) closeMint();
+  broOpen = true; panelOpen = true; browrap.classList.add('on');
+  cross.classList.remove('on'); promptEl.classList.remove('on');
+  broDock.classList.remove('on'); sticksEl.classList.remove('on');
+  renderer.domElement.classList.remove('walk');
+  if (controls.isLocked) controls.unlock();
+  const leaves = document.querySelector('#brochure .leaves');
+  if (leafId) {                                          // e.g. the heart lectern opens straight to its leaf
+    const el = document.getElementById(leafId);
+    if (el) leaves.scrollLeft = el.offsetLeft;
+  } else leaves.scrollLeft = 0;
+}
+function closeBrochure() {
+  broOpen = false; panelOpen = false; browrap.classList.remove('on');
+  if (typeof lastPanelClose !== 'undefined') lastPanelClose = performance.now();
+  if (entered) { showHud(); if (typeof tryLock === 'function') tryLock(); }
+}
+broDock.addEventListener('click', e => { e.stopPropagation(); openBrochure(); });
+document.getElementById('brox').addEventListener('click', e => { e.stopPropagation(); closeBrochure(); });
+browrap.addEventListener('click', e => { if (e.target === browrap) closeBrochure(); });
+
+// ---- mobile twin sticks: left = move (analog), right = look ----
+const sticksEl = document.getElementById('sticks');
+const STICK_R = 40;                                     // knob travel radius (px)
+function makeStick(padId, knobId) {
+  const pad = document.getElementById(padId), knob = document.getElementById(knobId);
+  const s = { x: 0, y: 0, on: false, id: null };
+  const center = () => { const r = pad.getBoundingClientRect(); return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; };
+  function moveTo(t) {
+    const { cx, cy } = center();
+    let dx = t.clientX - cx, dy = t.clientY - cy;
+    const d = Math.hypot(dx, dy);
+    if (d > STICK_R) { dx *= STICK_R / d; dy *= STICK_R / d; }
+    s.x = dx / STICK_R; s.y = dy / STICK_R;
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+  }
+  pad.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (s.on) return;
+    const t = e.changedTouches[0]; s.on = true; s.id = t.identifier; moveTo(t);
+  }, { passive: false });
+  pad.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) if (t.identifier === s.id) moveTo(t);
+  }, { passive: false });
+  const end = e => {
+    for (const t of e.changedTouches) if (t.identifier === s.id) {
+      s.on = false; s.id = null; s.x = 0; s.y = 0; knob.style.transform = '';
+    }
+  };
+  pad.addEventListener('touchend', end); pad.addEventListener('touchcancel', end);
+  return s;
+}
+const stickMove = makeStick('padL', 'knobL');           // both sticks work simultaneously —
+const stickLook = makeStick('padR', 'knobR');           // each tracks its own touch identifier
+
+// ---- controls ----
+const controls = new PointerLockControls(camera, renderer.domElement);
+controls.pointerSpeed = 0.4;                     // calm FPS look — full speed was twitchy
+scene.add(controls.getObject());
+const enter = document.getElementById('enter'), cross = document.getElementById('cross'),
+      hint = document.getElementById('hint'), promptEl = document.getElementById('prompt'),
+      lookStat = document.getElementById('lookstat');
+const mintwrap = document.getElementById('mintwrap');
+let panelOpen = false;
+
+// LOOK CONTROLS — pointer lock first (cursor pinned to the crosshair, deltas turn the
+// view); 1:1 cursor look is the automatic fallback when lock is denied or the watchdog
+// catches a dead lock.
+let entered = false;
+let hintFaded = false, hintTimer = 0;
+function showHud() { cross.classList.add('on'); muteBtn.classList.add('on'); broDock.classList.add('on');
+  if (!(IS_TOUCH && hintFaded)) hint.classList.add('on');
+  // on touch the hint bar is training wheels: it fades for good after ~9s so it never
+  // sits wrapped across the sticks
+  if (IS_TOUCH && !hintFaded && !hintTimer)
+    hintTimer = setTimeout(() => { hintFaded = true; hint.classList.remove('on'); }, 9000);
+  if (IS_TOUCH) sticksEl.classList.add('on');
+  renderer.domElement.classList.add('walk'); }   // hide the OS cursor while walking; the crosshair is the pointer
+function exitToOverlay() {
+  entered = false;
+  enter.style.display = 'flex'; cross.classList.remove('on'); hint.classList.remove('on'); promptEl.classList.remove('on');
+  broDock.classList.remove('on'); sticksEl.classList.remove('on');
+  renderer.domElement.classList.remove('walk');
+}
+// pointer lock = primary look, EVERYWHERE — the cursor pins to the crosshair and mouse
+// deltas turn the view (the FPS feel the user asked for). Safari's lock failed four ways
+// historically, but every failure predates the no-store server + build stamps, so they may
+// all have been stale cached builds. The watchdog is the net now: a lock that delivers no
+// rotation (dead deltas / no events) is detected within ~1s and drops to cursor look. The
+// earlier blanket Safari ban is deliberately removed — do not re-add it without a stamped
+// build actually failing.
+let lockBroken = false, wdEvents = 0, wdYaw0 = 0, wdPit0 = 0, lockedAt = 0;
+// lockBroken = "this browser's lock is a PROVEN dud" (engages but delivers no movement —
+// Safari's classic failure). Once proven, never re-enter it this session: re-locking into
+// a dud made look dead in a loop (click → dud lock → dead → click → dud again). Cursor-look
+// owns the session instead — it works everywhere. A healthy lock never trips the detectors.
+function tryLock() { if (IS_TOUCH || lockBroken) return; try { controls.lock(); } catch (_) {} }
+// ---- first-load wizard: shown once, remembered in localStorage (try/catch — storage can throw) ----
+const wizwrap = document.getElementById('wizwrap');
+let wizOpen = false;
+function wizSeen() { try { return localStorage.getItem('4096.gallery.onboarded') === '1'; } catch (_) { return true; } }
+function openWizard() {
+  // device-aware control lines
+  const rows = IS_TOUCH ? [
+    ['MOVE', 'left stick'], ['LOOK', 'right stick'],
+    ['VIEW A PIECE', 'tap it'], ['GALLERY GUIDE', 'pamphlet, top right'],
+  ] : [
+    ['MOVE', 'WASD / arrows'], ['LOOK', 'move the mouse'],
+    ['VIEW A PIECE', 'click it'], ['GALLERY GUIDE', 'G · or the pamphlet'],
+  ];
+  document.getElementById('wizrows').innerHTML =
+    rows.map(([a, b]) => `<div class="wrow"><b>${a}</b><span>${b}</span></div>`).join('');
+  wizOpen = true; panelOpen = true; wizwrap.classList.add('on');
+}
+function closeWizard() {
+  wizOpen = false; panelOpen = false; wizwrap.classList.remove('on');
+  try { localStorage.setItem('4096.gallery.onboarded', '1'); } catch (_) {}
+  lastPanelClose = performance.now();
+  showHud(); tryLock();
+}
+document.getElementById('wizok').addEventListener('click', e => { e.stopPropagation(); closeWizard(); });
+enter.addEventListener('click', () => {
+  initAudio(); entered = true;
+  enter.style.display = 'none';
+  revealScene();          // fade the room up now — this is the arrival
+  if (!wizSeen()) openWizard();                        // first visit: controls card before the HUD
+  else { showHud(); tryLock(); }
+});
+let lockClickStrikes = 0;
+controls.addEventListener('lock', () => { wdEvents = 0; lockClickStrikes = 0; lockedAt = performance.now();
+  lookEuler.setFromQuaternion(camera.quaternion); wdYaw0 = lookEuler.y; wdPit0 = lookEuler.x; });
+controls.addEventListener('unlock', () => {
+  if (panelOpen || lockBroken) return;   // panel opened on purpose / watchdog exit: stay in room
+  if (entered) exitToOverlay();          // Esc while locked = deliberate release
+});
+document.addEventListener('pointerlockerror', () => { lockBroken = true; });
+if (SHOOT) { enter.style.display = 'none'; cross.classList.add('on');
+  if (location.search.includes('near')) { camera.position.set(0, 1.6, -11.5); camera.lookAt(0, 3.1, -17); } }
+
+const lookEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+const PITCH_MAX = 85 * Math.PI / 180;
+function rotateCam(dyaw, dpitch) {
+  lookEuler.setFromQuaternion(camera.quaternion);
+  lookEuler.y -= dyaw; lookEuler.x -= dpitch;
+  lookEuler.x = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, lookEuler.x));
+  camera.quaternion.setFromEuler(lookEuler);
+}
+// 1:1 look — the view follows the cursor's own motion: move fast, turn fast; move slow,
+// turn slow. No clicking, no modes. An edge-assist keeps turning when the cursor is
+// pinned against a screen edge (where motion deltas stop arriving).
+let curX = 0, curY = 0, haveCursor = false, lastDX = null, lastDY = null;
+const LOOK_K = 0.0022;                                          // radians per pixel of cursor travel (calmed with pointerSpeed)
+addEventListener('mousemove', e => {
+  curX = e.clientX; curY = e.clientY; haveCursor = true;
+  if (controls.isLocked) {
+    // watchdog: locked, mouse events ARRIVING, but the camera truly isn't turning at all
+    // (Safari sometimes locks yet delivers zero deltas). Only a real dud trips this:
+    // 60 movement events with essentially ZERO rotation. Slow, careful mouse work at low
+    // sensitivity must never read as a dead lock — that false drop is how the cursor
+    // used to escape the window.
+    if (wdEvents === 0) { lookEuler.setFromQuaternion(camera.quaternion); wdYaw0 = lookEuler.y; wdPit0 = lookEuler.x; }
+    wdEvents++;
+    if (wdEvents >= 20) {
+      lookEuler.setFromQuaternion(camera.quaternion);
+      if (Math.abs(lookEuler.y - wdYaw0) + Math.abs(lookEuler.x - wdPit0) < 0.004) {
+        lockBroken = true; document.exitPointerLock();       // PROVEN dud — cursor look owns the session
+      }
+      wdEvents = 0;
+    }
+    lastDX = lastDY = null; return;                          // healthy lock: PLC drives look
+  }
+  if (!entered || panelOpen || glide) { lastDX = lastDY = null; return; }   // glide owns the camera
+  if (lastDX !== null) rotateCam((e.clientX - lastDX) * LOOK_K, (e.clientY - lastDY) * LOOK_K);
+  lastDX = e.clientX; lastDY = e.clientY;
+});
+document.addEventListener('mouseleave', () => { haveCursor = false; lastDX = lastDY = null; });
+const EDGE = 0.06, EDGE_SPEED = 1.3;                            // outer 6% of screen keeps turning
+function cursorLook(dt) {
+  if (!entered || panelOpen || !haveCursor || controls.isLocked) return;
+  const nx = (curX / innerWidth) * 2 - 1, ny = (curY / innerHeight) * 2 - 1;
+  const assist = v => { const a = Math.abs(v); return a > 1 - EDGE * 2 ? Math.sign(v) * (a - (1 - EDGE * 2)) / (EDGE * 2) : 0; };
+  const yv = assist(nx), pv = assist(ny);
+  if (yv || pv) rotateCam(yv * EDGE_SPEED * dt, pv * EDGE_SPEED * dt);
+}
+
+const keys = {};
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Escape' && glide) { glide = null; lastPanelClose = performance.now(); }   // Esc exits a glide, never the room
+  else if (e.code === 'Escape' && wizOpen) closeWizard();
+  else if (e.code === 'Escape' && broOpen) closeBrochure();
+  else if (e.code === 'Escape' && panelOpen) closeMint();
+  else if (e.code === 'Escape' && entered && !controls.isLocked
+           && performance.now() - lastPanelClose > 800) exitToOverlay();   // grace: a double-Esc after a panel can't eject you to the start screen
+  if (e.code === 'KeyE' && hotTarget) activateHot();
+  if (e.code === 'KeyG' && entered) {                    // G toggles the gallery guide
+    if (broOpen) closeBrochure();
+    else if (!panelOpen) openBrochure();
+  }
+});
+addEventListener('keyup', e => keys[e.code] = false);
+
+// ---- mint panel ----
+function refreshMintPanel() {
+  document.getElementById('m-painted').textContent = `${painted ?? '\u2014'} / ${TOTAL}`;
+  document.getElementById('m-left').textContent = painted === null ? '\u2014' : (TOTAL - painted).toLocaleString();
+  document.getElementById('m-price').textContent = PRICE + ' \u00b7 max 10 per wallet';
+}
+refreshMintPanel();
+// the real count arrives async — repaint every surface that shows it
+readMinted().then(n => {
+  if (n === null) return;                 // dashes stand; nothing invented
+  painted = n;
+  drawCount(); countTex.needsUpdate = true;
+  kScreenMat.emissiveMap = kioskScreenTex(); kScreenMat.needsUpdate = true;
+  refreshMintPanel();
+});
+function openMint() {
+  if (panelOpen) return;
+  panelOpen = true; mintwrap.classList.add('on');
+  cross.classList.remove('on'); promptEl.classList.remove('on'); broDock.classList.remove('on'); sticksEl.classList.remove('on');
+  renderer.domElement.classList.remove('walk');   // panel is open — give the OS cursor back for clicking
+  if (controls.isLocked) controls.unlock();
+}
+let lastPanelClose = 0;
+function closeMint() {
+  panelOpen = false; mintwrap.classList.remove('on'); lastPanelClose = performance.now();
+  if (entered) { showHud(); tryLock(); }
+  else enter.style.display = 'flex';
+}
+document.getElementById('mintx').addEventListener('click', e => { e.stopPropagation(); closeMint(); });
+mintwrap.addEventListener('click', e => { if (e.target === mintwrap) closeMint(); });
+
+// ---- crosshair interaction (kiosk) ----
+const ray = new THREE.Raycaster();
+const centre = new THREE.Vector2(0, 0);
+const interactives = [kScreen, vGlass, vBody, heartArt];   // anything the crosshair can activate
+let hotTarget = null, rayTimer = 0;
+function checkHover() {
+  ray.setFromCamera(centre, camera);
+  const hits = ray.intersectObjects(interactives, false);
+  const hot = hits.length && hits[0].distance < 4.6 ? hits[0].object : null;
+  if (hot !== hotTarget) {
+    hotTarget = hot;
+    cross.classList.toggle('hot', !!hot);
+    promptEl.classList.toggle('on', !!hot && !panelOpen);
+  }
+  checkPixel();
+}
+// ---- pixel inspector: report the cell under the crosshair on the hero ----
+// Reports only what the page truly knows: cell #, coordinate, displayed colour, and
+// whether the surface is painted vs ground. Owner / last-trade stay as labelled empty
+// fields until wired to the chain — never invent data that looks real.
+// TODO: real chain data — fill owner + last trade from on-chain events when wired live.
+const pixhud = document.getElementById('pixhud'),
+      phId = document.getElementById('ph-id'), phXy = document.getElementById('ph-xy'),
+      phState = document.getElementById('ph-state'), phSw = pixhud.querySelector('.sw');
+let lastPix = -1;
+function checkPixel() {
+  let hit = null;
+  if (!panelOpen && (entered || SHOOT)) {
+    const h = ray.intersectObject(hero, false);       // ray already set from screen centre above
+    if (h.length && h[0].distance < 6.5 && h[0].uv) hit = h[0];   // inspector only when actually near the canvas, not from mid-room
+  }
+  if (!hit) { if (lastPix !== -1) { lastPix = -1; pixhud.classList.remove('on'); } return; }
+  const col = Math.min(N - 1, Math.floor(hit.uv.x * N)),
+        row = Math.min(N - 1, Math.floor((1 - hit.uv.y) * N)),
+        i = row * N + col;
+  if (i === lastPix) return;
+  lastPix = i;
+  const r = base[i * 3], g = base[i * 3 + 1], b = base[i * 3 + 2];
+  const hex = '#' + [r, g, b].map(v => (Math.round(v * 255)).toString(16).padStart(2, '0')).join('');
+  // "painted" = the surface differs from the near-neutral ground; a statement about the
+  // canvas texture, not a chain claim
+  const painted = (Math.max(r, g, b) - Math.min(r, g, b)) > 0.06 || Math.min(r, g, b) < 0.55;
+  phId.textContent = 'pixel ' + i;
+  phXy.textContent = '(' + col + ', ' + row + ')';
+  phState.textContent = (painted ? 'painted' : 'ground') + ' · ' + hex;
+  phSw.style.background = hex;
+  pixhud.classList.add('on');
+}
+function activateHot() {
+  if (!hotTarget || panelOpen) return;
+  if (hotTarget.userData.interactive === 'heart') openBrochure('bro-heart');   // straight to the heart leaf
+  else openMint();
+}
+// ---- click-to-glide: tween the camera to a piece's viewing spot ----
+let glide = null;
+function startGlide(view) {
+  const l0 = new THREE.Vector3();
+  camera.getWorldDirection(l0); l0.multiplyScalar(6).add(camera.position);   // current look point
+  glide = { p0: camera.position.clone(), p1: new THREE.Vector3(...view.pos),
+            l0, l1: new THREE.Vector3(...view.look), t: 0 };
+}
+function stepGlide(dt) {
+  if (!glide) return;
+  glide.t = Math.min(1, glide.t + dt / 1.2);
+  const t = glide.t, k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;   // easeInOutQuad
+  camera.position.lerpVectors(glide.p0, glide.p1, k);
+  const look = new THREE.Vector3().lerpVectors(glide.l0, glide.l1, k);
+  camera.lookAt(look);
+  if (glide.t >= 1) glide = null;                       // arrived — walk/look resume
+}
+function onWorldClick() {
+  if (DEBUG) window.__wclk = (window.__wclk || 0) + 1;  // ?debug only
+  if (panelOpen) return;
+  // dud-lock mode B: locked but delivering NO mouse events at all — the movement watchdog
+  // never runs. The tell is the user clicking while locked with zero rotation since lock.
+  // Two such clicks = proven dud → bail to cursor look for the session.
+  if (entered && controls.isLocked) {
+    lookEuler.setFromQuaternion(camera.quaternion);
+    if (Math.abs(lookEuler.y - wdYaw0) + Math.abs(lookEuler.x - wdPit0) < 0.004) {
+      if (++lockClickStrikes >= 2) { lockBroken = true; document.exitPointerLock(); }
+    } else lockClickStrikes = 0;
+  }
+  if (entered && !controls.isLocked) tryLock();   // click = user gesture: re-arm (no-op once proven dud)
+  if (glide) { glide = null; return; }                  // a click always exits a glide
+  if (hotTarget) { activateHot(); return; }             // near-range actions keep priority
+  if (!entered && !SHOOT) return;
+  ray.setFromCamera(centre, camera);
+  const hits = ray.intersectObjects(glideTargets.map(g => g.obj), true);
+  if (!hits.length) return;
+  let o = hits[0].object, entry = null;                 // hit may be a child of a piece group
+  while (o && !entry) { entry = glideTargets.find(g => g.obj === o); o = o.parent; }
+  if (entry) startGlide(entry.view);
+}
+renderer.domElement.addEventListener('click', onWorldClick);
+
+// ---- movement ----
+const velocity = new THREE.Vector3(), direction = new THREE.Vector3(), clock = new THREE.Clock();
+const SPEED = 38, DAMP = 9, clamp = (v, a, b) => Math.max(a, Math.min(b, v));   // 24 felt sluggish — brisker walk per user
+let stepTimer = 0;
+function step(dt) {
+  // Q/E keyboard look — cannot fail anywhere, whatever the mouse situation
+  if (keys.KeyQ) rotateCam(-1.9 * dt, 0);
+  if (keys.KeyE && !hotTarget) rotateCam(1.9 * dt, 0);
+  // right stick = look (touch); rate-based like a console FPS, uses the same rotateCam as the mouse.
+  // squared response: fine aim near centre, full rate only at the rim — 2.3 linear was twitchy
+  if (stickLook.on && (stickLook.x || stickLook.y)) {
+    const cx2 = stickLook.x * Math.abs(stickLook.x), cy2 = stickLook.y * Math.abs(stickLook.y);
+    rotateCam(cx2 * 1.4 * dt, cy2 * 1.0 * dt);
+  }
+  velocity.x -= velocity.x * DAMP * dt; velocity.z -= velocity.z * DAMP * dt;
+  if (stickMove.on) {
+    direction.x = stickMove.x; direction.z = -stickMove.y;   // ANALOG — deliberately not normalised: partial push = partial speed
+  } else {
+    direction.z = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+    direction.x = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+    direction.normalize();
+  }
+  if (direction.z) velocity.z -= direction.z * SPEED * dt;
+  if (direction.x) velocity.x += direction.x * SPEED * dt;
+  controls.moveRight(velocity.x * dt); controls.moveForward(-velocity.z * dt);
+  const o = controls.getObject(), M = 1.1;
+  o.position.x = clamp(o.position.x, -RW / 2 + M, RW / 2 - M);
+  o.position.z = clamp(o.position.z, -RD / 2 + M, RD / 2 - M); o.position.y = 1.6;
+  // don't walk through the threshold panel (x -2.3..0.1, z 11.5±0.09 + margin): push out in z
+  if (o.position.x > -2.65 && o.position.x < 0.45 && o.position.z > 11.05 && o.position.z < 11.95)
+    o.position.z = o.position.z > 11.5 ? 11.95 : 11.05;
+  // don't walk through the vitrine (z -5.7..-0.3, x ±0.56 + margin)
+  if (Math.abs(o.position.x) < 1.0 && o.position.z > -6.0 && o.position.z < 0.0)
+    o.position.x = Math.sign(o.position.x || 1) * 1.0;
+  // respect the auction rope
+  if (o.position.x > -7.3 && o.position.x < -3.9 && o.position.z < -15.0) o.position.z = -15.0;
+  if (Math.abs(velocity.x) + Math.abs(velocity.z) > 1.2) { stepTimer += dt; if (stepTimer > 0.42) { stepTimer = 0; playTick(); } }
+}
+
+// DEMO mint feed — replaced by real on-chain mint events when wired live.
+let mintTimer = 0;
+const palette = [[0.96, 0.51, 0.07], [0.15, 0.15, 0.17], [0.22, 0.55, 0.85], [0.85, 0.2, 0.25], [0.35, 0.7, 0.4]];
+function demoMint() {
+  const i = (Math.random() * N * N) | 0, c = palette[(Math.random() * palette.length) | 0];
+  mintPixel(i, c[0], c[1], c[2]);
+}
+if (DEBUG) {   // diagnostics live only behind ?debug
+window.__paint = (i, r, g, b) => { base[i * 3] = r; base[i * 3 + 1] = g; base[i * 3 + 2] = b; drawCell(i, r, g, b); heroTex.needsUpdate = true; };
+window.__mint = demoMint;
+window.__cam = (px, py, pz, lx, ly, lz) => { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); };
+window.__coveState = () => [covePulse, coveStrip.material.emissiveIntensity, coveWash.intensity];   // debug, strip at final
+window.__glideTo = n => startGlide(glideTargets[n].view);                                           // debug, strip at final
+window.__glideN = () => glideTargets.length;                                                        // debug, strip at final
+window.__people = () => { visitors.forEach(v => v.viewT = Math.min(v.viewT, 0.1)); walker.position.x = -2; return visitors.map(v => [v.state, v.m.position.x.toFixed(1), v.m.position.z.toFixed(1)]); };
+}
+
+let lastW = 0, lastH = 0;
+function fit() {
+  const W = innerWidth || 1280, H = innerHeight || 720;
+  if (W === lastW && H === lastH) return;
+  lastW = W; lastH = H;
+  camera.aspect = W / H;
+  camera.fov = H > W ? 78 : 68;   // portrait felt like a keyhole — widen the view on tall aspects
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H); composer.setSize(W, H); bloom.setSize(W, H);
+}
+function animate() {
+  requestAnimationFrame(animate);
+  fit();
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (!panelOpen && (entered || SHOOT) && !glide) step(dt);   // a glide owns the camera
+  if (!glide) cursorLook(dt);
+  stepGlide(dt);
+  // (the 3s idle time-watchdog is GONE: a still mouse produces zero events and zero
+  // rotation, which it read as a dead lock — THE false drop that freed the cursor
+  // mid-session. A genuinely dead lock is still caught by the movement watchdog above
+  // the moment the user actually moves the mouse.)
+  updateVendHum();
+  if (entered && DEBUG) {
+    lookEuler.setFromQuaternion(camera.quaternion);
+    lookStat.textContent = `b24 · look: ${controls.isLocked ? 'locked' : (lockBroken ? 'cursor (no lock)' : 'cursor')} · yaw ${(lookEuler.y * 57.3).toFixed(0)}° · Q/E also turns${peopleDead ? ' · people:ERR' : ''}`;
+    lookStat.classList.add('on');
+  } else lookStat.classList.remove('on');
+  stepFlashes(dt); stepCove(dt);
+  // people are AMBIENT — isolated so a fault in them can never take down look/walk/render.
+  // Not silent: logs loudly once and flags the status line (see CRAFT: report the true state).
+  if (!peopleDead) { try { stepPeople(dt, performance.now() / 1000); } catch (err) {
+    peopleDead = true; console.error('AMBIENT PEOPLE DISABLED:', err); } }
+  rayTimer += dt; if (rayTimer > 0.1) { rayTimer = 0; if (!panelOpen) checkHover(); }
+  if (performance.now() - mintTimer > 2400) { mintTimer = performance.now(); demoMint(); }
+  composer.render();
+}
+animate();
+
+addEventListener('resize', fit);
+</script>
+</body>
+</html>
