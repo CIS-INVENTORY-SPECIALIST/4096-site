@@ -182,6 +182,23 @@
     line-height:1.6;text-align:center;}
   #mint .x{position:absolute;top:10px;right:12px;border:none;background:none;font-size:18px;color:#84847c;
     cursor:pointer;line-height:1;font-family:var(--mono);}
+  /* quantity stepper — the site's own qty language, hairline box and mono digits */
+  #mint .mintrow{display:flex;gap:10px;margin-top:20px;align-items:stretch;}
+  #mint .qty{display:flex;border:1px solid var(--rule);font-family:var(--mono);}
+  #mint .qty button{width:38px;border:none;background:none;font-family:var(--mono);font-size:15px;
+    color:#84847c;cursor:pointer;}
+  #mint .qty button:hover{color:var(--ink);}
+  #mint .qty span{min-width:34px;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-variant-numeric:tabular-nums;border-left:1px solid var(--rule);
+    border-right:1px solid var(--rule);}
+  #mint .mintrow .cta{flex:1;margin-top:0;}
+  #mint .cta:disabled{opacity:.45;cursor:default;}
+  #mint .cta:disabled:hover{background:var(--ink);color:var(--paper);}
+  /* toast — ported from the site so wallet/mint outcomes are reported, not silent */
+  .toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%) translateY(8px);z-index:40;
+    background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+    padding:11px 18px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;max-width:86vw;}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
@@ -385,8 +402,12 @@ level  255  202  153  110  71   38   13   0</pre>
     <div class="row"><span>Minted</span><b id="m-painted">—</b></div>
     <div class="row"><span>Remaining</span><b id="m-left">—</b></div>
     <div class="row"><span>Price</span><b id="m-price">—</b></div>
-    <a class="cta" id="m-go" href="https://fourzeroninesix.xyz" target="_blank" rel="noopener">MINT A PIXEL</a>
-    <p class="note" id="m-note">Opens the mint on fourzeroninesix.xyz</p>
+    <div class="row"><span>Wallet</span><b id="m-wallet">not connected</b></div>
+    <div class="mintrow">
+      <div class="qty"><button id="m-minus" aria-label="Fewer">−</button><span id="m-qty">1</span><button id="m-plus" aria-label="More">+</button></div>
+      <button class="cta" id="m-go">CONNECT WALLET</button>
+    </div>
+    <p class="note" id="m-note">The transaction is sent from your own wallet, on Ethereum mainnet.</p>
   </div>
 </div>
 
@@ -1772,6 +1793,227 @@ readMinted().then(n => {
   kScreenMat.emissiveMap = kioskScreenTex(); kScreenMat.needsUpdate = true;
   refreshMintPanel();
 });
+
+/* ---------- minting for real — PORTED from the live site's proven flow ----------
+   EIP-6963 wallet discovery, chain guard, exact price from the contract, receipt
+   poll. Adapted only where the gallery differs (IS_TOUCH, no pixels tab). */
+let toastTimer;
+function toast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2600);
+}
+
+const WALLETS = new Map();
+window.addEventListener('eip6963:announceProvider', e => {
+  const { info, provider } = e.detail;
+  WALLETS.set(info.uuid, { info, provider });
+});
+window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+let PROVIDER = null, ACCOUNT = null;
+const CHAIN_ID = '0x1';
+let RPC_ID = 0, RPC_INDEX = 0;
+// same key as the main site, so a wallet chosen there is remembered here too
+const PICKED_WALLET = '4096:wallet-uuid';
+function rememberWallet(uuid) { try { uuid ? localStorage.setItem(PICKED_WALLET, uuid) : localStorage.removeItem(PICKED_WALLET); } catch (e) {} }
+
+async function rpc(method, params) {
+  if (PROVIDER) return PROVIDER.request({ method, params });
+  let lastErr;
+  for (let attempt = 0; attempt < RPCS.length; attempt++) {
+    const url = RPCS[(RPC_INDEX + attempt) % RPCS.length];
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: ++RPC_ID, method, params }) });
+      const j = await res.json();
+      if (j.error) throw new Error(j.error.message || 'rpc error');
+      RPC_INDEX = (RPC_INDEX + attempt) % RPCS.length;
+      return j.result;
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('no working rpc endpoint');
+}
+
+function walletList() {
+  const out = [...WALLETS.values()];
+  if (!out.length && window.ethereum) {
+    out.push({ info: { uuid: 'injected', name: 'Browser wallet', icon: '' }, provider: window.ethereum });
+  }
+  return out;
+}
+
+function chooseWallet() {
+  const list = walletList();
+  if (!list.length) return Promise.resolve(null);
+  if (list.length === 1) return Promise.resolve(list[0]);
+  return new Promise(resolve => {
+    const back = document.createElement('div');
+    back.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,.86);z-index:60;' +
+      'display:flex;align-items:center;justify-content:center;padding:20px';
+    back.innerHTML = `<div style="background:#fff;border:1px solid var(--ink);max-width:340px;width:100%">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px;
+                  letter-spacing:.18em;text-transform:uppercase;color:#84847c">Choose a wallet</div>
+      <div id="wl"></div></div>`;
+    const wl = back.querySelector('#wl');
+    list.forEach(w => {
+      const b = document.createElement('button');
+      b.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;text-align:left;' +
+        'font-family:var(--mono);font-size:12px;background:none;border:none;' +
+        'border-bottom:1px solid var(--rule);padding:13px 16px;cursor:pointer;min-height:48px';
+      b.innerHTML = (w.info.icon ? `<img src="${w.info.icon}" alt="" style="width:22px;height:22px">` : '') +
+        `<span>${w.info.name}</span>`;
+      b.onclick = () => { back.remove(); resolve(w); };
+      wl.appendChild(b);
+    });
+    back.addEventListener('click', e => { if (e.target === back) { back.remove(); resolve(null); } });
+    document.body.appendChild(back);
+  });
+}
+
+async function ensureChain(provider) {
+  try {
+    const id = await provider.request({ method: 'eth_chainId' });
+    if (id === CHAIN_ID) return true;
+    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID }] });
+    return true;
+  } catch (err) {
+    toast('Switch your wallet to Ethereum mainnet to continue.');
+    return false;
+  }
+}
+
+// a phone browser cannot see an installed wallet — offer the wallet's own browser
+function mobileWalletPrompt() {
+  const url = location.host + location.pathname + location.search;
+  const back = document.createElement('div');
+  back.style.cssText = 'position:fixed;inset:0;background:rgba(238,238,234,.94);z-index:60;' +
+    'display:flex;align-items:center;justify-content:center;padding:22px';
+  back.innerHTML = `<div style="background:#fff;border:1px solid var(--ink);max-width:340px;width:100%;padding:22px">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+                color:#84847c;margin-bottom:12px">Connect on mobile</div>
+    <p style="font-size:13px;line-height:1.6;margin:0 0 14px">A phone browser cannot see your wallet. Open this page
+       inside your wallet's own browser and it will connect straight away.</p>
+    <a href="https://metamask.app.link/dapp/${url}" style="display:block;text-align:center;
+       background:var(--ink);color:var(--paper);text-decoration:none;padding:13px;
+       font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase">
+       Open in MetaMask</a>
+    <a href="https://link.trustwallet.com/open_url?url=https://${url}" style="display:block;text-align:center;
+       border:1px solid var(--rule);color:var(--ink);text-decoration:none;padding:13px;margin-top:8px;
+       font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase">
+       Open in Trust Wallet</a>
+    <button id="mwClose" style="display:block;width:100%;margin-top:8px;background:none;
+       border:none;color:#84847c;font-family:var(--mono);font-size:9px;letter-spacing:.14em;
+       text-transform:uppercase;padding:10px;cursor:pointer">Not now</button>
+  </div>`;
+  back.querySelector('#mwClose').onclick = () => back.remove();
+  back.addEventListener('click', e => { if (e.target === back) back.remove(); });
+  document.body.appendChild(back);
+}
+
+async function connectWallet() {
+  const w = await chooseWallet();
+  if (!w) {
+    if (IS_TOUCH || /iPhone|iPad|Android/i.test(navigator.userAgent)) { mobileWalletPrompt(); return null; }
+    toast('No Ethereum wallet found in this browser.');
+    return null;
+  }
+  PROVIDER = w.provider;
+  rememberWallet(w.info && w.info.uuid);
+  const accts = await PROVIDER.request({ method: 'eth_requestAccounts' });
+  await ensureChain(PROVIDER);
+  PROVIDER.on && PROVIDER.on('accountsChanged', a => { ACCOUNT = a[0] || null; paintMintUI(); });
+  return accts[0];
+}
+
+const SEL_MINT = '0xa0712d68';                     // mint(uint256)
+const SEL_PRICE = '0x6817c76c';                    // mintPrice()
+let MINT_PRICE_WEI = null;                          // exact, from the contract — never assumed
+const pad32 = n => n.toString(16).padStart(64, '0');
+
+async function loadMintPrice() {
+  try {
+    const hex = await rpc('eth_call', [{ to: CONTRACT, data: SEL_PRICE }, 'latest']);
+    MINT_PRICE_WEI = BigInt(hex);
+    const eth = Number(MINT_PRICE_WEI) / 1e18;
+    document.getElementById('m-price').textContent = eth + ' ETH \u00b7 max 10 per wallet';
+  } catch (e) { /* the static 0.005 ETH label stands until the contract answers */ }
+}
+
+async function waitForTx(hash, tries = 60) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await rpc('eth_getTransactionReceipt', [hash]);
+      if (r && r.blockNumber) {
+        if (BigInt(r.status) === 0n) throw new Error('reverted');
+        return r;
+      }
+    } catch (e) { if (e.message === 'reverted') throw e; }
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  throw new Error('timed out waiting for the block');
+}
+
+let MINT_QTY = 1;
+const mGo = document.getElementById('m-go');
+function paintMintUI() {
+  document.getElementById('m-qty').textContent = MINT_QTY;
+  document.getElementById('m-wallet').textContent = ACCOUNT
+    ? ACCOUNT.slice(0, 6) + '\u2026' + ACCOUNT.slice(-4) : 'not connected';
+  if (painted !== null && painted >= TOTAL) { mGo.disabled = true; mGo.textContent = 'SOLD OUT'; return; }
+  mGo.textContent = ACCOUNT ? ('MINT ' + MINT_QTY + (MINT_QTY > 1 ? ' PIXELS' : ' PIXEL')) : 'CONNECT WALLET';
+}
+document.getElementById('m-minus').addEventListener('click', e => {
+  e.stopPropagation(); MINT_QTY = Math.max(1, MINT_QTY - 1); paintMintUI(); });
+document.getElementById('m-plus').addEventListener('click', e => {
+  e.stopPropagation(); MINT_QTY = Math.min(10, MINT_QTY + 1); paintMintUI(); });
+
+async function sendMint(qty) {
+  if (!ACCOUNT) return;
+  if (!(await ensureChain(PROVIDER))) return;
+  if (MINT_PRICE_WEI === null) await loadMintPrice();
+  if (MINT_PRICE_WEI === null) { toast('Could not read the mint price from the contract.'); return; }
+  const wei = MINT_PRICE_WEI * BigInt(qty);        // exact, from the contract
+  try {
+    mGo.disabled = true; mGo.textContent = 'CONFIRM IN WALLET';
+    const hash = await PROVIDER.request({ method: 'eth_sendTransaction', params: [{
+      from: ACCOUNT, to: CONTRACT, value: '0x' + wei.toString(16),
+      data: SEL_MINT + pad32(qty)
+    }] });
+    mGo.textContent = 'MINTING\u2026';
+    toast('Sent. Waiting for the block.');
+    await waitForTx(hash);
+    mGo.disabled = false;
+    toast('Minted. Welcome to the canvas.');
+    // the room reacts: re-read the truth and repaint every surface that shows it
+    const n = await readMinted();
+    if (n !== null) {
+      painted = n;
+      drawCount(); countTex.needsUpdate = true;
+      kScreenMat.emissiveMap = kioskScreenTex(); kScreenMat.needsUpdate = true;
+      refreshMintPanel();
+    }
+    paintMintUI();
+  } catch (err) {
+    mGo.disabled = false; paintMintUI();
+    toast(err && err.code === 4001 ? 'Cancelled in your wallet.' : 'Mint failed. Check your wallet.');
+  }
+}
+
+mGo.addEventListener('click', async e => {
+  e.stopPropagation();
+  if (mGo.disabled) return;
+  if (!ACCOUNT) {
+    mGo.disabled = true; mGo.textContent = 'CONNECTING\u2026';
+    try { ACCOUNT = await connectWallet(); } finally { mGo.disabled = false; paintMintUI(); }
+  } else {
+    sendMint(MINT_QTY);
+  }
+});
+paintMintUI();
+loadMintPrice();
+
 function openMint() {
   if (panelOpen) return;
   panelOpen = true; mintwrap.classList.add('on');
