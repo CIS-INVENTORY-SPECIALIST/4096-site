@@ -229,7 +229,7 @@
 <div id="pixhud"><div class="sw"></div><div class="rows">
   <div><b id="ph-id">—</b> <span class="dim" id="ph-xy"></span></div>
   <div class="dim" id="ph-state">—</div>
-  <div class="dim">owner — &nbsp;·&nbsp; last trade —</div>
+  <div class="dim" id="ph-owner">owner —</div>
 </div></div>
 <button id="mute" title="mute / unmute">♪</button>
 <div id="wizwrap">
@@ -396,9 +396,8 @@ level  255  202  153  110  71   38   13   0</pre>
       <section class="leaf" id="bro-visit">
         <h4>VISIT</h4>
         <h3>Your pixels</h3>
-        <p class="dim">Wallet view is coming to the gallery. For now, connect on
-        <a href="/explore.html">the full site</a> to see the pixels you hold, their colours,
-        and their full trade history.</p>
+        <p class="dim">To see the pixels you hold, their colours, and their full trade
+        history, connect on <a href="/explore.html">the full site</a>.</p>
         <p>Minting is open at the kiosk beside the canvas, or any time on
         <a href="/explore.html">the full site</a>. The auction opens only when the last sale
         happens — the roped piece on the charcoal wall is waiting for it.</p>
@@ -409,7 +408,7 @@ level  255  202  153  110  71   38   13   0</pre>
 <div id="hint">WASD / ARROWS TO MOVE&nbsp;&nbsp;·&nbsp;&nbsp;MOVE MOUSE TO LOOK&nbsp;&nbsp;·&nbsp;&nbsp;ESC TO RELEASE</div>
 <div id="enter">
   <h1>4096</h1>
-  <div class="sub">A room built by its own market. Walk in — the canvas is on the far wall, and it's alive.</div>
+  <div class="sub">A room built by its own market. The canvas is on the far wall, still being painted.</div>
   <div class="go">CLICK TO ENTER</div>
   <div class="keys">WASD or ARROW KEYS to move · MOVE MOUSE to look</div>
 </div>
@@ -427,7 +426,7 @@ level  255  202  153  110  71   38   13   0</pre>
       <div class="qty"><button id="m-minus" aria-label="Fewer">−</button><span id="m-qty">1</span><button id="m-plus" aria-label="More">+</button></div>
       <button class="cta" id="m-go">CONNECT WALLET</button>
     </div>
-    <p class="note" id="m-note">The transaction is sent from your own wallet, on Ethereum mainnet.</p>
+    <p class="note" id="m-note">The transaction comes from your own wallet, on Ethereum mainnet.</p>
   </div>
 </div>
 
@@ -460,7 +459,7 @@ const DEBUG = location.search.includes('debug');   // ?debug: status line + wind
 const IS_TOUCH = navigator.maxTouchPoints > 0 && matchMedia('(pointer:coarse)').matches;
 if (IS_TOUCH) {
   document.body.classList.add('touch');
-  document.getElementById('hint').textContent = 'STICKS TO MOVE & LOOK  ·  TAP A PIECE TO VIEW';
+  document.getElementById('hint').textContent = 'STICKS MOVE & LOOK · TAP A PIECE';
   document.getElementById('prompt').textContent = 'TAP TO OPEN';
   document.querySelector('#enter .go').textContent = 'TAP TO ENTER';
   document.querySelector('#enter .keys').textContent = 'LEFT STICK to move · RIGHT STICK to look';
@@ -501,8 +500,10 @@ const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'),
 renderer.setSize(innerWidth, innerHeight);
 // QUALITY is the one render-resolution knob. The governor below only ever LOWERS it,
 // so weak devices settle smooth and it never oscillates. Touch starts lighter.
-let QUALITY = IS_TOUCH ? Math.min(devicePixelRatio, 1.0) : Math.min(devicePixelRatio, 1.5);
-const Q_FLOOR = IS_TOUCH ? 0.7 : 0.9;
+// touch cap was 1.0 — HALF of a dpr-2 phone's pixels, and the room read blurry next to
+// the razor-sharp DOM overlays. 1.5 is sharp; the governor still lowers weak phones.
+let QUALITY = IS_TOUCH ? Math.min(devicePixelRatio, 1.5) : Math.min(devicePixelRatio, 1.5);
+const Q_FLOOR = IS_TOUCH ? 1.0 : 0.9;
 renderer.setPixelRatio(QUALITY);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -515,6 +516,9 @@ scene.background = new THREE.Color(0xeae8e1);
 // feel too big / hazy. Removed. Don't re-add without asking.
 const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.05, 160);
 camera.position.set(0, 1.6, 15);   // spawn just inside the door, looking down the long axis at the hero
+// portrait's narrow horizontal FOV made the threshold panel's edge bisect the first
+// view. A step right keeps the panel-arc on desktop and opens the room on phones.
+if (innerHeight > innerWidth) camera.position.x = 1.1;
 
 // ---- procedural wood ----
 function woodTexture() {
@@ -647,6 +651,14 @@ function stepCove(dt) {
   wall(segW, RH, -(0.7 + segW / 2), RH / 2, RD / 2, Math.PI);
   wall(segW, RH, (0.7 + segW / 2), RH / 2, RD / 2, Math.PI);
   wall(1.4, RH - 2.5, 0, 2.5 + (RH - 2.5) / 2, RD / 2, Math.PI);
+  // door casing: from mid-room the opening read as a flat black slab floating on the
+  // wall. A dark jamb + lintel frames the void as a doorway.
+  const caseMat = new THREE.MeshStandardMaterial({ color: 0x22222a, roughness: 0.5, metalness: 0.4 });
+  const jambL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.56, 0.22), caseMat);
+  jambL.position.set(-0.76, 1.28, RD / 2 - 0.02); scene.add(jambL);
+  const jambR = jambL.clone(); jambR.position.x = 0.76; scene.add(jambR);
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.64, 0.12, 0.22), caseMat);
+  lintel.position.set(0, 2.56, RD / 2 - 0.02); scene.add(lintel);
 }
 wall(RD, RH, -RW / 2, RH / 2, 0, Math.PI / 2); wall(RD, RH, RW / 2, RH / 2, 0, -Math.PI / 2);
 
@@ -793,7 +805,9 @@ async function loadHeroCanvas(first) {
       if (n === null) return;                      // chain silent — the snapshot stands
       for (let i = 0; i < N * N; i++) {
         const on = i < n;
-        base[i * 3] = on ? 1 : 214 / 255; base[i * 3 + 1] = on ? 1 : 213 / 255; base[i * 3 + 2] = on ? 1 : 205 / 255;
+        // wall-only tone: the site's 214/213/205 vanished against white under gallery light;
+        // deeper ground here so the minted region actually reads across the room
+        base[i * 3] = on ? 1 : 196 / 255; base[i * 3 + 1] = on ? 1 : 194 / 255; base[i * 3 + 2] = on ? 1 : 184 / 255;
       }
       heroLive = true; repaintBase();
       // real motion only: flash cells that ACTUALLY minted since the last read
@@ -806,11 +820,13 @@ async function loadHeroCanvas(first) {
       const rawP = await ethCall(CONTRACT, SEL_POSPACK);
       const bodyC = rawC.slice(2 + 64 + 64);
       for (let i = 0; i < N * N; i++) { base[i * 3] = 1; base[i * 3 + 1] = 1; base[i * 3 + 2] = 1; }
+      POS_INV = new Array(N * N);                            // cell -> token, for the inspector
       for (let w = 0; w < 256; w++) {
         const v = BigInt('0x' + rawP.slice(2 + w * 64, 2 + w * 64 + 64));
         for (let k = 0; k < 16; k++) {
           const tok = w * 16 + k;
           const g = Number((v >> BigInt(k * 16)) & 0xFFFFn);
+          POS_INV[g] = tok;
           base[g * 3]     = parseInt(bodyC.slice(tok * 6,     tok * 6 + 2), 16) / 255;
           base[g * 3 + 1] = parseInt(bodyC.slice(tok * 6 + 2, tok * 6 + 4), 16) / 255;
           base[g * 3 + 2] = parseInt(bodyC.slice(tok * 6 + 4, tok * 6 + 6), 16) / 255;
@@ -887,7 +903,7 @@ function plaque(title, sub, w, accent, dark = false) {
     g.strokeStyle = dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)'; g.lineWidth = 4; g.strokeRect(3, 3, 762, 186);
     if (accent) { g.fillStyle = accent; g.fillRect(3, 3, 13, 186); }
     g.textAlign = 'left';
-    g.fillStyle = dark ? '#f4f2ec' : '#26241f'; g.font = '400 44px "Libre Baskerville", Georgia, serif'; g.fillText(title, 44, 82);
+    g.fillStyle = dark ? '#f4f2ec' : '#26241f'; g.font = '400 52px "Libre Baskerville", Georgia, serif'; g.fillText(title, 44, 84);
     g.fillStyle = dark ? '#9a958c' : '#8a867d'; g.font = '400 26px "IBM Plex Mono", monospace'; g.letterSpacing = '1px'; g.fillText(sub, 46, 134);
     g.letterSpacing = '0px';
   };
@@ -1285,7 +1301,7 @@ const vitTop = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.06, 4.72), oakMat);
 vitTop.position.y = 0.75; vitTop.castShadow = true; vit.add(vitTop);
 // display case: glass cover + three mounted pixels, so it reads as a vitrine and not a bare counter
 const vitGlass = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.34, 4.5),
-  new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.12 }));
+  new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.04, metalness: 0.1, transparent: true, opacity: 0.22 }));   // 0.12 was invisible — the case read as open air
 vitGlass.position.y = 0.95; vit.add(vitGlass);
 // the three channels, one cube each in the site's own channel colours, with its rule
 function ruleCard(title, hex, l1, l2) {
@@ -1312,7 +1328,7 @@ function ruleCard(title, hex, l1, l2) {
     new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 0.9 }));
   plate.position.set(0, 0.79, pz + 0.42); vit.add(plate);
   const pix = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22),
-    new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.5, roughness: 0.5 }));
+    new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.12, roughness: 0.35 }));   // 0.5 emissive read as toy blocks, not pigment
   pix.position.set(0, 0.91, pz + 0.42); pix.rotation.y = 0.5; vit.add(pix);   // slight turn so two faces catch light
   const cardMat = new THREE.MeshStandardMaterial({ map: ruleCard(ti, '#' + col.toString(16).padStart(6, '0'), a, b), roughness: 0.9 });
   const card = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.281), cardMat);
@@ -1499,17 +1515,29 @@ SECTIONS.forEach(sec => {
 // Abstract matte figures (tapered body + head, no faces, no rigged walking) — silhouettes
 // of gallery-goers, in keeping with the austere look. Continuous quiet life, not decoration.
 function figureMesh(col, h = 1.7) {
-  // human silhouette, still abstract: legs → torso with SHOULDERS → neck gap → head.
-  // the single-taper version read as a chess pawn / stanchion, not a person
+  // human silhouette, still abstract. Survey verdict on the last pass: capsule + floating
+  // sphere read as "a bollard that grew a head". This one: two legs, a waist, shoulders,
+  // a seated head (no gap), and a soft ground shadow. Still faceless, still quiet.
   const g = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.95, metalness: 0 });
-  const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.13, h * 0.48, 12), mat);
-  legs.position.y = h * 0.24 + 0.01; legs.castShadow = true; g.add(legs);
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, h * 0.30, 4, 12), mat);
-  torso.scale.set(1.15, 1, 0.62);                          // broad shoulders, slim profile
-  torso.position.y = h * 0.48 + h * 0.15 + 0.02; torso.castShadow = true; g.add(torso);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 14, 10), mat);
-  head.position.y = h - 0.085; head.castShadow = true; g.add(head);   // clear neck gap below
+  for (const s of [-1, 1]) {                                 // two legs, slight stance
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.06, h * 0.47, 10), mat);
+    leg.position.set(s * 0.065, h * 0.235 + 0.01, 0); leg.castShadow = true; g.add(leg);
+  }
+  const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.095, h * 0.10, 12), mat);
+  hips.scale.set(1, 1, 0.72); hips.position.y = h * 0.50; hips.castShadow = true; g.add(hips);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.135, h * 0.26, 4, 12), mat);
+  torso.scale.set(1.22, 1, 0.58);                            // shoulders wide, profile slim
+  torso.position.y = h * 0.55 + h * 0.13; torso.castShadow = true; g.add(torso);
+  for (const s of [-1, 1]) {                                 // arm masses at the sides
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.042, h * 0.30, 4, 8), mat);
+    arm.position.set(s * 0.185, h * 0.60, 0); arm.rotation.z = s * 0.06; arm.castShadow = true; g.add(arm);
+  }
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.095, 14, 10), mat);
+  head.scale.y = 1.15; head.position.y = h - 0.075; head.castShadow = true; g.add(head);
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.24, 20),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.14, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.012; g.add(shadow);   // grounds the figure
   return g;
 }
 // stations: stand a touch CLOSER to the art than the camera's glide spots — the camera spot
@@ -2080,7 +2108,7 @@ async function sendMint(qty) {
     toast('Sent. Waiting for the block.');
     await waitForTx(hash);
     mGo.disabled = false;
-    toast('Minted. Welcome to the canvas.');
+    toast('Minted. Your pixel is on the wall.');
     // the room reacts: re-read the truth and repaint every surface that shows it
     const n = await readMinted();
     if (n !== null) {
@@ -2173,6 +2201,34 @@ function checkPixel() {
   phState.textContent = (painted ? 'painted' : 'ground') + ' · ' + hex;
   phSw.style.background = hex;
   pixhud.classList.add('on');
+  queueOwner(i);
+}
+// ---- owner lookup: real ownerOf() per hovered cell, debounced and cached ----
+// cellToken(): before the shuffle the grid fills in TOKEN ORDER, so cell index IS the
+// token id. After positionsAssigned, the mapping must come from positionsPacked's
+// inverse (POS_INV, filled by loadHeroCanvas when it decodes the assigned layout).
+let POS_INV = null;                       // grid cell -> token id, post-assignment only
+function cellToken(cell) { return POS_INV ? POS_INV[cell] : cell; }
+const OWNER_CACHE = new Map();            // token id -> short address / 'unminted'
+let ownerTimer = null;
+const phOwner = document.getElementById('ph-owner');
+function queueOwner(cell) {
+  clearTimeout(ownerTimer);
+  const tok = cellToken(cell);
+  if (OWNER_CACHE.has(tok)) { phOwner.textContent = 'owner ' + OWNER_CACHE.get(tok); return; }
+  phOwner.textContent = 'owner \u2014';
+  if (painted !== null && tok >= painted) {               // beyond the minted count: nobody
+    phOwner.textContent = 'unminted'; return;
+  }
+  ownerTimer = setTimeout(async () => {
+    try {
+      const raw = await ethCall(CONTRACT, '0x6352211e' + tok.toString(16).padStart(64, '0'));
+      const addr = '0x' + raw.slice(-40);
+      const short = addr.slice(0, 6) + '\u2026' + addr.slice(-4);
+      OWNER_CACHE.set(tok, short);
+      if (lastPix !== -1 && cellToken(lastPix) === tok) phOwner.textContent = 'owner ' + short;
+    } catch (_) { /* chain silent — the dash stands */ }
+  }, 300);
 }
 function activateHot() {
   if (!hotTarget || panelOpen) return;
@@ -2275,7 +2331,7 @@ window.__coveState = () => [covePulse, coveStrip.material.emissiveIntensity, cov
 window.__glideTo = n => startGlide(glideTargets[n].view);                                           // debug, strip at final
 window.__glideN = () => glideTargets.length;                                                        // debug, strip at final
 window.__people = () => { visitors.forEach(v => v.viewT = Math.min(v.viewT, 0.1)); walker.position.x = -2; return visitors.map(v => [v.state, v.m.position.x.toFixed(1), v.m.position.z.toFixed(1)]); };
-window.__hero = () => { let white = 0, dark = 0, other = 0; for (let i = 0; i < N * N; i++) { const r = base[i*3], g = base[i*3+1], b = base[i*3+2]; if (r === 1 && g === 1 && b === 1) white++; else if (Math.abs(r - 214/255) < .002 && Math.abs(g - 213/255) < .002) dark++; else other++; } return { live: heroLive, white, dark, other }; };
+window.__hero = () => { let white = 0, dark = 0, other = 0; for (let i = 0; i < N * N; i++) { const r = base[i*3], g = base[i*3+1], b = base[i*3+2]; if (r === 1 && g === 1 && b === 1) white++; else if (Math.abs(r - 196/255) < .002 && Math.abs(g - 194/255) < .002) dark++; else other++; } return { live: heroLive, white, dark, other }; };
 }
 
 let lastW = 0, lastH = 0;
