@@ -1612,7 +1612,7 @@ const stickLook = makeStick('padR', 'knobR');           // each tracks its own t
 
 // ---- controls ----
 const controls = new PointerLockControls(camera, renderer.domElement);
-controls.pointerSpeed = 0.4;                     // calm FPS look — full speed was twitchy
+controls.pointerSpeed = 1.0;                     // natural FPS look. (was 0.4, crushed to hide the old dud-lock cursor-throw — that's fixed properly now, so the drag came back off)
 scene.add(controls.getObject());
 const enter = document.getElementById('enter'), cross = document.getElementById('cross'),
       hint = document.getElementById('hint'), promptEl = document.getElementById('prompt'),
@@ -1706,7 +1706,7 @@ function rotateCam(dyaw, dpitch) {
 // turn slow. No clicking, no modes. An edge-assist keeps turning when the cursor is
 // pinned against a screen edge (where motion deltas stop arriving).
 let curX = 0, curY = 0, haveCursor = false, lastDX = null, lastDY = null;
-const LOOK_K = 0.0022;                                          // radians per pixel of cursor travel (calmed with pointerSpeed)
+const LOOK_K = 0.0055;                                          // radians per pixel of cursor travel (raised with pointerSpeed, was 0.0022)
 addEventListener('mousemove', e => {
   curX = e.clientX; curY = e.clientY; haveCursor = true;
   if (controls.isLocked) {
