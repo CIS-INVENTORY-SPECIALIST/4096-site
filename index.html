@@ -975,7 +975,11 @@ function plaque(title, sub, w, accent, dark = false) {
     g.strokeStyle = dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)'; g.lineWidth = 4; g.strokeRect(3, 3, 762, 186);
     if (accent) { g.fillStyle = accent; g.fillRect(3, 3, 13, 186); }
     g.textAlign = 'left';
-    g.fillStyle = dark ? '#f4f2ec' : '#26241f'; g.font = '400 52px "Libre Baskerville", Georgia, serif'; g.fillText(title, 44, 84);
+    g.fillStyle = dark ? '#f4f2ec' : '#26241f';
+    // long titles truncated at the canvas edge ("THE END OF THE WORL…") — shrink to fit
+    let ts = 52; g.font = `400 ${ts}px "Libre Baskerville", Georgia, serif`;
+    while (ts > 30 && g.measureText(title).width > 768 - 88) { ts -= 2; g.font = `400 ${ts}px "Libre Baskerville", Georgia, serif`; }
+    g.fillText(title, 44, 84);
     g.fillStyle = dark ? '#9a958c' : '#8a867d'; g.font = '400 32px "IBM Plex Mono", monospace'; g.letterSpacing = '1px'; g.fillText(sub, 46, 138);
     g.letterSpacing = '0px';
   };
@@ -1030,7 +1034,7 @@ function kioskScreenTex() {
   g.fillText(IS_TOUCH ? 'look here and tap' : 'look here and click', 512, 532);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 }
-const kScreenMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: kioskScreenTex(), emissiveIntensity: 1.1, roughness: 1 });
+const kScreenMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: kioskScreenTex(), emissiveIntensity: 0.85, roughness: 1 });   // 1.1 washed to blank white at oblique angles
 const kScreen = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.46, 0.04),
   [null, null, null, null, kScreenMat, null].map(m => m || new THREE.MeshStandardMaterial({ color: 0x1c1c22, roughness: 0.45, metalness: 0.4 })));
 document.fonts.ready.then(() => { kScreenMat.emissiveMap = kioskScreenTex(); kScreenMat.needsUpdate = true; });  // redraw once Plex Mono is real
@@ -1388,7 +1392,7 @@ const vitGlass = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.34, 4.5),
   new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.04, metalness: 0.1, transparent: true, opacity: 0.22 }));   // 0.12 was invisible — the case read as open air
 vitGlass.position.y = 0.95; vit.add(vitGlass);
 // glass gleam: thin bright edges along the case's top rim — the specular cue at a glance
-const gleamMat = new THREE.MeshBasicMaterial({ color: 0xfcfdff, transparent: true, opacity: 0.5 });
+const gleamMat = new THREE.MeshBasicMaterial({ color: 0xfcfdff, transparent: true, opacity: 0.35 });
 for (const gx of [-0.52, 0.52]) {
   const edge = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.008, 4.5), gleamMat);
   edge.position.set(gx, 1.12, 0); vit.add(edge);
@@ -1418,7 +1422,7 @@ function ruleCard(title, hex, l1, l2) {
     new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 0.9 }));
   plate.position.set(0, 0.79, pz + 0.42); vit.add(plate);
   const pix = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22),
-    new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.12, roughness: 0.35 }));   // 0.5 emissive read as toy blocks, not pigment
+    new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.2, roughness: 0.35 }));   // 0.12 washed pale at angles under the gleam; 0.2 reads as pigment
   pix.position.set(0, 0.91, pz + 0.42); pix.rotation.y = 0.5; vit.add(pix);   // slight turn so two faces catch light
   const cardMat = new THREE.MeshStandardMaterial({ map: ruleCard(ti, '#' + col.toString(16).padStart(6, '0'), a, b), roughness: 0.9 });
   const card = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.281), cardMat);
@@ -1600,10 +1604,16 @@ SECTIONS.forEach(sec => {
   }
 
   // even wash across the whole bay + one accent spot on the main piece
-  // the bay wash + its spot accent, painted: one warm pool on the wall behind the trio
-  const poolTex = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.44, w * 0.5, hh * 0.46, 'rgba(255,246,234,0.35)'));
-  const pool = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 4.0), glowMat(poolTex));
-  pool.position.set(0, 2.15, 0.03); pool.renderOrder = 1; grp.add(pool);
+  // the audit's verdict: one diffuse pool read as nothing. What sells "the cans shine on
+  // the art" is a pool PER PIECE — top-bright, peaking just above each frame, falling off
+  // around it. Painted, zero light cost.
+  const pieceGlowTex = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.28, w * 0.46, hh * 0.50, 'rgba(255,242,222,0.58)'));   // peak must READ as a can's pool, not a whisper
+  const mainPool = new THREE.Mesh(new THREE.PlaneGeometry(3.7, 4.5), glowMat(pieceGlowTex));
+  mainPool.position.set(0, 2.9, 0.03); mainPool.renderOrder = 1; grp.add(mainPool);
+  [-2.45, 2.45].forEach(ox => {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(2.35, 2.9), glowMat(pieceGlowTex));
+    p.position.set(ox, 2.6, 0.03); p.renderOrder = 1; grp.add(p);
+  });
   aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5);   // fixture sits on the moved rail, over the piece
 });
 
