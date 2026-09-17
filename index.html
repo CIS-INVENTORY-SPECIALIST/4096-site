@@ -445,14 +445,33 @@ level  255  202  153  110  71   38   13   0</pre>
 <script type="module">
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-RectAreaLightUniformsLib.init();
+// ---- BAKED LIGHT overlays ----------------------------------------------------
+// The 13 RectAreaLights + 6 bay SpotLights were static, yet cost every pixel every
+// frame (measured: they + AA took the user's Mac to 14fps). Their pools are now
+// PAINTED — additive gradient overlays on the surfaces they lit. Identical look,
+// near-zero per-frame cost. Live remains live: hero emissive, cove pulse (overlay
+// opacity now), mint flashes, reveal.
+function glowTex(draw, w = 512, hgt = 512) {
+  const c = document.createElement('canvas'); c.width = w; c.height = hgt;
+  draw(c.getContext('2d'), w, hgt);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function glowMat(tex, opacity = 1) {
+  return new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity,
+    blending: THREE.AdditiveBlending, depthWrite: false });
+}
+function radial(g, x, y, rx, ry, rgba) {
+  g.save(); g.translate(x, y); g.scale(1, ry / rx);
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+  gr.addColorStop(0, rgba); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(-rx, -rx, rx * 2, rx * 2); g.restore();
+}
 
 // ---- room (enlarged so collab sections breathe) ----
 const RW = 32, RD = 34, RH = 6.2;
@@ -579,6 +598,25 @@ const woodTop = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD),
   new THREE.MeshStandardMaterial({ map: woodTexture(), roughness: 0.9, metalness: 0.0, transparent: true, opacity: 0.988,
     polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));   // offset beats the 1mm-away reflector in the depth buffer — no shimmer at grazing angles
 woodTop.rotation.x = -Math.PI / 2; woodTop.position.y = 0.001; woodTop.receiveShadow = true; scene.add(woodTop);
+// BAKED floor light: hero's warm pool, the skylight's cool wash, the door's daylight spill
+{
+  const fTex = glowTex((g, w, hh) => {
+    const px = x => (x + RW / 2) / RW * w, pz = z => (z + RD / 2) / RD * hh;
+    // skylight wash: cool, soft-edged, down the room's spine
+    const sk = g.createLinearGradient(px(-5.2), 0, px(0), 0);
+    sk.addColorStop(0, 'rgba(235,242,246,0)'); sk.addColorStop(1, 'rgba(235,242,246,0.16)');
+    g.fillStyle = sk; g.fillRect(px(-5.2), pz(-12.5), px(0) - px(-5.2), pz(12.5) - pz(-12.5));
+    const sk2 = g.createLinearGradient(px(5.2), 0, px(0), 0);
+    sk2.addColorStop(0, 'rgba(235,242,246,0)'); sk2.addColorStop(1, 'rgba(235,242,246,0.16)');
+    g.fillStyle = sk2; g.fillRect(px(0), pz(-12.5), px(5.2) - px(0), pz(12.5) - pz(-12.5));
+    // hero pool: the warm ellipse in front of the canvas
+    radial(g, px(0), pz(-14.6), px(3.1) - px(0), pz(-12.2) - pz(-14.6), 'rgba(255,240,214,0.42)');
+    // door spill: daylight reaching just inside
+    radial(g, px(0), pz(15.6), px(1.6) - px(0), pz(17) - pz(15.6), 'rgba(244,239,226,0.42)');
+  });
+  const fGlow = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), glowMat(fTex));
+  fGlow.rotation.x = -Math.PI / 2; fGlow.position.y = 0.0075; fGlow.renderOrder = 1; scene.add(fGlow);
+}
 
 // SKYLIGHT: a real one — an actual opening in the ceiling with a recessed well rising to a
 // sky-gradient pane, divided by mullions. The three tells of a skylight: depth, glass grid, sky.
@@ -619,10 +657,9 @@ const SKY_W = 3.5, SKY_L = 24, WELL_H = 0.55;
   }
   const spine = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, SKY_L), mulMat);
   spine.position.set(0, RH + WELL_H - 0.09, 0); scene.add(spine);
-  // the actual daylight cast into the room: two long soft area lights, cool-neutral
-  for (const dz of [-6, 6]) {
-    const day = new THREE.RectAreaLight(0xf1f5f6, 0.9, SKY_W, 12);
-    day.position.set(0, RH - 0.02, dz); day.lookAt(0, 0, dz); scene.add(day);
+  // the daylight cast into the room is BAKED into the floor overlay (was two RectAreaLights)
+  for (const dz of []) {
+    const day = null; if (day) scene.add(day);
   }
 }
 // quiet ceiling structure: two recessed vent/service slots running the room's length,
@@ -651,22 +688,31 @@ wall(RW, RH, 0, RH / 2, -RD / 2, 0, heroWallMat);
 // wash. reads as designed architecture, not the accidental glow the hero spot was throwing.
 // refs kept module-scoped so the mint handler can pulse the cove — the room breathes
 // with the market (motion reports state: fires on mint events only, never idly)
-let coveStrip = null, coveWash = null, covePulse = 0;
+let coveStrip = null, coveGlowPulse = null, covePulse = 0;
 const COVE_STRIP_REST = 1.6, COVE_WASH_REST = 2.2;
 {
   const coveY = RH - 0.28, coveZ = -RD / 2 + 0.12;
   coveStrip = new THREE.Mesh(new THREE.BoxGeometry(RW - 0.1, 0.07, 0.07),   // spans nearly wall-to-wall; the RW-1.2 version left floating ends at the corners
     new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffdca8, emissiveIntensity: COVE_STRIP_REST, roughness: 1 }));
   coveStrip.position.set(0, coveY, coveZ); scene.add(coveStrip);
-  coveWash = new THREE.RectAreaLight(0xffe6bf, COVE_WASH_REST, RW - 1.2, 1.4);
-  coveWash.position.set(0, coveY - 0.1, coveZ + 0.05); coveWash.lookAt(0, coveY - 2.2, coveZ); scene.add(coveWash);
+  // the wash the cove threw down the charcoal wall, painted: warm band fading downward
+  const bandTex = glowTex((g, w, hh) => {
+    const gr = g.createLinearGradient(0, 0, 0, hh);
+    gr.addColorStop(0, 'rgba(255,230,191,0.34)'); gr.addColorStop(1, 'rgba(255,230,191,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, w, hh);
+  }, 64, 128);
+  const band = new THREE.Mesh(new THREE.PlaneGeometry(RW - 1.4, 1.7), glowMat(bandTex));
+  band.position.set(0, coveY - 0.95, coveZ + 0.065); band.renderOrder = 1; scene.add(band);
+  // the market pulse stays ALIVE: same band, opacity driven by covePulse in stepCove
+  coveGlowPulse = new THREE.Mesh(new THREE.PlaneGeometry(RW - 1.4, 1.7), glowMat(bandTex, 0));
+  coveGlowPulse.position.set(0, coveY - 0.95, coveZ + 0.07); coveGlowPulse.renderOrder = 1; scene.add(coveGlowPulse);
 }
 function stepCove(dt) {
   if (covePulse <= 0) return;
   covePulse = Math.max(0, covePulse - dt / 0.8);          // one breath: swell handed in, ~0.8s decay
   const e = covePulse * covePulse;                        // ease-out
   coveStrip.material.emissiveIntensity = COVE_STRIP_REST + 3.4 * e;
-  coveWash.intensity = COVE_WASH_REST + 4.2 * e;
+  coveGlowPulse.material.opacity = Math.min(1, 0.8 * e);   // the wall flare, as paint
 }
 // spawn wall in three segments — a real doorway at x=0 (1.4 x 2.5) opens to the street outside
 {
@@ -756,8 +802,8 @@ function aimedSpot(tx, ty, tz, px, pz, intensity = 48) {
   stem.position.set(px, RH - 0.1, pz); scene.add(stem);
   // wide cone + high penumbra: an accent glow, not a flashlight — the tight bright
   // cone was blowing a glare circle onto the top of every main piece
-  const s = new THREE.SpotLight(0xfff2e2, intensity, 16, Math.PI / 4.4, 0.9, 1.2);   // wider + near-full penumbra: no oval hotspot on the wall
-  s.position.set(px, py, pz); s.target.position.set(tx, ty, tz); scene.add(s, s.target);
+  // (the SpotLight is gone — its accent is baked into the bay's painted pool; the
+  //  fixture + glowing lens above still SAY light, which is what the eye needs)
 }
 
 // ---- HERO: live 64x64 canvas that glows + flashes on "mint" ----
@@ -889,12 +935,16 @@ hero.position.z = 0.08; heroGrp.add(hero);   // the living canvas IS the chamber
 // piece tweens the camera there. Doubles as the escape hatch when mouse-look fails.
 const glideTargets = [];
 glideTargets.push({ obj: hero, view: { pos: [0, 1.6, -10.4], look: [0, 3.1, -16.94] } });
-const heroLight = new THREE.RectAreaLight(0xffffff, 1.5, HS + 1.8, HS + 1.8);
-heroLight.position.set(0, 0, 1.4); heroLight.lookAt(0, 0, 0); heroGrp.add(heroLight);
+// heroLight (RectAreaLight) baked: a soft halo painted on the charcoal wall around the
+// canvas — the glow the canvas threw back at its own wall
+{
+  const haloTex = glowTex((g, w, hh) => radial(g, w / 2, hh / 2, w * 0.5, hh * 0.5, 'rgba(255,248,238,0.30)'));
+  const halo = new THREE.Mesh(new THREE.PlaneGeometry(HS + 6.4, HS + 3.6), glowMat(haloTex));
+  halo.position.set(0, 3.1, -RD / 2 + 0.035); halo.renderOrder = 1; scene.add(halo);
+}
 // (the dark floor "runner" was removed — it read as a grey slab and z-fought the wood
 // floor, causing movement flicker. The hero approach is now lit by a floor pool instead.)
-const heroPool = new THREE.RectAreaLight(0xfff4e4, 1.15, 4.6, 3.4);
-heroPool.position.set(0, 2.6, -14.6); heroPool.lookAt(0, 0, -14.6); scene.add(heroPool);
+// heroPool's warm floor pool is painted in the floorGlow overlay (see below)
 // the hero's light gets a SOURCE: a short ceiling track with three aimed cans over the
 // approach, matching the bay fixtures — visual only, the existing lights do the work
 {
@@ -1203,8 +1253,12 @@ const farBase = new THREE.Mesh(new THREE.BoxGeometry(48, 0.5, 0.4),
   new THREE.MeshStandardMaterial({ color: 0x74726b, roughness: 0.95 }));
 farBase.position.set(0, 0.25, 13.9); doorG.add(farBase);
 // daylight over the street so the cars aren't unlit silhouettes
-const streetSun = new THREE.RectAreaLight(0xf4efe2, 0.85, 30, 14);
-streetSun.position.set(0, 8, 6.5); streetSun.lookAt(0, 0, 6.5); doorG.add(streetSun);
+// streetSun baked: a soft daylight sheet over the sidewalk outside the door
+{
+  const swTex = glowTex((g, w, hh) => radial(g, w / 2, hh / 2, w * 0.5, hh * 0.55, 'rgba(244,239,226,0.30)'));
+  const sw = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), glowMat(swTex));
+  sw.rotation.x = -Math.PI / 2; sw.position.set(0, 0.02, 3.2); sw.renderOrder = 1; doorG.add(sw);
+}
 // threshold sill grounds the opening
 const sill = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.045, 0.5),
   new THREE.MeshStandardMaterial({ color: 0x26241f, roughness: 0.7 }));
@@ -1233,8 +1287,7 @@ function parkedCar(x, z, col) {
   });
 }
 parkedCar(-3.4, 4.2, 0x8c3340); parkedCar(3.8, 4.2, 0x9a978f);   // one colour, one neutral — two jewel tones read staged
-const dayGlow = new THREE.RectAreaLight(0xf4efe2, 5.0, 1.4, 2.5);   // brighter: the daylight spill reads from across the room
-dayGlow.position.set(0, 1.35, -0.05); dayGlow.lookAt(0, 1.35, -6); doorG.add(dayGlow);
+// dayGlow's interior floor spill is painted in the floorGlow overlay (see below)
 // small brushed-metal gallery plate beside the door — signage, not marketing copy
 {
   const pc = document.createElement('canvas'); pc.width = 320; pc.height = 132; const pg = pc.getContext('2d');
@@ -1557,8 +1610,10 @@ SECTIONS.forEach(sec => {
   }
 
   // even wash across the whole bay + one accent spot on the main piece
-  const wash = new THREE.RectAreaLight(0xfff6ea, 0.78, 7.0, 3.4);   // dimmed a touch per review
-  wash.position.set(0, 2.3, 1.5); wash.lookAt(0, 2.3, 0); grp.add(wash);
+  // the bay wash + its spot accent, painted: one warm pool on the wall behind the trio
+  const poolTex = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.44, w * 0.5, hh * 0.46, 'rgba(255,246,234,0.30)'));
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 4.0), glowMat(poolTex));
+  pool.position.set(0, 2.15, 0.03); pool.renderOrder = 1; grp.add(pool);
   aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5);   // fixture sits on the moved rail, over the piece
 });
 
@@ -2401,7 +2456,8 @@ if (DEBUG) {   // diagnostics live only behind ?debug
 window.__paint = (i, r, g, b) => { base[i * 3] = r; base[i * 3 + 1] = g; base[i * 3 + 2] = b; drawCell(i, r, g, b); heroTex.needsUpdate = true; };
 window.__mint = demoMint;
 window.__cam = (px, py, pz, lx, ly, lz) => { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); };
-window.__coveState = () => [covePulse, coveStrip.material.emissiveIntensity, coveWash.intensity];   // debug, strip at final
+window.__coveState = () => [covePulse, coveStrip.material.emissiveIntensity, coveGlowPulse.material.opacity];   // debug, strip at final
+window.__lights = on => { let n = 0; scene.traverse(o => { if (o.isRectAreaLight || o.isSpotLight) { if (!on) { o.userData._i = o.intensity; o.intensity = 0; } else if (o.userData._i !== undefined) o.intensity = o.userData._i; n++; } }); return n; };   // bake A/B tool
 window.__glideTo = n => startGlide(glideTargets[n].view);                                           // debug, strip at final
 window.__glideN = () => glideTargets.length;                                                        // debug, strip at final
 window.__people = () => { if (!PEOPLE_ON) return 'people off'; visitors.forEach(v => v.viewT = Math.min(v.viewT, 0.1)); walker.position.x = -2; return visitors.map(v => [v.state, v.m.position.x.toFixed(1), v.m.position.z.toFixed(1)]); };
