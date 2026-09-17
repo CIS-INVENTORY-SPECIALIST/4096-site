@@ -38,6 +38,10 @@
     user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
   #mute,#broDock,#wizok,#brox{touch-action:manipulation;}
   #c{display:block;opacity:0;transition:opacity 1.4s ease;}
+  /* gallery vignette: a whisper of edge darkening over the scene, under every UI layer.
+     CSS, not a shader pass — zero GPU cost on the render pipeline. */
+  #vig{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 46%, transparent 62%, rgba(20,20,24,.14) 100%);}
   #c.lit{opacity:1;}
   #c.walk{cursor:none;}   /* the crosshair is the cursor while walking */
   #cross{position:fixed;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;
@@ -54,8 +58,8 @@
   #enter .go{margin-top:30px;font-size:11px;letter-spacing:.3em;color:#3a382f;border:1px solid rgba(40,38,32,.28);
     padding:13px 26px;border-radius:2px;text-indent:.3em;}
   #enter .keys{margin-top:22px;font-size:10.5px;letter-spacing:.16em;color:#96928a;}
-  #hint{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-size:10.5px;letter-spacing:.16em;
-    color:#f1f1f3;background:rgba(22,22,26,.62);padding:9px 18px 9px 20px;border-radius:22px;
+  #hint{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-size:9.5px;letter-spacing:.15em;
+    color:#f1f1f3;background:rgba(22,22,26,.55);padding:7px 15px 7px 17px;border-radius:20px;
     pointer-events:none;opacity:0;transition:opacity .4s;z-index:5;text-indent:.16em;box-shadow:0 2px 12px rgba(0,0,0,.25);}
   #hint.on{opacity:1;}
   #lookstat{position:fixed;left:12px;bottom:12px;z-index:7;font-family:var(--mono);font-size:10px;
@@ -223,6 +227,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="vig"></div>
 <div id="cross"></div>
 <div id="lookstat"></div>
 <div id="prompt">CLICK TO OPEN</div>
@@ -546,14 +551,24 @@ function woodTexture() {
 }
 
 const wallMat = new THREE.MeshStandardMaterial({ color: 0xefede7, roughness: 0.94 });
+// soft contact shadow — the visitor-figure disc, made reusable. Grounds furniture that
+// otherwise floats: real shadowMap light comes from one angle only, so bases read lifted.
+function contactShadow(parent, x, z, r, sx = 1, sz = 1, op = 0.13) {
+  const s = new THREE.Mesh(new THREE.CircleGeometry(r, 20),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: op, depthWrite: false }));
+  s.rotation.x = -Math.PI / 2; s.scale.set(sx, sz, 1); s.position.set(x, 0.012, z);
+  parent.add(s); return s;
+}
 const ceilMat = new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 1.0, emissive: 0xf0eee8, emissiveIntensity: 0.09 });
 
 // floor: faint sheen only — mirror kept very dim under near-opaque wood
-const reflector = new Reflector(new THREE.PlaneGeometry(RW, RD), {
-  textureWidth: 512, textureHeight: 512, color: 0x0c0c0c });   // darker = fainter mirror; the floor was reading polished-marble
-reflector.rotation.x = -Math.PI / 2; scene.add(reflector);
+if (!IS_TOUCH) {   // touch skips the mirror pass entirely — sheen is not worth the GPU there
+  const reflector = new Reflector(new THREE.PlaneGeometry(RW, RD), {
+    textureWidth: 512, textureHeight: 512, color: 0x161618 });   // one notch up from 0x0c0c0c — gallery sheen, still far from the marble look that got it dialed down
+  reflector.rotation.x = -Math.PI / 2; scene.add(reflector);
+}
 const woodTop = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD),
-  new THREE.MeshStandardMaterial({ map: woodTexture(), roughness: 0.9, metalness: 0.0, transparent: true, opacity: 0.994,
+  new THREE.MeshStandardMaterial({ map: woodTexture(), roughness: 0.9, metalness: 0.0, transparent: true, opacity: 0.988,
     polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));   // offset beats the 1mm-away reflector in the depth buffer — no shimmer at grazing angles
 woodTop.rotation.x = -Math.PI / 2; woodTop.position.y = 0.001; woodTop.receiveShadow = true; scene.add(woodTop);
 
@@ -904,7 +919,7 @@ function plaque(title, sub, w, accent, dark = false) {
     if (accent) { g.fillStyle = accent; g.fillRect(3, 3, 13, 186); }
     g.textAlign = 'left';
     g.fillStyle = dark ? '#f4f2ec' : '#26241f'; g.font = '400 52px "Libre Baskerville", Georgia, serif'; g.fillText(title, 44, 84);
-    g.fillStyle = dark ? '#9a958c' : '#8a867d'; g.font = '400 26px "IBM Plex Mono", monospace'; g.letterSpacing = '1px'; g.fillText(sub, 46, 134);
+    g.fillStyle = dark ? '#9a958c' : '#8a867d'; g.font = '400 32px "IBM Plex Mono", monospace'; g.letterSpacing = '1px'; g.fillText(sub, 46, 138);
     g.letterSpacing = '0px';
   };
   draw();
@@ -936,25 +951,27 @@ hp.position.set(HS / 2 + 1.0, -0.75, 0.01); heroGrp.add(hp);
 
 // ---- MINT KIOSK: floor stand + angled screen beside the hero ----
 const kiosk = new THREE.Group(); kiosk.position.set(8.9, 0, -14.4); kiosk.rotation.y = -0.55; scene.add(kiosk);
+contactShadow(kiosk, 0, 0, 0.42);
 const postMat = new THREE.MeshStandardMaterial({ color: 0x2a2a30, roughness: 0.42, metalness: 0.55 });
 const kBase = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.05, 28), postMat);
 kBase.position.y = 0.025; kBase.castShadow = true; kiosk.add(kBase);
 const kPost = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 1.05, 20), postMat);
 kPost.position.y = 0.55; kPost.castShadow = true; kiosk.add(kPost);
 function kioskScreenTex() {
-  // paper card on the stand, in the site's own language: mono data, hairline rule, ink on paper
-  const c = document.createElement('canvas'); c.width = 512; c.height = 384; const g = c.getContext('2d');
-  g.fillStyle = '#eeeeea'; g.fillRect(0, 0, 512, 384);
-  g.strokeStyle = '#d2d2ca'; g.lineWidth = 4; g.strokeRect(6, 6, 500, 372);
-  g.fillStyle = '#1b1b19'; g.font = '500 28px "IBM Plex Mono", monospace'; g.textAlign = 'center';
-  g.letterSpacing = '8px';
-  g.fillText('MINT A PIXEL', 256, 140);
-  g.fillStyle = '#d2d2ca'; g.fillRect(146, 170, 220, 2);
-  g.fillStyle = '#1b1b19'; g.font = '400 24px "IBM Plex Mono", monospace'; g.letterSpacing = '2px';
-  g.fillText(`${painted ?? '\u2014'} / ${TOTAL}`, 256, 222);
-  g.fillStyle = '#84847c'; g.font = '400 16px "IBM Plex Mono", monospace';
-  g.fillText(IS_TOUCH ? 'look here and tap' : 'look here and click', 256, 266);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  // paper card on the stand, in the site's own language: mono data, hairline rule, ink on
+  // paper. Drawn at 2x (1024px) — at 512 the type went soft at reading distance.
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 768; const g = c.getContext('2d');
+  g.fillStyle = '#eeeeea'; g.fillRect(0, 0, 1024, 768);
+  g.strokeStyle = '#d2d2ca'; g.lineWidth = 8; g.strokeRect(12, 12, 1000, 744);
+  g.fillStyle = '#1b1b19'; g.font = '500 56px "IBM Plex Mono", monospace'; g.textAlign = 'center';
+  g.letterSpacing = '16px';
+  g.fillText('MINT A PIXEL', 512, 280);
+  g.fillStyle = '#d2d2ca'; g.fillRect(292, 340, 440, 4);
+  g.fillStyle = '#1b1b19'; g.font = '400 48px "IBM Plex Mono", monospace'; g.letterSpacing = '4px';
+  g.fillText(`${painted ?? '\u2014'} / ${TOTAL}`, 512, 444);
+  g.fillStyle = '#84847c'; g.font = '400 32px "IBM Plex Mono", monospace';
+  g.fillText(IS_TOUCH ? 'look here and tap' : 'look here and click', 512, 532);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 }
 const kScreenMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: kioskScreenTex(), emissiveIntensity: 1.1, roughness: 1 });
 const kScreen = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.46, 0.04),
@@ -1014,6 +1031,7 @@ function stanchion(x, z) {
   const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.04, 20), postMat2); foot.position.y = 0.02;
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.95, 14), postMat2); pole.position.y = 0.5;
   const cap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), brassMat); cap.position.y = 1.0;
+  contactShadow(g, 0, 0, 0.24);
   g.add(foot, pole, cap); foot.castShadow = pole.castShadow = true; auc.add(g); return g;
 }
 stanchion(-1.15, 1.7); stanchion(1.15, 1.7);
@@ -1025,9 +1043,25 @@ auc.add(rope);
 
 // ---- VENDING MACHINE: the other way to mint. 4x6 shelves of white pixels, a few sold out. ----
 const vend = new THREE.Group(); vend.position.set(-6, 0, RD / 2 - 0.34); vend.rotation.y = Math.PI; scene.add(vend);
+contactShadow(vend, 0, 0.1, 0.75, 1.15, 0.75);
 const vBodyMat = new THREE.MeshStandardMaterial({ color: 0x969aa0, roughness: 0.35, metalness: 0.72 });
 const vBody = new THREE.Mesh(new THREE.BoxGeometry(1.35, 2.15, 0.62), vBodyMat);
 vBody.position.y = 1.075; vBody.castShadow = true; vend.add(vBody);
+// lit header: the machine's one warm signal — a quiet illuminated nameplate, vending-real
+{
+  const hc = document.createElement('canvas'); hc.width = 512; hc.height = 96; const hg = hc.getContext('2d');
+  const drawHead = () => {
+    hg.fillStyle = '#f4f2ec'; hg.fillRect(0, 0, 512, 96);
+    hg.fillStyle = '#1b1b19'; hg.font = '500 40px "IBM Plex Mono", monospace';
+    hg.textAlign = 'center'; hg.letterSpacing = '14px'; hg.fillText('4096', 256, 62); hg.letterSpacing = '0px';
+  };
+  drawHead();
+  const ht = new THREE.CanvasTexture(hc); ht.colorSpace = THREE.SRGBColorSpace;
+  document.fonts.ready.then(() => { drawHead(); ht.needsUpdate = true; });
+  const header = new THREE.Mesh(new THREE.PlaneGeometry(1.16, 0.22),
+    new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: ht, emissiveIntensity: 0.9, roughness: 1 }));
+  header.position.set(0, 2.0, 0.312); vend.add(header);
+}
 // dark interior window recess
 const vBack = new THREE.Mesh(new THREE.BoxGeometry(1.08, 1.34, 0.5),
   new THREE.MeshStandardMaterial({ color: 0x17171a, roughness: 0.9 }));
@@ -1293,7 +1327,9 @@ function bench(x, z, ry = 0) {
   });
 }
 bench(0, -9); bench(12.6, 0, Math.PI / 2);   // second bench faces the right-wall bay
+contactShadow(scene, 0, -9, 1.0, 1.35, 0.5); contactShadow(scene, 12.6, 0, 1.0, 0.5, 1.35);
 const vit = new THREE.Group(); vit.position.set(0, 0, -3); scene.add(vit);
+contactShadow(vit, 0, 0, 1.0, 0.72, 2.5);
 const vitBase = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.72, 4.6),
   new THREE.MeshStandardMaterial({ color: 0x232328, roughness: 0.6, metalness: 0.2 }));
 vitBase.position.y = 0.36; vitBase.castShadow = true; vitBase.receiveShadow = true; vit.add(vitBase);
@@ -1303,6 +1339,12 @@ vitTop.position.y = 0.75; vitTop.castShadow = true; vit.add(vitTop);
 const vitGlass = new THREE.Mesh(new THREE.BoxGeometry(1.04, 0.34, 4.5),
   new THREE.MeshStandardMaterial({ color: 0xdfe6ee, roughness: 0.04, metalness: 0.1, transparent: true, opacity: 0.22 }));   // 0.12 was invisible — the case read as open air
 vitGlass.position.y = 0.95; vit.add(vitGlass);
+// glass gleam: thin bright edges along the case's top rim — the specular cue at a glance
+const gleamMat = new THREE.MeshBasicMaterial({ color: 0xfcfdff, transparent: true, opacity: 0.5 });
+for (const gx of [-0.52, 0.52]) {
+  const edge = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.008, 4.5), gleamMat);
+  edge.position.set(gx, 1.12, 0); vit.add(edge);
+}
 // the three channels, one cube each in the site's own channel colours, with its rule
 function ruleCard(title, hex, l1, l2) {
   const c = document.createElement('canvas'); c.width = 640; c.height = 290; const g = c.getContext('2d');
@@ -1496,6 +1538,7 @@ SECTIONS.forEach(sec => {
       const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.04, 20), postMat2); foot.position.y = 0.02;
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.95, 14), postMat2); pole.position.y = 0.5;
       const cap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), brassMat); cap.position.y = 1.0;
+      contactShadow(g, 0, 0, 0.24);
       g.add(foot, pole, cap); foot.castShadow = pole.castShadow = true; grp.add(g);
     });
     const bayRopeCurve = new THREE.CatmullRomCurve3([
@@ -1515,27 +1558,34 @@ SECTIONS.forEach(sec => {
 // Abstract matte figures (tapered body + head, no faces, no rigged walking) — silhouettes
 // of gallery-goers, in keeping with the austere look. Continuous quiet life, not decoration.
 function figureMesh(col, h = 1.7) {
-  // human silhouette, still abstract. Survey verdict on the last pass: capsule + floating
-  // sphere read as "a bollard that grew a head". This one: two legs, a waist, shoulders,
-  // a seated head (no gap), and a soft ground shadow. Still faceless, still quiet.
+  // DELIBERATELY stylized patrons — the user's call after two realism attempts read as
+  // blobs: go Giacometti instead. Tall, elongated, thin, matte; long legs, narrow drawn-up
+  // shoulders, a small high head. Reads as sculpture on purpose, never failed realism.
+  const H = h * 1.12;                                        // elongated: taller than life
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.95, metalness: 0 });
-  for (const s of [-1, 1]) {                                 // two legs, slight stance
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.06, h * 0.47, 10), mat);
-    leg.position.set(s * 0.065, h * 0.235 + 0.01, 0); leg.castShadow = true; g.add(leg);
+  const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 1.0, metalness: 0 });
+  for (const s of [-1, 1]) {                                 // long thin legs, slight stance
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.045, H * 0.56, 8), mat);
+    leg.position.set(s * 0.045, H * 0.28 + 0.01, 0);
+    leg.rotation.z = s * -0.02; leg.castShadow = true; g.add(leg);
   }
-  const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.095, h * 0.10, 12), mat);
-  hips.scale.set(1, 1, 0.72); hips.position.y = h * 0.50; hips.castShadow = true; g.add(hips);
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.135, h * 0.26, 4, 12), mat);
-  torso.scale.set(1.22, 1, 0.58);                            // shoulders wide, profile slim
-  torso.position.y = h * 0.55 + h * 0.13; torso.castShadow = true; g.add(torso);
-  for (const s of [-1, 1]) {                                 // arm masses at the sides
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.042, h * 0.30, 4, 8), mat);
-    arm.position.set(s * 0.185, h * 0.60, 0); arm.rotation.z = s * 0.06; arm.castShadow = true; g.add(arm);
+  const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.062, 10, 8), mat);
+  pelvis.scale.set(1.25, 0.7, 0.8); pelvis.position.y = H * 0.565; pelvis.castShadow = true; g.add(pelvis);
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.042, H * 0.30, 8), mat);
+  torso.scale.set(1.35, 1, 0.6);                             // a blade, not a barrel
+  torso.position.y = H * 0.575 + H * 0.15; torso.castShadow = true; g.add(torso);
+  const shoulders = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), mat);
+  shoulders.scale.set(1.45, 0.42, 0.6); shoulders.position.y = H * 0.875; shoulders.castShadow = true; g.add(shoulders);
+  for (const s of [-1, 1]) {                                 // hair-thin arms, close to the body
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, H * 0.34, 6), mat);
+    arm.position.set(s * 0.115, H * 0.70, 0.005); arm.rotation.z = s * 0.05; arm.castShadow = true; g.add(arm);
   }
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.095, 14, 10), mat);
-  head.scale.y = 1.15; head.position.y = h - 0.075; head.castShadow = true; g.add(head);
-  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.24, 20),
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.024, H * 0.05, 6), mat);
+  neck.position.y = H * 0.90; g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.062, 12, 10), mat);
+  head.scale.set(0.8, 1.35, 0.9);                            // narrow, tall — the Giacometti head
+  head.position.y = H - 0.05; head.castShadow = true; g.add(head);
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.22, 20),
     new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.14, depthWrite: false }));
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.012; g.add(shadow);   // grounds the figure
   return g;
@@ -1544,7 +1594,11 @@ function figureMesh(col, h = 1.7) {
 // at bay 05 lands on a bench; 15% toward the look point clears it and reads more natural
 const stations = glideTargets.filter(g2 => !g2.empty).map(g2 => {   // nobody lingers at a roped empty wall
   const p = g2.view.pos, l = g2.view.look;
-  return { x: p[0] + (l[0] - p[0]) * 0.15, z: p[2] + (l[2] - p[2]) * 0.15, lx: l[0], lz: l[2] };
+  // step ASIDE as well as forward: a patron parked dead on the viewing axis eclipsed
+  // Lord's main piece for anyone walking up. 1.3m along the wall keeps the art clear.
+  const dx = l[0] - p[0], dz = l[2] - p[2], len = Math.hypot(dx, dz) || 1;
+  const px = -dz / len, pz = dx / len;                       // perpendicular to the facing
+  return { x: p[0] + dx * 0.15 + px * 1.3, z: p[2] + dz * 0.15 + pz * 1.3, lx: l[0], lz: l[2] };
 });
 const claimed = new Set();
 const visitors = [];
@@ -1625,7 +1679,12 @@ function stepPeople(dt, now) {
 }
 
 // ---- post-processing ----
-const composer = new EffectComposer(renderer);
+// the composer's default target has ZERO samples, which bypassed the canvas's MSAA —
+// every edge crawled (the "pixelated/stuttery" look). A multisampled target restores AA
+// through the whole post pipeline: 4x desktop, 2x touch.
+const AA_SAMPLES = IS_TOUCH ? 2 : 4;
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(
+  innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: AA_SAMPLES }));
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.25, 0.4, 0.985);
 composer.addPass(bloom);
