@@ -606,7 +606,7 @@ woodTop.rotation.x = -Math.PI / 2; woodTop.position.y = 0.001; woodTop.receiveSh
     // left visible straight seams on the wood (the "pale sheet" the audit flagged)
     radial(g, px(0), pz(0), px(3.4) - px(0), pz(11.5) - pz(0), 'rgba(235,242,246,0.13)');
     // hero pool: the warm ellipse in front of the canvas (warmed per audit)
-    radial(g, px(0), pz(-14.6), px(3.2) - px(0), pz(-12.1) - pz(-14.6), 'rgba(255,232,196,0.46)');
+    radial(g, px(0), pz(-14.6), px(3.8) - px(0), pz(-11.6) - pz(-14.6), 'rgba(255,232,196,0.32)');   // .46 read as a blob in phone portrait — wider + softer
     // door spill: daylight reaching just inside
     radial(g, px(0), pz(15.2), px(2.6) - px(0), pz(17.6) - pz(15.2), 'rgba(244,239,226,0.16)');   // soft wide daylight fade, not a spotlight puddle
   });
@@ -1043,6 +1043,11 @@ kiosk.add(kScreen);
 
 // ---- AUCTION PIECE: a miniature of the live canvas, roped off, not yet open ----
 const auc = new THREE.Group(); auc.position.set(-5.6, 0, -RD / 2); scene.add(auc);
+{ // painted pool over the roped auction piece — the charcoal flank was dead flat
+  const t = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.30, w * 0.48, hh * 0.5, 'rgba(255,242,222,0.34)'));
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.6), glowMat(t));
+  p.position.set(0, 2.35, 0.03); p.renderOrder = 1; auc.add(p);
+}
 // stepped-frame helper shared by the auction + heart so the charcoal-wall pieces speak the
 // same framing language as the bays: deep outer frame → lip catch-light → mat → art frontmost.
 // Same layer-depth rule as pieceMesh: art in front of every box face, ≥0.013 between planes.
@@ -1161,8 +1166,8 @@ vGlass.userData.interactive = 'mint'; vBody.userData.interactive = 'mint';
     lg.fillStyle = grad; lg.fillRect(0, 0, 360, 96);
     lg.strokeStyle = 'rgba(0,0,0,.28)'; lg.lineWidth = 3; lg.strokeRect(2, 2, 356, 92);
     lg.fillStyle = '#3a3a3f'; lg.textAlign = 'center';
-    lg.font = '400 22px "IBM Plex Mono", monospace'; lg.letterSpacing = '2px';
-    lg.fillText('WHITE PIXELS · 0.005 ETH', 180, 56); lg.letterSpacing = '0px';
+    lg.font = '400 17px "IBM Plex Mono", monospace'; lg.letterSpacing = '1px';   // 22px+2px measured 365px in a 360px canvas — clipped both ends
+    lg.fillText('WHITE PIXELS · 0.005 ETH', 180, 55); lg.letterSpacing = '0px';
   };
   drawVLabel();
   const lt = new THREE.CanvasTexture(lc); lt.colorSpace = THREE.SRGBColorSpace; lt.anisotropy = 4;
@@ -1177,6 +1182,11 @@ const heartTexReal = new THREE.TextureLoader().load('heart.png?v=2');
 heartTexReal.magFilter = THREE.NearestFilter; heartTexReal.minFilter = THREE.NearestFilter;
 heartTexReal.colorSpace = THREE.SRGBColorSpace;
 const heartGrp = new THREE.Group(); heartGrp.position.set(5.6, 0, -RD / 2 + 0.06); scene.add(heartGrp);
+{ // matching pool over the heart
+  const t = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.30, w * 0.48, hh * 0.5, 'rgba(255,242,222,0.34)'));
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 3.0), glowMat(t));
+  p.position.set(0, 2.3, 0.02); p.renderOrder = 1; heartGrp.add(p);
+}
 // matted specimen in the same stepped-frame language as the bays; the mat stays DARK
 // (0x0d0d0f) so the pale heart glows off it. Art frontmost at 0.095 like every piece.
 const heartFrame = steppedFrame(2.1, 2.1 * 74 / 96, 0x1a1a1e, 0x0d0d0f);
@@ -1615,40 +1625,52 @@ SECTIONS.forEach(sec => {
     const p = new THREE.Mesh(new THREE.PlaneGeometry(2.35, 2.9), glowMat(pieceGlowTex));
     p.position.set(ox, 2.6, 0.03); p.renderOrder = 1; grp.add(p);
   });
-  aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5);   // fixture sits on the moved rail, over the piece
+  // one can per PIECE: the painted pools crown all three works, so a lone centre can
+  // read as a mismatch — fixtures now match the light (aimedSpot is pure fixture, no cost)
+  aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5);
+  for (const so of [-2.45, 2.45])
+    aimedSpot(sec.side * (RW / 2 - 0.3), 2.25, sec.z + so, sec.side * (RW / 2 - 1.6), sec.z + so, 5);
 });
 
 // ---- AMBIENT PEOPLE: a few stylized visitors so the gallery reads lived-in ----
 // Abstract matte figures (tapered body + head, no faces, no rigged walking) — silhouettes
 // of gallery-goers, in keeping with the austere look. Continuous quiet life, not decoration.
 function figureMesh(col, h = 1.7) {
-  // DELIBERATELY stylized patrons — the user's call after two realism attempts read as
-  // blobs: go Giacometti instead. Tall, elongated, thin, matte; long legs, narrow drawn-up
-  // shoulders, a small high head. Reads as sculpture on purpose, never failed realism.
-  const H = h * 1.12;                                        // elongated: taller than life
+  // v5: the FIGURE STUDIO's default body — rounded, friendly, human-proportioned (the
+  // user's reference matched it). col = the top/clothing colour; skin + trousers fixed.
+  const H = h;
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 1.0, metalness: 0 });
-  for (const s of [-1, 1]) {                                 // long thin legs, slight stance
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.045, H * 0.56, 8), mat);
-    leg.position.set(s * 0.045, H * 0.28 + 0.01, 0);
-    leg.rotation.z = s * -0.02; leg.castShadow = true; g.add(leg);
+  const mSkin = new THREE.MeshStandardMaterial({ color: 0xc9a789, roughness: 0.85 });
+  const mTop  = new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 });
+  const mBot  = new THREE.MeshStandardMaterial({ color: 0x3a4150, roughness: 0.9 });
+  const legH = H * 0.470, torsoH = H * 0.315, headR = H * 0.070, hipY = legH;
+  const legR = H * 0.042;
+  for (const s of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(legR, legH - legR * 2, 6, 12), mBot);
+    leg.position.set(s * H * 0.055, legH / 2, 0); leg.castShadow = true; g.add(leg);
   }
-  const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.062, 10, 8), mat);
-  pelvis.scale.set(1.25, 0.7, 0.8); pelvis.position.y = H * 0.565; pelvis.castShadow = true; g.add(pelvis);
-  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.042, H * 0.30, 8), mat);
-  torso.scale.set(1.35, 1, 0.6);                             // a blade, not a barrel
-  torso.position.y = H * 0.575 + H * 0.15; torso.castShadow = true; g.add(torso);
-  const shoulders = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), mat);
-  shoulders.scale.set(1.45, 0.42, 0.6); shoulders.position.y = H * 0.875; shoulders.castShadow = true; g.add(shoulders);
-  for (const s of [-1, 1]) {                                 // hair-thin arms, close to the body
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, H * 0.34, 6), mat);
-    arm.position.set(s * 0.115, H * 0.70, 0.005); arm.rotation.z = s * 0.05; arm.castShadow = true; g.add(arm);
+  const hips = new THREE.Mesh(new THREE.SphereGeometry(H * 0.085, 14, 10), mBot);
+  hips.scale.set(1.15, 0.72, 0.85); hips.position.y = hipY; hips.castShadow = true; g.add(hips);
+  const torsoR = H * 0.082;
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(torsoR, torsoH - torsoR, 6, 12), mTop);
+  torso.scale.set(1.12, 1, 0.78); torso.position.y = hipY + torsoH / 2; torso.castShadow = true; g.add(torso);
+  const shoulderY = hipY + torsoH - torsoR * 0.3;
+  const shoulders = new THREE.Mesh(new THREE.SphereGeometry(torsoR * 1.02, 14, 10), mTop);
+  shoulders.scale.set(1.45, 0.55, 0.80); shoulders.position.y = shoulderY; shoulders.castShadow = true; g.add(shoulders);
+  const armR = H * 0.026, armH = H * 0.36;
+  for (const s of [-1, 1]) {
+    const ax = s * (torsoR * 1.12 * 1.45 * 0.72 + armR * 0.8);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(armR, armH - armR * 2, 6, 10), mTop);
+    arm.position.set(ax, shoulderY - armH / 2 + armR, 0); arm.rotation.z = s * 0.045;
+    arm.castShadow = true; g.add(arm);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(armR * 1.15, 8, 6), mSkin);
+    hand.position.set(ax + s * armH * 0.043, shoulderY - armH + armR * 0.6, 0); hand.castShadow = true; g.add(hand);
   }
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.024, H * 0.05, 6), mat);
-  neck.position.y = H * 0.90; g.add(neck);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.062, 12, 10), mat);
-  head.scale.set(0.8, 1.35, 0.9);                            // narrow, tall — the Giacometti head
-  head.position.y = H - 0.05; head.castShadow = true; g.add(head);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(headR * 0.42, headR * 0.5, headR * 0.7, 8), mSkin);
+  neck.position.y = shoulderY + headR * 0.35; g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 16, 12), mSkin);
+  head.scale.set(0.92, 1.08, 0.98);
+  head.position.y = shoulderY + headR * 0.7 + headR; head.castShadow = true; g.add(head);
   const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.22, 20),
     new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.14, depthWrite: false }));
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.012; g.add(shadow);   // grounds the figure
@@ -1666,14 +1688,14 @@ const stations = glideTargets.filter(g2 => !g2.empty).map(g2 => {   // nobody li
 });
 const claimed = new Set();
 const visitors = [];
-const VISITOR_COLS = [0x8a8578, 0xcfc9bd, 0x6d7480];   // warm grey / bone / slate — none charcoal, so no visitor reads as a stanchion
+const VISITOR_COLS = [0x6a5744, 0x4a5a6a, 0x54604e];   // brown / slate-blue / sage jackets — the studio's clothing tones
 function pickStation(not) {
   const free = stations.map((s, i) => i).filter(i => !claimed.has(i) && i !== not);
   return free[(Math.random() * free.length) | 0];
 }
 // PEOPLE_ON: the stylized figures unsettled the user ("look scary") — OFF until real
 // avatars (studio.html pipeline) replace them. Code kept intact for the swap pass.
-const PEOPLE_ON = false;
+const PEOPLE_ON = true;   // v5 studio-body patrons — the user's approved friendly figure
 let docent = null, walker = null, walker2 = null;
 if (PEOPLE_ON) {
 for (let v = 0; v < 3; v++) {
