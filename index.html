@@ -1043,11 +1043,6 @@ kiosk.add(kScreen);
 
 // ---- AUCTION PIECE: a miniature of the live canvas, roped off, not yet open ----
 const auc = new THREE.Group(); auc.position.set(-5.6, 0, -RD / 2); scene.add(auc);
-{ // painted pool over the roped auction piece — the charcoal flank was dead flat
-  const t = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.30, w * 0.48, hh * 0.5, 'rgba(255,242,222,0.34)'));
-  const p = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.6), glowMat(t));
-  p.position.set(0, 2.35, 0.03); p.renderOrder = 1; auc.add(p);
-}
 // stepped-frame helper shared by the auction + heart so the charcoal-wall pieces speak the
 // same framing language as the bays: deep outer frame → lip catch-light → mat → art frontmost.
 // Same layer-depth rule as pieceMesh: art in front of every box face, ≥0.013 between planes.
@@ -1068,7 +1063,7 @@ function steppedFrame(w, h, frameColor, matColor) {
 const aucFrame = steppedFrame(0.9, 0.9, 0x1a1a1e, 0xf3f1ea);
 aucFrame.position.set(0, 2.0, 0.08); auc.add(aucFrame);
 const aucArt = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9),
-  new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: heroTex, emissiveIntensity: 0.85, roughness: 1 }));
+  new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: heroTex, emissiveIntensity: 1.08, roughness: 1 }));   // matches the hero's bloom
 aucArt.position.set(0, 2.0, 0.08 + 0.095); auc.add(aucArt);      // shares the live texture — it breathes too
 glideTargets.push({ obj: aucArt, view: { pos: [-5.6, 1.6, -13.7], look: [-5.6, 2.0, -16.9] } });   // settles outside the rope (walk-block at z -15)
 // placard: paper card under the piece
@@ -1182,17 +1177,12 @@ const heartTexReal = new THREE.TextureLoader().load('heart.png?v=2');
 heartTexReal.magFilter = THREE.NearestFilter; heartTexReal.minFilter = THREE.NearestFilter;
 heartTexReal.colorSpace = THREE.SRGBColorSpace;
 const heartGrp = new THREE.Group(); heartGrp.position.set(5.6, 0, -RD / 2 + 0.06); scene.add(heartGrp);
-{ // matching pool over the heart
-  const t = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.30, w * 0.48, hh * 0.5, 'rgba(255,242,222,0.34)'));
-  const p = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 3.0), glowMat(t));
-  p.position.set(0, 2.3, 0.02); p.renderOrder = 1; heartGrp.add(p);
-}
 // matted specimen in the same stepped-frame language as the bays; the mat stays DARK
 // (0x0d0d0f) so the pale heart glows off it. Art frontmost at 0.095 like every piece.
 const heartFrame = steppedFrame(2.1, 2.1 * 74 / 96, 0x1a1a1e, 0x0d0d0f);
 heartFrame.position.set(0, 2.0, 0); heartGrp.add(heartFrame);
 const heartArt = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.1 * 74 / 96),
-  new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: heartTexReal, emissiveIntensity: 0.9, roughness: 1 }));
+  new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: heartTexReal, emissiveIntensity: 1.08, roughness: 1 }));   // matches the hero — crosses the bloom threshold, glows like it
 heartArt.position.set(0, 2.0, 0.095); heartGrp.add(heartArt);
 heartArt.userData.interactive = 'heart';        // click the piece itself to read
 glideTargets.push({ obj: heartArt, view: { pos: [5.6, 1.6, -13.4], look: [5.6, 2.0, -16.94] } });
@@ -1546,7 +1536,7 @@ function pieceMesh(tex, w, h, frameColor, artAR) {
   const lipMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.4, metalness: 0.18, emissive: 0xfff3e0, emissiveIntensity: 0.10 });   // inner step catches the pool
   // the art self-illuminates (baked spots) — without a matching lift the mat/frame read
   // dark around a glowing image: the backlit-TV effect. The light catches them too.
-  const matMat = new THREE.MeshStandardMaterial({ color: 0xf3f1ea, roughness: 0.95, emissive: 0xfff3e0, emissiveIntensity: 0.18 });
+  const matMat = new THREE.MeshStandardMaterial({ color: 0xf3f1ea, roughness: 0.95, emissive: 0xfff3e0, emissiveIntensity: 0.45 });   // bright enough to cross the bloom threshold — the soft glow ring every piece gets
   const fw = 0.16, mw = 0.11;                       // frame width, mat reveal
   const outer = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * fw + 2 * mw, h + 2 * fw + 2 * mw, 0.09), frameMat);
   outer.castShadow = true;
@@ -1615,16 +1605,8 @@ SECTIONS.forEach(sec => {
   }
 
   // even wash across the whole bay + one accent spot on the main piece
-  // the audit's verdict: one diffuse pool read as nothing. What sells "the cans shine on
-  // the art" is a pool PER PIECE — top-bright, peaking just above each frame, falling off
-  // around it. Painted, zero light cost.
-  const pieceGlowTex = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.28, w * 0.46, hh * 0.50, 'rgba(255,242,222,0.58)'));   // peak must READ as a can's pool, not a whisper
-  const mainPool = new THREE.Mesh(new THREE.PlaneGeometry(3.7, 4.5), glowMat(pieceGlowTex));
-  mainPool.position.set(0, 2.9, 0.03); mainPool.renderOrder = 1; grp.add(mainPool);
-  [-2.45, 2.45].forEach(ox => {
-    const p = new THREE.Mesh(new THREE.PlaneGeometry(2.35, 2.9), glowMat(pieceGlowTex));
-    p.position.set(ox, 2.6, 0.03); p.renderOrder = 1; grp.add(p);
-  });
+  // (painted per-piece wall pools were tried and REMOVED — they read as flat smudges.
+  //  The glow now comes from BLOOM on the bright mats + art, like the hero: free and real.)
   // one can per PIECE: the painted pools crown all three works, so a lone centre can
   // read as a mismatch — fixtures now match the light (aimedSpot is pure fixture, no cost)
   aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5);
@@ -1779,7 +1761,7 @@ function stepPeople(dt, now) {
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(
   innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: 2 }));   // 4x MSAA measured at 14fps vs 35 without — 2x is the ceiling until the light bake
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.25, 0.4, 0.985);
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.32, 0.4, 0.985);   // one notch up: the piece-glow halo should READ (user likes the bloom)
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
