@@ -3,39 +3,50 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>4096 — Avatar Studio</title>
+<title>4096 — Figure Studio</title>
 <style>
   :root{--paper:#eeeeea;--ink:#1b1b19;--rule:#d2d2ca;
     --mono:"IBM Plex Mono",ui-monospace,monospace;}
   html,body{margin:0;height:100%;background:#e9e7e0;font-family:var(--mono);color:var(--ink);}
   #c{display:block;position:fixed;inset:0;}
-  #panel{position:fixed;top:14px;left:14px;z-index:5;background:var(--paper);border:1px solid var(--rule);
-    padding:16px 18px;width:280px;font-size:11px;line-height:1.7;box-shadow:0 8px 30px rgba(27,27,25,.18);}
+  #panel{position:fixed;top:12px;left:12px;bottom:12px;z-index:5;background:var(--paper);
+    border:1px solid var(--rule);padding:14px 16px;width:270px;font-size:11px;line-height:1.6;
+    box-shadow:0 8px 30px rgba(27,27,25,.18);overflow-y:auto;}
   #panel h1{margin:0 0 2px;font-size:12px;letter-spacing:.28em;font-weight:500;}
-  #panel .sub{color:#84847c;font-size:9.5px;letter-spacing:.12em;margin-bottom:12px;}
-  #panel label{display:block;margin-top:10px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#84847c;}
-  #panel input[type=range]{width:100%;}
-  #panel input[type=file]{width:100%;font-size:10px;margin-top:4px;}
-  #readout{margin-top:12px;padding:10px;background:#fff;border:1px solid var(--rule);
-    font-size:10.5px;white-space:pre;line-height:1.8;}
-  #status{margin-top:8px;color:#84847c;font-size:9.5px;line-height:1.5;}
+  #panel .sub{color:#84847c;font-size:9.5px;letter-spacing:.12em;margin-bottom:10px;}
+  #panel label{display:flex;justify-content:space-between;margin-top:7px;font-size:9px;
+    letter-spacing:.12em;text-transform:uppercase;color:#84847c;}
+  #panel input[type=range]{width:100%;margin:1px 0 0;}
+  .colrow{display:flex;gap:8px;margin-top:10px;}
+  .colrow div{flex:1;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:#84847c;}
+  .colrow input[type=color]{width:100%;height:26px;border:1px solid var(--rule);background:none;padding:1px;}
+  .btnrow{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;}
+  .btnrow button{flex:1;min-width:70px;font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+    text-transform:uppercase;padding:8px 4px;background:none;border:1px solid var(--rule);cursor:pointer;}
+  .btnrow button:hover{border-color:var(--ink);}
+  #readout{margin-top:12px;padding:9px;background:#fff;border:1px solid var(--rule);
+    font-size:9px;white-space:pre-wrap;word-break:break-all;line-height:1.7;}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="panel">
-  <h1>AVATAR STUDIO</h1>
-  <div class="sub">4096 · gallery light, patron scale</div>
-  <label>load a .glb (Ready Player Me export)</label>
-  <input type="file" id="file" accept=".glb,.gltf">
-  <label>arms down · <span id="v-arm">0</span>°</label>
-  <input type="range" id="arm" min="0" max="80" value="0" step="1">
-  <label>height · <span id="v-scale">1.70</span> m</label>
-  <input type="range" id="scale" min="1.4" max="2.0" value="1.7" step="0.01">
-  <label>rotation · <span id="v-rot">0</span>°</label>
-  <input type="range" id="rot" min="-180" max="180" value="0" step="1">
-  <div id="readout">arm 0° · height 1.70m · rot 0°</div>
-  <div id="status">no file loaded — showing the stand-in. drop in a .glb to see it under gallery light.</div>
+  <h1>FIGURE STUDIO</h1>
+  <div class="sub">4096 · build a patron, shape by shape</div>
+  <div id="sliders"></div>
+  <div class="colrow">
+    <div>skin<input type="color" id="c-skin" value="#c9a789"></div>
+    <div>top<input type="color" id="c-top" value="#6a5744"></div>
+    <div>bottom<input type="color" id="c-bot" value="#3a4150"></div>
+  </div>
+  <div class="btnrow">
+    <button data-preset="default">default</button>
+    <button data-preset="tall">tall</button>
+    <button data-preset="broad">broad</button>
+    <button data-preset="small">small</button>
+    <button id="rand">randomize</button>
+  </div>
+  <div id="readout"></div>
 </div>
 <script type="importmap">
 { "imports": {
@@ -45,7 +56,8 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+// PHASE 2 (not built yet): upload an image and map it onto the figure — texture the top
+// zone from a user photo. Parametric shapes only for now.
 
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -57,9 +69,9 @@ renderer.toneMappingExposure = 0.9;                          // the gallery's ex
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xe9e7e0);
 const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 50);
-camera.position.set(0, 1.5, 3.4); camera.lookAt(0, 1.0, 0);
+camera.position.set(0.6, 1.5, 3.2); camera.lookAt(0, 0.95, 0);
 
-// the gallery's light recipe: warm key + soft ambient fill over a wood-toned ground
+// the gallery's light recipe
 const key = new THREE.DirectionalLight(0xfff6ea, 0.32);
 key.position.set(4, 11, 7); key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024); scene.add(key);
@@ -68,97 +80,147 @@ scene.add(new THREE.HemisphereLight(0xf4f2ec, 0xa08b6a, 0.35));
 const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 40),
   new THREE.MeshStandardMaterial({ color: 0xa5814f, roughness: 0.9 }));
 floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.32, 24),
+const contact = new THREE.Mesh(new THREE.CircleGeometry(0.34, 24),
   new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.14, depthWrite: false }));
-shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.01; scene.add(shadow);
+contact.rotation.x = -Math.PI / 2; contact.position.y = 0.01; scene.add(contact);
 
-// ---- avatar state ----
-let avatar = null;            // the loaded (or stand-in) root
-let armBones = [];            // {bone, side} — bones matched for arms-down posing
-let baseHeight = 1.7;         // natural height of the loaded model, for scale math
-
-function clearAvatar() { if (avatar) { scene.remove(avatar); avatar = null; armBones = []; } }
-
-// stand-in so the light/controls are provable before any real file exists
-function standIn() {
-  clearAvatar();
-  const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: 0xcfc9bd, roughness: 0.9 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.62, 6, 14), mat);
-  body.position.y = 0.95; body.castShadow = true; g.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), mat);
-  head.position.y = 1.52; head.castShadow = true; g.add(head);
-  for (const s of [-1, 1]) {
-    const pivot = new THREE.Group(); pivot.position.set(s * 0.21, 1.28, 0);
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.46, 4, 10), mat);
-    arm.position.y = -0.27; arm.castShadow = true; pivot.add(arm);
-    pivot.rotation.z = s * Math.PI / 2;             // A-pose out to the sides, like a raw export
-    g.add(pivot); armBones.push({ bone: pivot, side: s, rest: s * Math.PI / 2 });
-  }
-  for (const s of [-1, 1]) {
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.55, 4, 10), mat);
-    leg.position.set(s * 0.09, 0.38, 0); leg.castShadow = true; g.add(leg);
-  }
-  baseHeight = 1.63; avatar = g; scene.add(g); apply();
+// ---- parameters ----
+const PARAMS = [
+  // key, label, min, max, default
+  ['height',    'overall height (m)',  1.45, 2.00, 1.72],
+  ['headSize',  'head size',           0.75, 1.30, 1.00],
+  ['shoulders', 'shoulder width',      0.75, 1.35, 1.00],
+  ['torsoLen',  'torso length',        0.80, 1.20, 1.00],
+  ['torsoWide', 'torso width',         0.70, 1.45, 1.00],
+  ['armLen',    'arm length',          0.80, 1.20, 1.00],
+  ['armThick',  'arm thickness',       0.65, 1.60, 1.00],
+  ['legLen',    'leg length',          0.80, 1.20, 1.00],
+  ['legThick',  'leg thickness',       0.65, 1.60, 1.00],
+  ['stance',    'stance width',        0.60, 1.80, 1.00],
+  ['lean',      'posture lean (°)',   -8,    8,    0   ],
+];
+const cfg = {};
+const slidersDiv = document.getElementById('sliders');
+for (const [k, label, min, max, dflt] of PARAMS) {
+  cfg[k] = dflt;
+  const lab = document.createElement('label');
+  lab.innerHTML = label + ' <span id="v-' + k + '">' + dflt + '</span>';
+  const inp = document.createElement('input');
+  inp.type = 'range'; inp.id = 's-' + k; inp.min = min; inp.max = max; inp.step = 0.01; inp.value = dflt;
+  inp.addEventListener('input', () => { cfg[k] = +inp.value; build(); });
+  slidersDiv.append(lab, inp);
+}
+const cols = { skin: '#c9a789', top: '#6a5744', bot: '#3a4150' };
+for (const z of ['skin', 'top', 'bot']) {
+  document.getElementById('c-' + z).addEventListener('input', e => { cols[z] = e.target.value; build(); });
 }
 
-function adoptGLTF(gltf, name) {
-  clearAvatar();
-  avatar = gltf.scene;
-  avatar.traverse(o => {
-    if (o.isMesh) { o.castShadow = true; }
-    if (o.isBone && /^(Left|Right)(Arm|UpperArm|Shoulder_?Arm)$|(Left|Right)Arm$/i.test(o.name)) {
-      const side = /left/i.test(o.name) ? -1 : 1;
-      armBones.push({ bone: o, side, rest: o.rotation.z });
-    }
-  });
-  const box = new THREE.Box3().setFromObject(avatar);
-  baseHeight = Math.max(0.2, box.max.y - box.min.y);
-  avatar.position.y = -box.min.y;                    // feet on the floor
-  scene.add(avatar); apply();
-  document.getElementById('status').textContent =
-    name + ' loaded · height ' + baseHeight.toFixed(2) + 'm · ' +
-    (armBones.length ? armBones.length + ' arm bones found (slider poses them)' :
-     'no arm bones matched — slider inert for this file; pose arms in the export tool instead');
+// ---- the figure: rounded, friendly, human-proportioned ----
+let fig = null;
+function build() {
+  if (fig) scene.remove(fig);
+  fig = new THREE.Group();
+  const H = cfg.height;
+  const mSkin = new THREE.MeshStandardMaterial({ color: cols.skin, roughness: 0.85 });
+  const mTop  = new THREE.MeshStandardMaterial({ color: cols.top,  roughness: 0.9 });
+  const mBot  = new THREE.MeshStandardMaterial({ color: cols.bot,  roughness: 0.9 });
+
+  const legH = H * 0.470 * cfg.legLen;
+  const torsoH = H * 0.315 * cfg.torsoLen;
+  const headR = H * 0.070 * cfg.headSize;
+  const hipY = legH;
+
+  // legs: rounded capsules, natural stance
+  const legR = H * 0.042 * cfg.legThick;
+  for (const s of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(legR, legH - legR * 2, 6, 14), mBot);
+    leg.position.set(s * H * 0.055 * cfg.stance, legH / 2, 0);
+    leg.castShadow = true; fig.add(leg);
+  }
+  // hips: a rounded seat joining legs to torso
+  const hips = new THREE.Mesh(new THREE.SphereGeometry(H * 0.085 * cfg.torsoWide, 16, 12), mBot);
+  hips.scale.set(1.15, 0.72, 0.85); hips.position.y = hipY; hips.castShadow = true; fig.add(hips);
+  // torso: capsule, wider at the shoulders via a subtle top sphere
+  const torsoR = H * 0.082 * cfg.torsoWide;
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(torsoR, torsoH - torsoR, 6, 14), mTop);
+  torso.scale.set(1.12, 1, 0.78);
+  torso.position.y = hipY + torsoH / 2; torso.castShadow = true; fig.add(torso);
+  const shoulderY = hipY + torsoH - torsoR * 0.3;
+  const shoulders = new THREE.Mesh(new THREE.SphereGeometry(torsoR * 1.02, 16, 12), mTop);
+  shoulders.scale.set(1.45 * cfg.shoulders, 0.55, 0.80);
+  shoulders.position.y = shoulderY; shoulders.castShadow = true; fig.add(shoulders);
+  // arms: capsules hanging naturally at the sides, hands as skin-toned tips
+  const armR = H * 0.026 * cfg.armThick;
+  const armH = H * 0.36 * cfg.armLen;
+  for (const s of [-1, 1]) {
+    const ax = s * (torsoR * 1.12 * 1.45 * cfg.shoulders * 0.72 + armR * 0.8);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(armR, armH - armR * 2, 6, 12), mTop);
+    arm.position.set(ax, shoulderY - armH / 2 + armR, 0);
+    arm.rotation.z = s * 0.045;                     // relaxed, slightly out at the hand
+    arm.castShadow = true; fig.add(arm);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(armR * 1.15, 10, 8), mSkin);
+    hand.position.set(ax + s * armH * 0.043, shoulderY - armH + armR * 0.6, 0);
+    hand.castShadow = true; fig.add(hand);
+  }
+  // neck + head: sphere gently squashed toward real skull proportions
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(headR * 0.42, headR * 0.5, headR * 0.7, 10), mSkin);
+  neck.position.y = shoulderY + headR * 0.35; fig.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 18, 14), mSkin);
+  head.scale.set(0.92, 1.08, 0.98);
+  head.position.y = shoulderY + headR * 0.7 + headR;
+  head.castShadow = true; fig.add(head);
+
+  fig.rotation.x = THREE.MathUtils.degToRad(cfg.lean);   // slight posture lean
+  scene.add(fig);
+  readout();
+}
+function readout() {
+  const out = { ...cfg, colours: { ...cols } };
+  for (const k in out) if (typeof out[k] === 'number') out[k] = Math.round(out[k] * 100) / 100;
+  document.getElementById('readout').textContent = JSON.stringify(out);
+  for (const [k] of PARAMS) {
+    document.getElementById('v-' + k).textContent = Math.round(cfg[k] * 100) / 100;
+    document.getElementById('s-' + k).value = cfg[k];
+  }
+  document.getElementById('c-skin').value = cols.skin;
+  document.getElementById('c-top').value = cols.top;
+  document.getElementById('c-bot').value = cols.bot;
 }
 
-document.getElementById('file').addEventListener('change', e => {
-  const f = e.target.files[0]; if (!f) return;
-  const url = URL.createObjectURL(f);
-  new GLTFLoader().load(url, g => adoptGLTF(g, f.name),
-    undefined, err => { document.getElementById('status').textContent = 'could not load: ' + err.message; });
+// presets + randomize
+const PRESETS = {
+  default: { height: 1.72, headSize: 1, shoulders: 1, torsoLen: 1, torsoWide: 1, armLen: 1, armThick: 1, legLen: 1, legThick: 1, stance: 1, lean: 0,
+             skin: '#c9a789', top: '#6a5744', bot: '#3a4150' },
+  tall:    { height: 1.9, headSize: 0.92, shoulders: 0.95, torsoLen: 1.05, torsoWide: 0.9, armLen: 1.08, armThick: 0.9, legLen: 1.1, legThick: 0.9, stance: 0.9, lean: 1,
+             skin: '#b58a67', top: '#2e2c28', bot: '#26241f' },
+  broad:   { height: 1.76, headSize: 1.02, shoulders: 1.22, torsoLen: 0.98, torsoWide: 1.25, armLen: 0.98, armThick: 1.3, legLen: 0.95, legThick: 1.25, stance: 1.3, lean: 0,
+             skin: '#d9b393', top: '#4a5a6a', bot: '#33302b' },
+  small:   { height: 1.55, headSize: 1.12, shoulders: 0.9, torsoLen: 0.95, torsoWide: 0.95, armLen: 0.95, armThick: 0.95, legLen: 0.92, legThick: 1, stance: 0.95, lean: -1,
+             skin: '#caa27e', top: '#7a3b35', bot: '#3a4150' },
+};
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
+  const p = PRESETS[b.dataset.preset];
+  for (const [k] of PARAMS) cfg[k] = p[k];
+  cols.skin = p.skin; cols.top = p.top; cols.bot = p.bot;
+  build();
+}));
+document.getElementById('rand').addEventListener('click', () => {
+  for (const [k, , min, max] of PARAMS) cfg[k] = Math.round((min + Math.random() * (max - min)) * 100) / 100;
+  cfg.lean = Math.round((Math.random() * 6 - 3) * 10) / 10;
+  const pick = a => a[(Math.random() * a.length) | 0];
+  cols.skin = pick(['#c9a789', '#b58a67', '#d9b393', '#8a6a4f', '#caa27e']);
+  cols.top  = pick(['#6a5744', '#2e2c28', '#4a5a6a', '#7a3b35', '#54604e', '#8a8578']);
+  cols.bot  = pick(['#3a4150', '#26241f', '#33302b', '#565149', '#42302a']);
+  build();
 });
-// also try a conventional default path, so a committed avatar shows up on plain load
-new GLTFLoader().load('gallery/avatars/patron.glb', g => adoptGLTF(g, 'gallery/avatars/patron.glb'),
-  undefined, () => standIn());
 
-// ---- controls ----
-const els = { arm: document.getElementById('arm'), scale: document.getElementById('scale'), rot: document.getElementById('rot') };
-function apply() {
-  if (!avatar) return;
-  const armDeg = +els.arm.value, height = +els.scale.value, rotDeg = +els.rot.value;
-  for (const a of armBones) a.bone.rotation.z = a.rest - a.side * THREE.MathUtils.degToRad(armDeg);
-  const s = height / baseHeight;
-  avatar.scale.setScalar(s);
-  const box = new THREE.Box3().setFromObject(avatar);
-  avatar.position.y -= box.min.y;                    // keep feet planted after scaling
-  avatar.rotation.y = THREE.MathUtils.degToRad(rotDeg);
-  document.getElementById('v-arm').textContent = armDeg;
-  document.getElementById('v-scale').textContent = height.toFixed(2);
-  document.getElementById('v-rot').textContent = rotDeg;
-  document.getElementById('readout').textContent =
-    'arm ' + armDeg + '° · height ' + height.toFixed(2) + 'm · rot ' + rotDeg + '°\n' +
-    'scale factor ' + s.toFixed(3) + '  (transplant these into the gallery)';
-}
-for (const k in els) els[k].addEventListener('input', apply);
-
+build();
 function fit() {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 }
 addEventListener('resize', fit); fit();
-let t = 0;
-(function loop() { requestAnimationFrame(loop); renderer.render(scene, camera); })();
+(function loop() { requestAnimationFrame(loop); if (fig) fig.rotation.y += 0.003; renderer.render(scene, camera); })();
 </script>
 </body>
 </html>

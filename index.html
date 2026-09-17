@@ -452,8 +452,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 RectAreaLightUniformsLib.init();
 
 // ---- room (enlarged so collab sections breathe) ----
@@ -512,9 +510,10 @@ renderer.setSize(innerWidth, innerHeight);
 // the razor-sharp DOM overlays. 1.5 is sharp; the governor still lowers weak phones.
 // two-way dynamic resolution: start mid, then the controller finds each device's crispest
 // smooth point — up to full native (cap 2), down to 0.7 when the GPU genuinely can't.
-let QUALITY = Math.min(devicePixelRatio, 1.5);
-const Q_FLOOR = IS_TOUCH ? 1.0 : 1.25;   // crispness is protected: quality may never get mushy.
-const Q_MAX = Math.min(devicePixelRatio, 2);
+// FIXED native resolution. Dynamic scaling was tried and REMOVED: any ratio under the
+// device's real pixel density is an upscale, and the user sees it as blur — especially
+// across the room. Crisp always; fps is whatever the scene costs (see ?perf).
+const QUALITY = Math.min(devicePixelRatio, 2);
 renderer.setPixelRatio(QUALITY);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1694,16 +1693,14 @@ function stepPeople(dt, now) {
 // the composer's default target has ZERO samples, which bypassed the canvas's MSAA —
 // every edge crawled (the "pixelated/stuttery" look). A multisampled target restores AA
 // through the whole post pipeline: 4x desktop, 2x touch.
-// MSAA (samples on the composer target) was heavy and fought dynamic resolution — the
-// smoothness controller below needs cheap AA at ANY render scale. FXAA gives exactly that:
-// one screen-space pass after tone mapping, near-free, scale-independent.
-const composer = new EffectComposer(renderer);
+// (FXAA was tried here and REMOVED — it is a softening pass and blurred the whole frame.
+//  MSAA is the sharp one. Do not bring FXAA back.)
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(
+  innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: IS_TOUCH ? 2 : 4 }));
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.25, 0.4, 0.985);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
-const fxaa = new ShaderPass(FXAAShader);
-composer.addPass(fxaa);   // after OutputPass: FXAA wants the final LDR image
 
 // ---- sound ----
 let actx = null, master = null, vendGain = null, streetGain = null;
@@ -2421,7 +2418,6 @@ function applySize() {
   // bloom at HALF the scene resolution: it is blurry by nature, so this is ~invisible
   // and roughly quarters the single most expensive pass.
   bloom.setSize(Math.max(1, Math.round(W * QUALITY / 2)), Math.max(1, Math.round(H * QUALITY / 2)));
-  fxaa.material.uniforms['resolution'].value.set(1 / (W * QUALITY), 1 / (H * QUALITY));
 }
 function fit() {
   const W = innerWidth || 1280, H = innerHeight || 720;
@@ -2432,31 +2428,15 @@ function fit() {
 // perf governor: sample real frame time each second; if we're under target and there's
 // still headroom above the floor, drop one quality step and wait before judging again.
 let govT = performance.now(), govFrames = 0, govCooldown = 0, fpsShown = 0;
-let govSlow = 0, govFast = 0;
 function governor() {
-  // a hidden/background tab is throttled to a crawl by the browser; sampling then would
-  // read a false low fps and change quality for no reason. Skip and reset while hidden.
-  if (document.hidden) { govT = performance.now(); govFrames = 0; govSlow = 0; govFast = 0; return; }
+  // fps SAMPLING only — quality is fixed at native now, nothing here changes it.
+  // Kept so the status line and ?perf can show a live number.
+  if (document.hidden) { govT = performance.now(); govFrames = 0; return; }
   govFrames++;
   const now = performance.now();
-  if (now - govT < 500) return;                       // half-second windows
+  if (now - govT < 500) return;
   fpsShown = govFrames * 1000 / (now - govT);
   govT = now; govFrames = 0;
-  if (govCooldown > 0) { govCooldown--; return; }
-  // TWO-WAY: sustained slow → step down; sustained comfortable headroom → step up.
-  // Different hold lengths + a dead zone between the thresholds = hysteresis, no ping-pong.
-  // the user's own hardware runs the full room at ~35fps and it FEELS fine — so 30+ is
-  // "smooth enough" here. Resolution only drops on real struggle (sub-28), and climbs
-  // whenever there's headroom above ~40. Crisp-but-35 beats soft-but-60.
-  if (fpsShown < 28) { govSlow++; govFast = 0; } else if (fpsShown > 42) { govFast++; govSlow = 0; }
-  else { govSlow = 0; govFast = 0; }
-  if (govSlow >= 2 && QUALITY > Q_FLOOR) {            // ~1s of struggle → lighter
-    QUALITY = Math.max(Q_FLOOR, Math.round((QUALITY - 0.15) * 100) / 100);
-    applySize(); govSlow = 0; govCooldown = 3;        // ~1.5s settle
-  } else if (govFast >= 6 && QUALITY < Q_MAX) {       // ~3s of headroom → crisper
-    QUALITY = Math.min(Q_MAX, Math.round((QUALITY + 0.15) * 100) / 100);
-    applySize(); govFast = 0; govCooldown = 3;
-  }
 }
 function animate() {
   requestAnimationFrame(animate);
@@ -2500,17 +2480,11 @@ if (PERF) {
     '<label><input type="checkbox" id="pv-ral" checked> area lights (' + rals.length + ')</label><br>' +
     '<label><input type="checkbox" id="pv-bloom" checked> bloom</label><br>' +
     '<label><input type="checkbox" id="pv-shadow" checked> shadows</label><br>' +
-    '<label><input type="checkbox" id="pv-fxaa" checked> fxaa</label><br>' +
-    '<label><input type="checkbox" id="pv-lock"> lock quality (stop governor)</label>';
+    '';
   document.body.appendChild(pv);
-  let pvLock = false;
   document.getElementById('pv-ral').onchange = e => rals.forEach((l, i) => l.intensity = e.target.checked ? savedI[i] : 0);
   document.getElementById('pv-bloom').onchange = e => bloom.enabled = e.target.checked;
   document.getElementById('pv-shadow').onchange = e => { key.castShadow = e.target.checked; };
-  document.getElementById('pv-fxaa').onchange = e => fxaa.enabled = e.target.checked;
-  document.getElementById('pv-lock').onchange = e => pvLock = e.target.checked;
-  const realGov = governor;
-  governor = () => { if (!pvLock) realGov(); };
   setInterval(() => {
     document.getElementById('pv-fps').textContent = (fpsShown | 0) + ' fps · q' + QUALITY;
   }, 500);
