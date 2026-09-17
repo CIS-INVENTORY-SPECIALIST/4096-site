@@ -513,7 +513,10 @@ renderer.setSize(innerWidth, innerHeight);
 // FIXED native resolution. Dynamic scaling was tried and REMOVED: any ratio under the
 // device's real pixel density is an upscale, and the user sees it as blur — especially
 // across the room. Crisp always; fps is whatever the scene costs (see ?perf).
-const QUALITY = Math.min(devicePixelRatio, 2);
+// 2.0 native was tried: crisp but ~doubled the pixel cost and the 13-light scene became
+// unusable on the user's own Mac. 1.5 + MSAA is the ceiling until the lighting is baked —
+// the lights are the real budget, not the resolution. (Bake = the actual fix, planned.)
+const QUALITY = Math.min(devicePixelRatio, 1.5);
 renderer.setPixelRatio(QUALITY);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
