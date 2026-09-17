@@ -602,15 +602,11 @@ woodTop.rotation.x = -Math.PI / 2; woodTop.position.y = 0.001; woodTop.receiveSh
 {
   const fTex = glowTex((g, w, hh) => {
     const px = x => (x + RW / 2) / RW * w, pz = z => (z + RD / 2) / RD * hh;
-    // skylight wash: cool, soft-edged, down the room's spine
-    const sk = g.createLinearGradient(px(-5.2), 0, px(0), 0);
-    sk.addColorStop(0, 'rgba(235,242,246,0)'); sk.addColorStop(1, 'rgba(235,242,246,0.16)');
-    g.fillStyle = sk; g.fillRect(px(-5.2), pz(-12.5), px(0) - px(-5.2), pz(12.5) - pz(-12.5));
-    const sk2 = g.createLinearGradient(px(5.2), 0, px(0), 0);
-    sk2.addColorStop(0, 'rgba(235,242,246,0)'); sk2.addColorStop(1, 'rgba(235,242,246,0.16)');
-    g.fillStyle = sk2; g.fillRect(px(0), pz(-12.5), px(5.2) - px(0), pz(12.5) - pz(-12.5));
-    // hero pool: the warm ellipse in front of the canvas
-    radial(g, px(0), pz(-14.6), px(3.1) - px(0), pz(-12.2) - pz(-14.6), 'rgba(255,240,214,0.42)');
+    // skylight wash: ONE soft elongated radial down the spine — the previous rectangles
+    // left visible straight seams on the wood (the "pale sheet" the audit flagged)
+    radial(g, px(0), pz(0), px(3.4) - px(0), pz(11.5) - pz(0), 'rgba(235,242,246,0.13)');
+    // hero pool: the warm ellipse in front of the canvas (warmed per audit)
+    radial(g, px(0), pz(-14.6), px(3.2) - px(0), pz(-12.1) - pz(-14.6), 'rgba(255,232,196,0.46)');
     // door spill: daylight reaching just inside
     radial(g, px(0), pz(15.6), px(1.6) - px(0), pz(17) - pz(15.6), 'rgba(244,239,226,0.42)');
   });
@@ -696,16 +692,19 @@ const COVE_STRIP_REST = 1.6, COVE_WASH_REST = 2.2;
     new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffdca8, emissiveIntensity: COVE_STRIP_REST, roughness: 1 }));
   coveStrip.position.set(0, coveY, coveZ); scene.add(coveStrip);
   // the wash the cove threw down the charcoal wall, painted: warm band fading downward
+  // audit fix: the band floated ~1.2m below the ceiling and read as a detached grey-brown
+  // stripe. The real wash was brightest AT the ceiling line, fading down. Hug the cove.
   const bandTex = glowTex((g, w, hh) => {
     const gr = g.createLinearGradient(0, 0, 0, hh);
-    gr.addColorStop(0, 'rgba(255,230,191,0.34)'); gr.addColorStop(1, 'rgba(255,230,191,0)');
+    gr.addColorStop(0, 'rgba(255,236,205,0.46)'); gr.addColorStop(0.45, 'rgba(255,233,198,0.16)');
+    gr.addColorStop(1, 'rgba(255,230,191,0)');
     g.fillStyle = gr; g.fillRect(0, 0, w, hh);
   }, 64, 128);
-  const band = new THREE.Mesh(new THREE.PlaneGeometry(RW - 1.4, 1.7), glowMat(bandTex));
-  band.position.set(0, coveY - 0.95, coveZ + 0.065); band.renderOrder = 1; scene.add(band);
+  const band = new THREE.Mesh(new THREE.PlaneGeometry(RW - 1.4, 1.3), glowMat(bandTex));
+  band.position.set(0, coveY - 0.62, coveZ + 0.065); band.renderOrder = 1; scene.add(band);   // top edge ≈ the cove strip
   // the market pulse stays ALIVE: same band, opacity driven by covePulse in stepCove
-  coveGlowPulse = new THREE.Mesh(new THREE.PlaneGeometry(RW - 1.4, 1.7), glowMat(bandTex, 0));
-  coveGlowPulse.position.set(0, coveY - 0.95, coveZ + 0.07); coveGlowPulse.renderOrder = 1; scene.add(coveGlowPulse);
+  coveGlowPulse = new THREE.Mesh(new THREE.PlaneGeometry(RW - 1.4, 1.3), glowMat(bandTex, 0));
+  coveGlowPulse.position.set(0, coveY - 0.62, coveZ + 0.07); coveGlowPulse.renderOrder = 1; scene.add(coveGlowPulse);
 }
 function stepCove(dt) {
   if (covePulse <= 0) return;
@@ -938,7 +937,7 @@ glideTargets.push({ obj: hero, view: { pos: [0, 1.6, -10.4], look: [0, 3.1, -16.
 // heroLight (RectAreaLight) baked: a soft halo painted on the charcoal wall around the
 // canvas — the glow the canvas threw back at its own wall
 {
-  const haloTex = glowTex((g, w, hh) => radial(g, w / 2, hh / 2, w * 0.5, hh * 0.5, 'rgba(255,248,238,0.30)'));
+  const haloTex = glowTex((g, w, hh) => radial(g, w / 2, hh / 2, w * 0.5, hh * 0.5, 'rgba(255,248,238,0.40)'));
   const halo = new THREE.Mesh(new THREE.PlaneGeometry(HS + 6.4, HS + 3.6), glowMat(haloTex));
   halo.position.set(0, 3.1, -RD / 2 + 0.035); halo.renderOrder = 1; scene.add(halo);
 }
@@ -1611,7 +1610,7 @@ SECTIONS.forEach(sec => {
 
   // even wash across the whole bay + one accent spot on the main piece
   // the bay wash + its spot accent, painted: one warm pool on the wall behind the trio
-  const poolTex = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.44, w * 0.5, hh * 0.46, 'rgba(255,246,234,0.30)'));
+  const poolTex = glowTex((g, w, hh) => radial(g, w / 2, hh * 0.44, w * 0.5, hh * 0.46, 'rgba(255,246,234,0.35)'));
   const pool = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 4.0), glowMat(poolTex));
   pool.position.set(0, 2.15, 0.03); pool.renderOrder = 1; grp.add(pool);
   aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5);   // fixture sits on the moved rail, over the piece
