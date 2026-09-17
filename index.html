@@ -512,8 +512,8 @@ renderer.setSize(innerWidth, innerHeight);
 // the razor-sharp DOM overlays. 1.5 is sharp; the governor still lowers weak phones.
 // two-way dynamic resolution: start mid, then the controller finds each device's crispest
 // smooth point — up to full native (cap 2), down to 0.7 when the GPU genuinely can't.
-let QUALITY = Math.min(devicePixelRatio, IS_TOUCH ? 1.2 : 1.5);
-const Q_FLOOR = 0.7;
+let QUALITY = Math.min(devicePixelRatio, 1.5);
+const Q_FLOOR = IS_TOUCH ? 1.0 : 1.25;   // crispness is protected: quality may never get mushy.
 const Q_MAX = Math.min(devicePixelRatio, 2);
 renderer.setPixelRatio(QUALITY);
 renderer.shadowMap.enabled = true;
@@ -2445,7 +2445,10 @@ function governor() {
   if (govCooldown > 0) { govCooldown--; return; }
   // TWO-WAY: sustained slow → step down; sustained comfortable headroom → step up.
   // Different hold lengths + a dead zone between the thresholds = hysteresis, no ping-pong.
-  if (fpsShown < 50) { govSlow++; govFast = 0; } else if (fpsShown > 57) { govFast++; govSlow = 0; }
+  // the user's own hardware runs the full room at ~35fps and it FEELS fine — so 30+ is
+  // "smooth enough" here. Resolution only drops on real struggle (sub-28), and climbs
+  // whenever there's headroom above ~40. Crisp-but-35 beats soft-but-60.
+  if (fpsShown < 28) { govSlow++; govFast = 0; } else if (fpsShown > 42) { govFast++; govSlow = 0; }
   else { govSlow = 0; govFast = 0; }
   if (govSlow >= 2 && QUALITY > Q_FLOOR) {            // ~1s of struggle → lighter
     QUALITY = Math.max(Q_FLOOR, Math.round((QUALITY - 0.15) * 100) / 100);
