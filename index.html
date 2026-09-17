@@ -934,13 +934,9 @@ hero.position.z = 0.08; heroGrp.add(hero);   // the living canvas IS the chamber
 // piece tweens the camera there. Doubles as the escape hatch when mouse-look fails.
 const glideTargets = [];
 glideTargets.push({ obj: hero, view: { pos: [0, 1.6, -10.4], look: [0, 3.1, -16.94] } });
-// heroLight (RectAreaLight) baked: a soft halo painted on the charcoal wall around the
-// canvas — the glow the canvas threw back at its own wall
-{
-  const haloTex = glowTex((g, w, hh) => radial(g, w / 2, hh / 2, w * 0.5, hh * 0.5, 'rgba(255,248,238,0.55)'));
-  const halo = new THREE.Mesh(new THREE.PlaneGeometry(HS + 6.4, HS + 3.6), glowMat(haloTex));
-  halo.position.set(0, 3.1, -RD / 2 + 0.035); halo.renderOrder = 1; scene.add(halo);
-}
+// (a painted "halo" behind the canvas was tried twice and REMOVED — at any strength it
+// read as a sourceless glow ring. The canvas lights itself; the cove line above and the
+// floor pool below carry the chamber. Do not re-add.)
 // (the dark floor "runner" was removed — it read as a grey slab and z-fought the wood
 // floor, causing movement flicker. The hero approach is now lit by a floor pool instead.)
 // heroPool's warm floor pool is painted in the floorGlow overlay (see below)
