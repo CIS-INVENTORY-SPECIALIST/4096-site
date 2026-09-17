@@ -1699,7 +1699,7 @@ function stepPeople(dt, now) {
 // (FXAA was tried here and REMOVED — it is a softening pass and blurred the whole frame.
 //  MSAA is the sharp one. Do not bring FXAA back.)
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(
-  innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: IS_TOUCH ? 2 : 4 }));
+  innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: 2 }));   // 4x MSAA measured at 14fps vs 35 without — 2x is the ceiling until the light bake
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.25, 0.4, 0.985);
 composer.addPass(bloom);
