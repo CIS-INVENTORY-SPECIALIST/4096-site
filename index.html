@@ -700,9 +700,9 @@ const COVE_STRIP_REST = 1.6, COVE_WASH_REST = 2.2;
     gr.addColorStop(1, 'rgba(255,230,191,0)');
     g.fillStyle = gr; g.fillRect(0, 0, w, hh);
   }, 64, 128);
-  const band = new THREE.Mesh(new THREE.PlaneGeometry(RW - 1.4, 1.3), glowMat(bandTex));
-  band.position.set(0, coveY - 0.62, coveZ + 0.065); band.renderOrder = 1; scene.add(band);   // top edge ≈ the cove strip
-  // the market pulse stays ALIVE: same band, opacity driven by covePulse in stepCove
+  // (the static wash band was REMOVED — after the bloom unification the strip itself
+  //  glows, and the painted band just bled light down the wall. The pulse band below is
+  //  invisible at rest and flares only on a real mint — motion that reports state.)
   coveGlowPulse = new THREE.Mesh(new THREE.PlaneGeometry(RW - 1.4, 1.3), glowMat(bandTex, 0));
   coveGlowPulse.position.set(0, coveY - 0.62, coveZ + 0.07); coveGlowPulse.renderOrder = 1; scene.add(coveGlowPulse);
 }
@@ -787,12 +787,12 @@ for (const sx of [-1, 1]) {
   const rail = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, RD - 2), fixtureMat);
   rail.position.set(sx * (RW / 2 - 1.6), RH - 0.03, 0); scene.add(rail);   // near the walls, over the art — was mid-walkway
 }
-function aimedSpot(tx, ty, tz, px, pz, intensity = 48) {
+function aimedSpot(tx, ty, tz, px, pz, intensity = 48, lit = true) {
   const py = RH - 0.18;
   const grp = new THREE.Group(); grp.position.set(px, py, pz);
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.32, 18), fixtureMat);
   const lens = new THREE.Mesh(new THREE.CircleGeometry(0.085, 18),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff0dc, emissiveIntensity: 2.6, roughness: 1 }));
+    new THREE.MeshStandardMaterial({ color: lit ? 0xffffff : 0x2a2a2e, emissive: 0xfff0dc, emissiveIntensity: lit ? 2.6 : 0.0, roughness: 1 }));   // unlit bay: dark glass, can is OFF
   lens.position.y = -0.16; lens.rotation.x = -Math.PI / 2; grp.add(body, lens);
   const dir = new THREE.Vector3(tx - px, ty - py, tz - pz).normalize();
   grp.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir); scene.add(grp);
@@ -1524,7 +1524,7 @@ function realArtTex(url, pixel) {
   return t;
 }
 
-function pieceMesh(tex, w, h, frameColor, artAR) {
+function pieceMesh(tex, w, h, frameColor, artAR, lit = true) {
   // gallery framing: deep outer frame → stepped inner lip → recessed white mat → art.
   // reads as real framing instead of a flat rectangle. (see CRAFT: small details built in.)
   // artAR (width/height): fit the art to its true aspect inside the opening so the mat frames
@@ -1536,7 +1536,9 @@ function pieceMesh(tex, w, h, frameColor, artAR) {
   const lipMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.4, metalness: 0.18, emissive: 0xfff3e0, emissiveIntensity: 0.10 });   // inner step catches the pool
   // the art self-illuminates (baked spots) — without a matching lift the mat/frame read
   // dark around a glowing image: the backlit-TV effect. The light catches them too.
-  const matMat = new THREE.MeshStandardMaterial({ color: 0xf3f1ea, roughness: 0.95, emissive: 0xfff3e0, emissiveIntensity: 0.45 });   // bright enough to cross the bloom threshold — the soft glow ring every piece gets
+  const matMat = lit
+    ? new THREE.MeshStandardMaterial({ color: 0xf3f1ea, roughness: 0.95, emissive: 0xfff3e0, emissiveIntensity: 0.45 })   // crosses the bloom threshold — the glow ring
+    : new THREE.MeshStandardMaterial({ color: 0xe4e2da, roughness: 0.95 });   // EMPTY bay: lights off — no glow on a wall with nothing to light
   const fw = 0.16, mw = 0.11;                       // frame width, mat reveal
   const outer = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * fw + 2 * mw, h + 2 * fw + 2 * mw, 0.09), frameMat);
   outer.castShadow = true;
@@ -1553,7 +1555,9 @@ function pieceMesh(tex, w, h, frameColor, artAR) {
   // the bay accent spots were baked out — without them the art sat in flat ambient. The
   // hero's own trick, gently: each piece self-illuminates by its own image, so it reads
   // lit and crisp with zero light cost.
-  const art = new THREE.Mesh(new THREE.PlaneGeometry(aw, ah), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.28 }));
+  const art = new THREE.Mesh(new THREE.PlaneGeometry(aw, ah), lit
+    ? new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.28 })
+    : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
   art.position.z = 0.095;
   grp.add(outer, lip, mat, art); return grp;
 }
@@ -1567,7 +1571,7 @@ SECTIONS.forEach(sec => {
 
   // main piece — real hero art if delivered, else COMING SOON
   const mainTex = sec.main ? realArtTex(sec.main.url, sec.main.pixel) : comingSoonArt();
-  const main = pieceMesh(mainTex, 2.3, 2.9, sec.frame, sec.main && sec.main.ar);
+  const main = pieceMesh(mainTex, 2.3, 2.9, sec.frame, sec.main && sec.main.ar, !!sec.collab);
   main.position.set(0, 2.35, 0); grp.add(main);
   glideTargets.push({ obj: main, empty: !sec.collab, view: {   // empty: visitors skip roped coming-soon bays
     pos: [sec.side * (LX - 3.4), 1.6, sec.z], look: [sec.side * LX, 2.35, sec.z] } });
@@ -1575,7 +1579,7 @@ SECTIONS.forEach(sec => {
   [-2.45, 2.45].forEach((ox, i) => {
     const sd = sec.sides && sec.sides[i];
     const supTex = sd ? realArtTex(sd.url, sd.pixel) : comingSoonArt(384, 480);
-    const sup = pieceMesh(supTex, 1.15, 1.45, sec.frame, sd && sd.ar);
+    const sup = pieceMesh(supTex, 1.15, 1.45, sec.frame, sd && sd.ar, !!sec.collab);
     sup.position.set(ox, 2.25, 0); grp.add(sup);
   });
   // numbered plate + label plaque — BELOW the framing. Collab bays show collab name + artist;
@@ -1609,9 +1613,9 @@ SECTIONS.forEach(sec => {
   //  The glow now comes from BLOOM on the bright mats + art, like the hero: free and real.)
   // one can per PIECE: the painted pools crown all three works, so a lone centre can
   // read as a mismatch — fixtures now match the light (aimedSpot is pure fixture, no cost)
-  aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5);
+  aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5, !!sec.collab);
   for (const so of [-2.45, 2.45])
-    aimedSpot(sec.side * (RW / 2 - 0.3), 2.25, sec.z + so, sec.side * (RW / 2 - 1.6), sec.z + so, 5);
+    aimedSpot(sec.side * (RW / 2 - 0.3), 2.25, sec.z + so, sec.side * (RW / 2 - 1.6), sec.z + so, 5, !!sec.collab);
 });
 
 // ---- AMBIENT PEOPLE: a few stylized visitors so the gallery reads lived-in ----
