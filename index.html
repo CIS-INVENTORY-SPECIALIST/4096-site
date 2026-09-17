@@ -452,12 +452,15 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 RectAreaLightUniformsLib.init();
 
 // ---- room (enlarged so collab sections breathe) ----
 const RW = 32, RD = 34, RH = 6.2;
 const SHOOT = location.search.includes('shoot');
 const DEBUG = location.search.includes('debug');   // ?debug: status line + window.__ hooks, hidden for visitors
+const PERF = location.search.includes('perf');     // ?perf: fps + cost-toggle overlay for profiling on real devices
 // touch UI only when the PRIMARY pointer is coarse AND touch exists — an OR here gave
 // touchscreen laptops (mouse + touch) the mobile sticks by mistake. Declared early:
 // baked textures (kiosk card) and HUD wording read it at draw time.
@@ -507,8 +510,11 @@ renderer.setSize(innerWidth, innerHeight);
 // so weak devices settle smooth and it never oscillates. Touch starts lighter.
 // touch cap was 1.0 — HALF of a dpr-2 phone's pixels, and the room read blurry next to
 // the razor-sharp DOM overlays. 1.5 is sharp; the governor still lowers weak phones.
-let QUALITY = IS_TOUCH ? Math.min(devicePixelRatio, 1.5) : Math.min(devicePixelRatio, 1.5);
-const Q_FLOOR = IS_TOUCH ? 1.0 : 0.9;
+// two-way dynamic resolution: start mid, then the controller finds each device's crispest
+// smooth point — up to full native (cap 2), down to 0.7 when the GPU genuinely can't.
+let QUALITY = Math.min(devicePixelRatio, IS_TOUCH ? 1.2 : 1.5);
+const Q_FLOOR = 0.7;
+const Q_MAX = Math.min(devicePixelRatio, 2);
 renderer.setPixelRatio(QUALITY);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1607,6 +1613,11 @@ function pickStation(not) {
   const free = stations.map((s, i) => i).filter(i => !claimed.has(i) && i !== not);
   return free[(Math.random() * free.length) | 0];
 }
+// PEOPLE_ON: the stylized figures unsettled the user ("look scary") — OFF until real
+// avatars (studio.html pipeline) replace them. Code kept intact for the swap pass.
+const PEOPLE_ON = false;
+let docent = null, walker = null, walker2 = null;
+if (PEOPLE_ON) {
 for (let v = 0; v < 3; v++) {
   const si = pickStation(-1); claimed.add(si);
   const m = figureMesh(VISITOR_COLS[v], 1.62 + v * 0.07);
@@ -1617,13 +1628,14 @@ for (let v = 0; v < 3; v++) {
   visitors.push({ m, si, state: 'view', viewT: 8 + Math.random() * 22, path: [], phase: Math.random() * 6 });
 }
 // stationary docent near the threshold, facing arrivals — a fixed presence
-const docent = figureMesh(0x4a4e56, 1.74);   // dark slate — distinct but not stanchion-charcoal
+docent = figureMesh(0x4a4e56, 1.74);   // dark slate — distinct but not stanchion-charcoal
 docent.position.set(4.8, 0, 9.5); docent.rotation.y = Math.atan2(0 - 4.8, 15 - 9.5); scene.add(docent);   // beside the route, not in it — visitors pass the panel's right side
 // one distant figure strolling the far sidewalk outside — glimpsed through the door
-const walker = figureMesh(0x8b8880, 1.62);
+walker = figureMesh(0x8b8880, 1.62);
 walker.position.set(-14, 0, 11.6); doorG.add(walker);
-const walker2 = figureMesh(0x6f6d68, 1.68);              // second stroller, offset lane + pace, opposite direction
+walker2 = figureMesh(0x6f6d68, 1.68);              // second stroller, offset lane + pace, opposite direction
 walker2.position.set(8, 0, 10.9); doorG.add(walker2);
+}
 let walkerDir = 1, walker2Dir = -1, peopleDead = false;
 function stepPeople(dt, now) {
   for (const v of visitors) {
@@ -1682,13 +1694,16 @@ function stepPeople(dt, now) {
 // the composer's default target has ZERO samples, which bypassed the canvas's MSAA —
 // every edge crawled (the "pixelated/stuttery" look). A multisampled target restores AA
 // through the whole post pipeline: 4x desktop, 2x touch.
-const AA_SAMPLES = IS_TOUCH ? 2 : 4;
-const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(
-  innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: AA_SAMPLES }));
+// MSAA (samples on the composer target) was heavy and fought dynamic resolution — the
+// smoothness controller below needs cheap AA at ANY render scale. FXAA gives exactly that:
+// one screen-space pass after tone mapping, near-free, scale-independent.
+const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.25, 0.4, 0.985);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
+const fxaa = new ShaderPass(FXAAShader);
+composer.addPass(fxaa);   // after OutputPass: FXAA wants the final LDR image
 
 // ---- sound ----
 let actx = null, master = null, vendGain = null, streetGain = null;
@@ -2389,7 +2404,7 @@ window.__cam = (px, py, pz, lx, ly, lz) => { camera.position.set(px, py, pz); ca
 window.__coveState = () => [covePulse, coveStrip.material.emissiveIntensity, coveWash.intensity];   // debug, strip at final
 window.__glideTo = n => startGlide(glideTargets[n].view);                                           // debug, strip at final
 window.__glideN = () => glideTargets.length;                                                        // debug, strip at final
-window.__people = () => { visitors.forEach(v => v.viewT = Math.min(v.viewT, 0.1)); walker.position.x = -2; return visitors.map(v => [v.state, v.m.position.x.toFixed(1), v.m.position.z.toFixed(1)]); };
+window.__people = () => { if (!PEOPLE_ON) return 'people off'; visitors.forEach(v => v.viewT = Math.min(v.viewT, 0.1)); walker.position.x = -2; return visitors.map(v => [v.state, v.m.position.x.toFixed(1), v.m.position.z.toFixed(1)]); };
 window.__hero = () => { let white = 0, dark = 0, other = 0; for (let i = 0; i < N * N; i++) { const r = base[i*3], g = base[i*3+1], b = base[i*3+2]; if (r === 1 && g === 1 && b === 1) white++; else if (Math.abs(r - 196/255) < .002 && Math.abs(g - 194/255) < .002) dark++; else other++; } return { live: heroLive, white, dark, other }; };
 }
 
@@ -2406,6 +2421,7 @@ function applySize() {
   // bloom at HALF the scene resolution: it is blurry by nature, so this is ~invisible
   // and roughly quarters the single most expensive pass.
   bloom.setSize(Math.max(1, Math.round(W * QUALITY / 2)), Math.max(1, Math.round(H * QUALITY / 2)));
+  fxaa.material.uniforms['resolution'].value.set(1 / (W * QUALITY), 1 / (H * QUALITY));
 }
 function fit() {
   const W = innerWidth || 1280, H = innerHeight || 720;
@@ -2416,19 +2432,27 @@ function fit() {
 // perf governor: sample real frame time each second; if we're under target and there's
 // still headroom above the floor, drop one quality step and wait before judging again.
 let govT = performance.now(), govFrames = 0, govCooldown = 0, fpsShown = 0;
+let govSlow = 0, govFast = 0;
 function governor() {
   // a hidden/background tab is throttled to a crawl by the browser; sampling then would
-  // read a false low fps and drop quality for no reason. Skip and reset while hidden.
-  if (document.hidden) { govT = performance.now(); govFrames = 0; return; }
+  // read a false low fps and change quality for no reason. Skip and reset while hidden.
+  if (document.hidden) { govT = performance.now(); govFrames = 0; govSlow = 0; govFast = 0; return; }
   govFrames++;
   const now = performance.now();
-  if (now - govT < 1000) return;
+  if (now - govT < 500) return;                       // half-second windows
   fpsShown = govFrames * 1000 / (now - govT);
   govT = now; govFrames = 0;
   if (govCooldown > 0) { govCooldown--; return; }
-  if (fpsShown < 45 && QUALITY > Q_FLOOR) {
-    QUALITY = Math.max(Q_FLOOR, Math.round((QUALITY - 0.25) * 100) / 100);
-    applySize(); govCooldown = 2;   // let it settle two seconds before another drop
+  // TWO-WAY: sustained slow → step down; sustained comfortable headroom → step up.
+  // Different hold lengths + a dead zone between the thresholds = hysteresis, no ping-pong.
+  if (fpsShown < 50) { govSlow++; govFast = 0; } else if (fpsShown > 57) { govFast++; govSlow = 0; }
+  else { govSlow = 0; govFast = 0; }
+  if (govSlow >= 2 && QUALITY > Q_FLOOR) {            // ~1s of struggle → lighter
+    QUALITY = Math.max(Q_FLOOR, Math.round((QUALITY - 0.15) * 100) / 100);
+    applySize(); govSlow = 0; govCooldown = 3;        // ~1.5s settle
+  } else if (govFast >= 6 && QUALITY < Q_MAX) {       // ~3s of headroom → crisper
+    QUALITY = Math.min(Q_MAX, Math.round((QUALITY + 0.15) * 100) / 100);
+    applySize(); govFast = 0; govCooldown = 3;
   }
 }
 function animate() {
@@ -2452,12 +2476,41 @@ function animate() {
   stepFlashes(dt); stepCove(dt);
   // people are AMBIENT — isolated so a fault in them can never take down look/walk/render.
   // Not silent: logs loudly once and flags the status line (see CRAFT: report the true state).
-  if (!peopleDead) { try { stepPeople(dt, performance.now() / 1000); } catch (err) {
+  if (PEOPLE_ON && !peopleDead) { try { stepPeople(dt, performance.now() / 1000); } catch (err) {
     peopleDead = true; console.error('AMBIENT PEOPLE DISABLED:', err); } }
   rayTimer += dt; if (rayTimer > 0.1) { rayTimer = 0; if (!panelOpen) checkHover(); }
   // (the demo ticker is GONE: it painted random fake trades onto what is now the
   //  real artwork. Flashes now come only from loadHeroCanvas seeing real mints.)
   composer.render();
+}
+// ---- ?perf: profiling overlay for REAL devices. Shows live fps + quality; each toggle
+// genuinely removes that system's cost so the user can see what each one buys back.
+// Debug-only; normal visitors never see it and nothing here runs for them.
+if (PERF) {
+  const rals = [];
+  scene.traverse(o => { if (o.isRectAreaLight) rals.push(o); });
+  const savedI = rals.map(l => l.intensity);
+  const pv = document.createElement('div');
+  pv.style.cssText = 'position:fixed;top:10px;left:10px;z-index:99;background:rgba(20,20,24,.88);' +
+    'color:#f1f1f3;font-family:ui-monospace,monospace;font-size:12px;padding:12px 14px;border-radius:10px;line-height:2;';
+  pv.innerHTML = '<b id="pv-fps">-- fps · q--</b><br>' +
+    '<label><input type="checkbox" id="pv-ral" checked> area lights (' + rals.length + ')</label><br>' +
+    '<label><input type="checkbox" id="pv-bloom" checked> bloom</label><br>' +
+    '<label><input type="checkbox" id="pv-shadow" checked> shadows</label><br>' +
+    '<label><input type="checkbox" id="pv-fxaa" checked> fxaa</label><br>' +
+    '<label><input type="checkbox" id="pv-lock"> lock quality (stop governor)</label>';
+  document.body.appendChild(pv);
+  let pvLock = false;
+  document.getElementById('pv-ral').onchange = e => rals.forEach((l, i) => l.intensity = e.target.checked ? savedI[i] : 0);
+  document.getElementById('pv-bloom').onchange = e => bloom.enabled = e.target.checked;
+  document.getElementById('pv-shadow').onchange = e => { key.castShadow = e.target.checked; };
+  document.getElementById('pv-fxaa').onchange = e => fxaa.enabled = e.target.checked;
+  document.getElementById('pv-lock').onchange = e => pvLock = e.target.checked;
+  const realGov = governor;
+  governor = () => { if (!pvLock) realGov(); };
+  setInterval(() => {
+    document.getElementById('pv-fps').textContent = (fpsShown | 0) + ' fps · q' + QUALITY;
+  }, 500);
 }
 animate();
 
