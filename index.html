@@ -937,7 +937,7 @@ glideTargets.push({ obj: hero, view: { pos: [0, 1.6, -10.4], look: [0, 3.1, -16.
 // heroLight (RectAreaLight) baked: a soft halo painted on the charcoal wall around the
 // canvas — the glow the canvas threw back at its own wall
 {
-  const haloTex = glowTex((g, w, hh) => radial(g, w / 2, hh / 2, w * 0.5, hh * 0.5, 'rgba(255,248,238,0.40)'));
+  const haloTex = glowTex((g, w, hh) => radial(g, w / 2, hh / 2, w * 0.5, hh * 0.5, 'rgba(255,248,238,0.55)'));
   const halo = new THREE.Mesh(new THREE.PlaneGeometry(HS + 6.4, HS + 3.6), glowMat(haloTex));
   halo.position.set(0, 3.1, -RD / 2 + 0.035); halo.renderOrder = 1; scene.add(halo);
 }
@@ -980,7 +980,10 @@ function plaque(title, sub, w, accent, dark = false) {
     let ts = 52; g.font = `400 ${ts}px "Libre Baskerville", Georgia, serif`;
     while (ts > 30 && g.measureText(title).width > 768 - 88) { ts -= 2; g.font = `400 ${ts}px "Libre Baskerville", Georgia, serif`; }
     g.fillText(title, 44, 84);
-    g.fillStyle = dark ? '#9a958c' : '#8a867d'; g.font = '400 32px "IBM Plex Mono", monospace'; g.letterSpacing = '1px'; g.fillText(sub, 46, 138);
+    g.fillStyle = dark ? '#9a958c' : '#8a867d';
+    let ss = 32; g.font = `400 ${ss}px "IBM Plex Mono", monospace`; g.letterSpacing = '1px';
+    while (ss > 20 && g.measureText(sub).width > 768 - 92) { ss -= 2; g.font = `400 ${ss}px "IBM Plex Mono", monospace`; }
+    g.fillText(sub, 46, 138);
     g.letterSpacing = '0px';
   };
   draw();
@@ -1534,8 +1537,10 @@ function pieceMesh(tex, w, h, frameColor, artAR) {
   // low metalness: at 0.25/0.4 the frames mirrored the white HDRI and read silver-grey,
   // erasing each bay's frame colour entirely
   const frameMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.55, metalness: 0.08 });
-  const lipMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.4, metalness: 0.18 });   // brighter catch on the inner step
-  const matMat = new THREE.MeshStandardMaterial({ color: 0xf3f1ea, roughness: 0.95 });                      // the white board around the art
+  const lipMat = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.4, metalness: 0.18, emissive: 0xfff3e0, emissiveIntensity: 0.10 });   // inner step catches the pool
+  // the art self-illuminates (baked spots) — without a matching lift the mat/frame read
+  // dark around a glowing image: the backlit-TV effect. The light catches them too.
+  const matMat = new THREE.MeshStandardMaterial({ color: 0xf3f1ea, roughness: 0.95, emissive: 0xfff3e0, emissiveIntensity: 0.18 });
   const fw = 0.16, mw = 0.11;                       // frame width, mat reveal
   const outer = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * fw + 2 * mw, h + 2 * fw + 2 * mw, 0.09), frameMat);
   outer.castShadow = true;
