@@ -1556,8 +1556,8 @@ function pieceMesh(tex, w, h, frameColor, artAR, lit = true) {
   // hero's own trick, gently: each piece self-illuminates by its own image, so it reads
   // lit and crisp with zero light cost.
   const art = new THREE.Mesh(new THREE.PlaneGeometry(aw, ah), lit
-    ? new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.28 })
-    : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+    ? new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.42 })   // the ART reads lit — blank white boards were outshining it at .28
+    : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, color: 0xd8d6ce }));   // unlit bay: the white primed canvas dims with its lights
   art.position.z = 0.095;
   grp.add(outer, lip, mat, art); return grp;
 }
