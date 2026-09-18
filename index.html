@@ -591,7 +591,7 @@ const ceilMat = new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 1.0
 // floor: faint sheen only — mirror kept very dim under near-opaque wood
 if (!IS_TOUCH) {   // touch skips the mirror pass entirely — sheen is not worth the GPU there
   const reflector = new Reflector(new THREE.PlaneGeometry(RW, RD), {
-    textureWidth: 512, textureHeight: 512, color: 0x161618 });   // one notch up from 0x0c0c0c — gallery sheen, still far from the marble look that got it dialed down
+    textureWidth: 512, textureHeight: 512, color: 0x0e0e10 });   // dimmed again: the bloom-era mats got bright and their reflections crawled the floor as pale ghost shapes
   reflector.rotation.x = -Math.PI / 2; scene.add(reflector);
 }
 const woodTop = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD),
@@ -777,7 +777,12 @@ setTimeout(markReady, 2500);   // hard fallback so the room can never stay dark
 
 const key = new THREE.DirectionalLight(0xfff6ea, 0.32);
 key.position.set(4, 11, 7); key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024); key.shadow.camera.near = 1; key.shadow.camera.far = 48;
+key.shadow.mapSize.set(2048, 2048); key.shadow.camera.near = 1; key.shadow.camera.far = 48;
+// fit the orthographic shadow box to the room: the default frustum spread 1024px across
+// far more area than the floor, smearing thin casters (ropes/stanchions/legs) into long
+// streaky bands at raking angles. Tight bounds + 2048 = crisp, cheap.
+key.shadow.camera.left = -20; key.shadow.camera.right = 20;
+key.shadow.camera.top = 22; key.shadow.camera.bottom = -22;
 key.shadow.camera.left = -20; key.shadow.camera.right = 20; key.shadow.camera.top = 20; key.shadow.camera.bottom = -20;
 key.shadow.bias = -0.0004; scene.add(key);
 
