@@ -1057,7 +1057,10 @@ function steppedFrame(w, h, frameColor, matColor) {
   const frameM = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.55, metalness: 0.08 });
   const lipM = new THREE.MeshStandardMaterial({ color: frameColor, roughness: 0.4, metalness: 0.18 });
   const outer = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * fw + 2 * mw, h + 2 * fw + 2 * mw, 0.09), frameM);
-  outer.castShadow = true;
+  // castShadow OFF for wall-hung frames: the key light rakes along the RIGHT wall and
+  // threw sideways frame-shadows that made no physical sense there. Hung art casts nothing;
+  // freestanding objects (bench/kiosk/figures) still do.
+  outer.castShadow = false;
   const lip = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * mw + 0.04, h + 2 * mw + 0.04, 0.034), lipM);
   lip.position.z = 0.045;                              // front face 0.062
   const mat = new THREE.Mesh(new THREE.PlaneGeometry(w + 2 * mw, h + 2 * mw),
@@ -1546,7 +1549,10 @@ function pieceMesh(tex, w, h, frameColor, artAR, lit = true) {
     : new THREE.MeshStandardMaterial({ color: 0xe4e2da, roughness: 0.95 });   // EMPTY bay: lights off — no glow on a wall with nothing to light
   const fw = 0.16, mw = 0.11;                       // frame width, mat reveal
   const outer = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * fw + 2 * mw, h + 2 * fw + 2 * mw, 0.09), frameMat);
-  outer.castShadow = true;
+  // castShadow OFF for wall-hung frames: the key light rakes along the RIGHT wall and
+  // threw sideways frame-shadows that made no physical sense there. Hung art casts nothing;
+  // freestanding objects (bench/kiosk/figures) still do.
+  outer.castShadow = false;
   const lip = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * mw + 0.04, h + 2 * mw + 0.04, 0.034), lipMat);
   lip.position.z = 0.045;                            // front face at 0.062
   // layer spacing: outer front 0.045 → lip front 0.062 → mat 0.082 → art 0.095.
