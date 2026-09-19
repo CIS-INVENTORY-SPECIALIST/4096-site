@@ -378,8 +378,7 @@ key  = qLog(hold)</pre>
       <section class="leaf" id="bro-lineage">
         <h4>LINEAGE</h4>
         <h3>Five works this one descends from</h3>
-        <p class="dim" style="font-size:11.5px">01, Richter's 4096 Farben, is on the previous page.
-        The full write-ups are kept in <a href="/explore.html">the archive</a>.</p>
+        <p class="dim" style="font-size:11.5px">01, Richter's 4096 Farben, is on the previous page.</p>
         <div class="lin">
           <figure class="paste"><img src="lineage-mdh.png" alt="The Million Dollar Homepage" loading="lazy"></figure>
           <div><p class="lin-l">02 · MILLION DOLLAR HOMEPAGE · ALEX TEW, 2005</p>
@@ -2138,7 +2137,9 @@ const BRO_HEART = (() => {
       S.payload = new Uint8Array(len);
       for (let i = 0; i < len; i++) S.payload[i] = parseInt(data.substr(i * 2, 2), 16);
     } catch (e) { S.payload = null; }
-    if (!VES) { VES = growVessels(SEED); const f = frontier(VES); DIST = f.d; DMAXV = f.max; }
+    // guard on DIST, not VES: a throw between the two assignments must not wedge the
+    // heart into a loaded-but-never-drawn state on the next successful load
+    if (!DIST) { VES = growVessels(SEED); const f = frontier(VES); DIST = f.d; DMAXV = f.max; }
     loaded = true;
   }
   const fmt = s => { if (!s) return 'NEVER'; const h = Math.floor(s / 3600); return h < 48 ? h + 'H' : Math.floor(h / 24) + 'D ' + (h % 24) + 'H'; };
@@ -2158,7 +2159,7 @@ const BRO_HEART = (() => {
   function stopH() { if (raf !== null) { cancelAnimationFrame(raf); raf = null; } }
   async function refresh() {
     if (!active) return;
-    try { await load(); beatH(); readout(); }
+    try { await load(); draw(0); beatH(); readout(); }   // direct first paint: never wait on a throttled rAF
     catch (e) {
       const cap = document.getElementById('broHeartCap');
       if (cap) cap.textContent = 'COULD NOT REACH THE CHAIN · STILL LIVE ON ETHERSCAN';
@@ -2167,7 +2168,7 @@ const BRO_HEART = (() => {
   return { setActive(on) {
     active = !!on;
     if (!active) { stopH(); if (timer) { clearInterval(timer); timer = null; } return; }
-    if (!loaded) refresh(); else { beatH(); readout(); }
+    if (!loaded) refresh(); else { draw(0); beatH(); readout(); }
     if (!timer) timer = setInterval(refresh, 60000);
   } };
 })();
