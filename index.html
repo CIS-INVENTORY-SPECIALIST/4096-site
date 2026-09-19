@@ -145,24 +145,53 @@
   #browrap{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
     background:rgba(27,27,25,.5);backdrop-filter:blur(3px);}
   #browrap.on{display:flex;}
-  #brochure{width:min(1180px,95vw);height:min(660px,86vh);background:var(--paper);border:1px solid var(--rule);
-    box-shadow:0 24px 70px rgba(27,27,25,.45);position:relative;color:var(--ink);display:flex;flex-direction:column;}
-  #brochure .ribbon{flex:none;display:flex;justify-content:space-between;align-items:center;
-    padding:14px 46px 12px 26px;border-bottom:1px solid var(--rule);
-    font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:#6b675e;text-indent:.3em;}
+  /* homemade for real: no drawn ornament. Each panel is its own photocopied sheet laid on
+     the glass, a hair crooked, hard shadow; images are pasted prints with tape over the
+     corners and a typed slip beneath. The imperfection lives in placement, not decoration. */
+  #brochure{width:min(1240px,96vw);height:min(690px,88vh);position:relative;color:var(--ink);
+    display:flex;flex-direction:column;}
+  #brochure .ribbon{flex:none;align-self:flex-start;display:flex;align-items:center;gap:30px;
+    padding:10px 18px;margin:0 0 14px 6px;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .055 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E") repeat,#f0ede3;
+    border:1px solid var(--rule);box-shadow:0 8px 20px rgba(27,27,25,.4);transform:rotate(-.5deg);
+    font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:#6b675e;text-indent:.26em;}
   #brochure .rib-l{display:flex;align-items:center;gap:11px;}
-  #brochure .rib-mark{display:inline-grid;grid-template-columns:1fr 1fr;gap:1.5px;width:14px;height:14px;flex:none;}
+  #brochure .rib-mark{display:inline-grid;grid-template-columns:1fr 1fr;gap:1.5px;width:14px;height:14px;flex:none;
+    filter:drop-shadow(1px 0 rgba(160,47,28,.4));}   /* a hair off-register, like cheap printing */
   #brochure .rib-mark i{display:block;}
   #brochure .rib-mark i:nth-child(1){background:#a02f1c;} #brochure .rib-mark i:nth-child(2){background:#2c6338;}
   #brochure .rib-mark i:nth-child(3){background:#283a86;} #brochure .rib-mark i:nth-child(4){background:#f4f2ec;box-shadow:inset 0 0 0 2px #b9b9ae;}
-  #brochure .leaves{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;}
-  #brochure .leaf{flex:0 0 348px;box-sizing:border-box;padding:24px 26px 30px;overflow-y:auto;
-    border-left:1px solid var(--rule);
-    background:linear-gradient(90deg,rgba(27,27,25,.05),rgba(27,27,25,0) 14px,rgba(27,27,25,0) calc(100% - 6px),rgba(27,27,25,.03));}
-  #brochure .leaf:first-child{border-left:none;}
-  #brochure .leaf h4{margin:0 0 16px;font-family:var(--mono);font-weight:500;font-size:9.5px;
-    letter-spacing:.32em;color:#84847c;}
+  #brochure .leaves{flex:1;display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;padding:8px 6px 22px;}
+  #brochure .leaf{flex:0 0 352px;box-sizing:border-box;padding:24px 24px 30px;overflow-y:auto;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .055 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E") repeat,#f0ede3;
+    border:1px solid rgba(27,27,25,.12);box-shadow:0 14px 34px rgba(27,27,25,.42);
+    transform:rotate(.35deg);}
+  #brochure .leaf:nth-child(even){transform:rotate(-.4deg);}
+  #brochure .leaf:nth-child(3n){transform:rotate(.15deg);}
+  #brochure .leaf h4{margin:0 0 14px;font-family:var(--mono);font-weight:500;font-size:9px;
+    letter-spacing:.3em;color:#84847c;}
   #brochure h3{margin:0 0 14px;font-family:var(--serif);font-style:italic;font-weight:400;font-size:18px;}
+  /* a pasted print: white border, tape over the top corners, typed slip beneath */
+  #brochure .paste{margin:2px 0 16px;background:#fbfaf6;padding:7px 7px 0;position:relative;
+    box-shadow:0 2px 10px rgba(27,27,25,.3);}
+  #brochure .paste img,#brochure .paste canvas{display:block;width:100%;height:auto;}
+  #brochure .paste::before,#brochure .paste::after{content:'';position:absolute;top:-7px;width:42px;height:13px;
+    background:rgba(233,229,213,.85);border:1px solid rgba(27,27,25,.07);box-shadow:0 1px 2px rgba(27,27,25,.1);}
+  #brochure .paste::before{left:10%;transform:rotate(-4deg);}
+  #brochure .paste::after{right:10%;transform:rotate(3deg);}
+  #brochure .paste.r1{transform:rotate(-.9deg);}
+  #brochure .paste.r2{transform:rotate(.7deg);}
+  #brochure .paste.r3{transform:rotate(-.5deg);}
+  #brochure .cap{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:#6b675e;
+    padding:7px 3px 8px;text-transform:uppercase;}
+  #brochure .px{image-rendering:pixelated;}
+  #brochure .lin{display:flex;gap:11px;margin:0 0 15px;align-items:flex-start;}
+  #brochure .lin .paste{flex:0 0 86px;margin:3px 0 0;padding:4px;}
+  #brochure .lin .paste::before,#brochure .lin .paste::after{display:none;}
+  #brochure .lin p{font-size:11.5px;line-height:1.6;margin:0 0 6px;}
+  #brochure .lin .lin-l{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:#6b675e;margin:0 0 5px;}
+  #brochure .sheetgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+  #brochure .sheetgrid img{width:100%;aspect-ratio:1;object-fit:contain;display:block;background:#fbfaf6;}   /* contain, not cover: the tall pieces keep their riders' heads */
   #brochure p{margin:0 0 13px;font-family:var(--serif);font-size:13px;line-height:1.75;color:#33332e;}
   #brochure .mono{font-family:var(--mono);font-size:11.5px;}
   #brochure table{width:100%;border-collapse:collapse;margin:6px 0 16px;font-family:var(--mono);font-size:11px;}
@@ -172,15 +201,14 @@
   #brochure pre{font-family:var(--mono);font-size:10.5px;line-height:1.7;background:var(--mount);
     border:1px solid var(--rule);padding:11px 13px;overflow-x:auto;margin:6px 0 15px;}
   #brochure .dim{color:#84847c;}
-  #brochure .x{position:absolute;top:10px;right:12px;border:none;background:none;font-size:18px;
-    color:#84847c;cursor:pointer;line-height:1;font-family:var(--mono);z-index:2;}
+  #brochure .x{position:absolute;top:6px;right:2px;border:none;background:none;font-size:20px;
+    color:#cfcfc6;cursor:pointer;line-height:1;font-family:var(--mono);z-index:2;}
   @media (max-width:760px){
-    #brochure .ribbon{padding:12px 40px 10px 18px;letter-spacing:.16em;text-indent:.16em;}
+    #brochure .ribbon{padding:9px 14px;gap:14px;letter-spacing:.16em;text-indent:.16em;margin:0 0 12px 2px;}
     #brochure .ribbon span:nth-child(2){display:none;}   /* the URL wraps the ribbon on narrow screens */
-    #brochure{height:88vh;}
-    #brochure .leaves{flex-direction:column;overflow-y:auto;overflow-x:hidden;}
-    #brochure .leaf{flex:none;border-left:none;border-top:1px solid var(--rule);overflow-y:visible;background:none;}
-    #brochure .leaf:first-child{border-top:none;}
+    #brochure{height:90vh;}
+    #brochure .leaves{flex-direction:column;overflow-y:auto;overflow-x:hidden;gap:15px;padding:6px 4px 26px;}
+    #brochure .leaf{flex:none;overflow-y:visible;}
   }
   /* mint panel */
   /* mint panel: the site's paper-and-ink editorial language — serif prose, mono data, hairline rules */
@@ -269,9 +297,13 @@
       <section class="leaf" id="bro-about">
         <h4>ABOUT</h4>
         <h3>A canvas painted by its own market</h3>
-        <p>4,096 tokens. Each one owns a single pixel on a single 64×64 canvas. No pixel has a
-        colour at mint — every one starts white. Colour comes only from what happens to a token
-        afterward: how often it sells, how erratically, how long it rests.</p>
+        <figure class="paste r1">
+          <canvas id="broCanvas" width="64" height="64" class="px"></canvas>
+          <figcaption class="cap" id="broCanvasCap">LAST SNAPSHOT · WAITING FOR THE CHAIN</figcaption>
+        </figure>
+        <p>4,096 tokens. Each one owns a single pixel on one 64×64 canvas. No pixel has a
+        colour when it's minted. They all start white. The colour comes from what happens to
+        the token after. How often it sells, how erratically, how long it sits.</p>
         <table>
           <tr><th>Channel</th><th>Measures</th><th>To raise it</th></tr>
           <tr><td>Red</td><td>How many times it has sold</td><td>Trade often</td></tr>
@@ -280,51 +312,52 @@
           <tr><td>White</td><td>Never sold</td><td>Never sell</td></tr>
         </table>
         <p>Each channel is ranked across the whole collection and split into sixteen tones. Your
-        pixel's colour describes where it stands against every other pixel, not an absolute number.
-        It moves when other people trade, even if you do nothing — holding is never passive.</p>
-        <p><b>The last sale.</b> The total climbs with every sale. At a hidden target — the sealed
-        number, committed as a hash before launch — the canvas sets forever. It then mints as a
-        single artwork and opens at 1 ETH with no deadline. Proceeds split equally across all
-        4,096 pixels. The winner inherits the royalties: from settlement on, the 5% royalty on
-        every pixel sale is paid to whoever holds the canvas. Hold it and you collect; sell it and
-        the income passes with it.</p>
-        <p class="dim">The sealed number may never be reached. There is no time limit and no
-        backstop. If the total never reaches it, the painting is never finished.</p>
+        pixel's colour is where it stands against every other pixel, not a fixed number. It moves
+        when other people trade, even when you do nothing. Holding is never passive.</p>
+        <p><b>The last sale.</b> The total climbs with every sale. When it reaches a hidden
+        target, the sealed number committed as a hash before launch, the canvas sets forever.
+        It mints as a single artwork and opens at 1 ETH with no deadline. Proceeds split
+        equally across all 4,096 pixels. The winner inherits the royalties. From settlement on,
+        the 5% royalty on every pixel sale is paid to whoever holds the canvas. Hold it and you
+        collect. Sell it and the income passes with it.</p>
       </section>
       <section class="leaf" id="bro-method">
         <h4>METHOD</h4>
         <h3>Everything, in the open</h3>
-        <p>Every rule that decides a pixel's colour, written out in full. The short version:</p>
-        <p><b>Red — how often it sells.</b> Total sales; a sale is any transfer where the caller
-        is not the sender (a marketplace fill). Self-transfers, gifts, and the mint do not count.</p>
+        <p>Every rule that decides a pixel's colour, written out in full. Here's the short version.</p>
+        <p><b>Red, how often it sells.</b> Total sales. A sale is any transfer where the caller
+        is not the sender, meaning a marketplace fill. Self-transfers, gifts, and the mint do
+        not count.</p>
         <pre>key_velocity = min(sales, 1023)</pre>
-        <p>Red is buyable — each sale costs only gas. What you cannot buy is a tone when nobody is
-        standing near you: climbing from a crowded part of the distribution is cheap, from a
+        <p>Red is buyable. Each sale costs only gas. What you cannot buy is a tone when nobody
+        is standing near you. Climbing from a crowded part of the distribution is cheap. From a
         sparse part it is not.</p>
-        <p><b>Green — how uneven the gaps are.</b> The population standard deviation of the
-        intervals between consecutive sales. Steady cadence scores low; a flurry, then years of
+        <p><b>Green, how uneven the gaps are.</b> The population standard deviation of the
+        intervals between consecutive sales. Steady cadence scores low. A flurry, then years of
         silence, then another flurry scores high.</p>
         <pre>gapSum   += gap
 gapSumSq += gap × gap
 n        = sales − 1
 variance = gapSumSq/n − (gapSum/n)²   (floored at 0)
 rhythm   = √variance                  (seconds, log-quantised)</pre>
-        <p>Below three sales, rhythm does not exist — those pixels sit at the midpoint, tone 8,
-        and are left out of the ranking. Green cannot be bought quickly: its whole substance is
+        <p>Below three sales, rhythm does not exist. Those pixels sit at the midpoint, tone 8,
+        and are left out of the ranking. Green cannot be bought quickly. Its whole substance is
         duration. You cannot manufacture a two-year gap in an afternoon.</p>
-        <p><b>Blue — longest unbroken hold.</b></p>
+        <p><b>Blue, longest unbroken hold.</b></p>
         <pre>open = now − lastSale
 hold = max(open, longestGap)
 key  = qLog(hold)</pre>
-        <p>The hold running right now counts. Blue is the patient channel — it rewards the thing
+        <p>The hold running right now counts. Blue is the patient channel. It rewards the thing
         the other two punish.</p>
-        <p class="dim">The full write-up, including every edge case, lives on the site's Method
-        tab.</p>
       </section>
       <section class="leaf" id="bro-richter">
         <h4>RICHTER</h4>
         <h3>4096 Farben, Gerhard Richter, 1974</h3>
-        <p>In 1974 Richter finished a painting of 4,096 coloured squares on a square canvas — the
+        <figure class="paste r2">
+          <img src="lineage-farben.jpg" alt="4096 Farben, Gerhard Richter, 1974" loading="lazy">
+          <figcaption class="cap">4096 FARBEN · LACQUER ON CANVAS · 1974</figcaption>
+        </figure>
+        <p>In 1974 Richter finished a painting of 4,096 coloured squares on a square canvas, the
         last work in a series he had been circling since 1966. He worked out exactly 1,024 unique
         tones by grading the primaries against greys and greens with a fixed system, made four
         copies of each, and ran a random lottery to decide where all 4,096 squares would land. He
@@ -333,44 +366,81 @@ key  = qLog(hold)</pre>
         <p>He painted it decades before computers were on every desk, and it looks exactly like
         modern digital pixels. A math experiment on pure colour quietly predicted the world we now
         live in.</p>
-        <p><b>Why it matters here.</b> Richter was refusing authorship — building a system strict
-        enough that his taste could not get into it, and then letting the system decide. 4096
-        borrows that structure and swaps the system. Where Richter used arithmetic and slips of
-        paper, this uses a market. Nobody picks the colours here either: they are produced by
+        <p><b>Why it matters here.</b> Richter was refusing authorship. He built a system strict
+        enough that his taste could not get into it, then let the system decide. 4096 borrows
+        that structure and swaps the system. Where Richter used arithmetic and slips of paper,
+        this uses a market. Nobody picks the colours here either. They are produced by
         thousands of people trading, none of whom can see what they are painting.</p>
-        <p>Richter was the hand that held the brush while a system decided the colours. We are not
-        even the hand. The market is the brush, every trade is a stroke — we built the instrument
-        and let go of it, and that letting go is the whole point.</p>
+        <p>Richter was the hand that held the brush while a system decided the colours. We are
+        not even the hand. The market is the brush and every trade is a stroke. We built the
+        instrument and let go of it. The letting go is the point.</p>
+      </section>
+      <section class="leaf" id="bro-lineage">
+        <h4>LINEAGE</h4>
+        <h3>Five works this one descends from</h3>
+        <p class="dim" style="font-size:11.5px">01, Richter's 4096 Farben, is on the previous page.
+        The full write-ups are kept in <a href="/explore.html">the archive</a>.</p>
+        <div class="lin">
+          <figure class="paste"><img src="lineage-mdh.png" alt="The Million Dollar Homepage" loading="lazy"></figure>
+          <div><p class="lin-l">02 · MILLION DOLLAR HOMEPAGE · ALEX TEW, 2005</p>
+          <p>A student sold a million pixels of ad space to pay for university. Nobody composed it.
+          The picture is whatever the people who bought in added up to, and it outlived most of
+          the things it was made of.</p></div>
+        </div>
+        <div class="lin">
+          <figure class="paste"><img src="lineage-rcs.png" alt="Right Click Share" loading="lazy"></figure>
+          <div><p class="lin-l">03 · RIGHT CLICK SHARE · XCOPY AND DECA</p>
+          <p>Right-click-and-Save-As Guy broken into 1,024 single-colour pixels. Holders attest
+          onchain to keep their pixel visible, and attestations expire. Stop caring for it and it
+          goes white.</p></div>
+        </div>
+        <div class="lin">
+          <figure class="paste"><img src="lineage-jpeg.png" alt="JPEG by Jan Robert Leegte" class="px" loading="lazy"></figure>
+          <div><p class="lin-l">04 · JPEG · JAN ROBERT LEEGTE</p>
+          <p>A real JPEG built entirely from code, no source image anywhere in it, rendered fresh
+          from the token hash. Not a picture of compression. Compression, made out of itself.</p></div>
+        </div>
+        <div class="lin">
+          <figure class="paste"><img src="heart.png" alt="The heart, craft #1154 on The Vessel" class="px" loading="lazy"></figure>
+          <div><p class="lin-l">05 · THE VESSEL · STEPHEN SANTORO</p>
+          <p>Ten thousand crafts, each holding exactly as many bytes as its token ID. The machine
+          crafts store no image at all, only a pointer to code somebody else wrote. The heart
+          lives in one.</p></div>
+        </div>
       </section>
       <section class="leaf" id="bro-heart">
         <h4>THE HEART</h4>
         <h3>The heart of 4096</h3>
+        <figure class="paste r3">
+          <canvas id="broHeart" width="96" height="74" class="px"></canvas>
+          <figcaption class="cap" id="broHeartCap">WAITING FOR THE CHAIN</figcaption>
+        </figure>
         <p>The canvas is what 4096 is. This is where it came from. Everything here runs on the
-        collection: the heart brightens when a pixel sells and fades when nothing moves, and the
+        collection. The heart brightens when a pixel sells and fades when nothing moves, and the
         arteries were grown from the block 4096 was deployed in, reaching further the longer the
         collection lives.</p>
         <p><b>It lives inside somebody else's contract.</b> The heart is craft #1154 on The
-        Vessel. Machine crafts there store no image at all — they hold a pointer to another
-        contract. The contract on the other end is Heartbeat4096: The Vessel calls it, it reads
+        Vessel. Machine crafts there store no image at all. They hold a pointer to another
+        contract. The contract on the other end is Heartbeat4096. The Vessel calls it, it reads
         4096's state, and it answers with 1,154 grayscale values. Nothing is stored anywhere
         along that chain. No image file, no server, no cache. The heart does not exist between
         the moments somebody looks at it.</p>
-        <p><b>Brightness.</b> One number decides everything: the time since a 4096 pixel last
-        sold, anywhere in the collection. A sale takes it to 255; from there it decays
-        front-loaded — a fast drop that flattens into a crawl.</p>
+        <p><b>Brightness.</b> One number decides everything. The time since a 4096 pixel last
+        sold, anywhere in the collection. A sale takes it to 255. From there it decays
+        front-loaded, a fast drop that flattens into a crawl.</p>
         <pre>day    0    1    2    3    4    5    6    7
 level  255  202  153  110  71   38   13   0</pre>
         <p>Past seven days it is zero. One sale puts it straight back to full. No partial
         recovery, no memory of how long it was out.</p>
-        <p><b>The beat.</b> Every artery cell knows its distance from the heart; the crest starts
-        at the muscle and travels to the tips. Rate and strength both come from brightness —
+        <p><b>The beat.</b> Every artery cell knows its distance from the heart. The crest starts
+        at the muscle and travels to the tips. Rate and strength both come from brightness,
         about a second per beat at full, stretching past three by day six, stopped at zero. A
         dying heart pulses faintly before it stops.</p>
-        <p><b>The arteries.</b> Not drawn — grown. Five trunks leave the heart and walk outward
+        <p><b>The arteries.</b> Not drawn, grown. Five trunks leave the heart and walk outward
         one cell at a time, splitting and thinning, every decision from a single seeded random
-        number generator. The seed is block <span class="mono">25,621,173</span> — the block 4096
+        number generator. The seed is block <span class="mono">25,621,173</span>, the block 4096
         and its renderer were deployed in, fixed before any of this existed. The mint builds the
-        trunks; trading builds the fine branches at the tips. Both only ever add. It is nowhere
+        trunks. Trading builds the fine branches at the tips. Both only ever add. It is nowhere
         near finished.</p>
         <p class="dim mono" style="font-size:10.5px">4096 0xEB46…FF2C · Heartbeat4096 0x4C9d…fb61 · The Vessel 0xECb9…1463 · seed block 25,621,173</p>
       </section>
@@ -378,8 +448,8 @@ level  255  202  153  110  71   38   13   0</pre>
         <h4>THE AUCTION</h4>
         <h3>The last sale</h3>
         <table>
-          <tr><th>Reserve</th><td>1.00 ETH — where bidding starts. There is no ceiling and no closing date.</td></tr>
-          <tr><th>Length</th><td>24 hours — nothing moves until someone bids.</td></tr>
+          <tr><th>Reserve</th><td>1.00 ETH, where bidding starts. There is no ceiling and no closing date.</td></tr>
+          <tr><th>Length</th><td>24 hours. Nothing moves until someone bids.</td></tr>
         </table>
         <p><b>How it ends.</b> There is no closing date. There is only a clock, and anyone
         can push it back.</p>
@@ -391,7 +461,7 @@ level  255  202  153  110  71   38   13   0</pre>
         fought one could run for weeks. The painting does not end when a timer says so. It
         ends when people stop wanting it.</p>
         <p><b>Holder claim.</b> Proceeds split equally across all 4,096 pixels and are paid to
-        whoever held each one at the last-sale block. Payment is pulled, not pushed: the claim
+        whoever held each one at the last-sale block. Payment is pulled, not pushed. The claim
         goes live once the auction settles, and it stays available indefinitely. Selling a
         pixel afterward does not transfer the claim.</p>
         <p class="dim">Bidding unlocks the moment the total reaches the sealed number. Until
@@ -401,11 +471,16 @@ level  255  202  153  110  71   38   13   0</pre>
       <section class="leaf" id="bro-visit">
         <h4>VISIT</h4>
         <h3>Your pixels</h3>
-        <p class="dim">To see the pixels you hold, their colours, and their full trade
-        history, connect on <a href="/explore.html">the full site</a>.</p>
-        <p>Minting is open at the kiosk beside the canvas, or any time on
-        <a href="/explore.html">the full site</a>. The auction opens only when the last sale
-        happens — the roped piece on the charcoal wall is waiting for it.</p>
+        <figure class="paste r1">
+          <div class="sheetgrid">
+            <img src="cake-eotw.png" alt="" loading="lazy"><img src="cake-cowboy.jpg" alt="" loading="lazy"><img src="cake-rainbow.jpg" alt="" loading="lazy">
+            <img src="dt-carpediem.png" alt="" loading="lazy"><img src="dt-killer89.png" alt="" loading="lazy"><img src="dt-lonelyspeck.png" alt="" loading="lazy">
+            <img src="lord-demon.jpg" alt="" loading="lazy"><img src="lord-orangeman.jpg" alt="" loading="lazy"><img src="nts-notthesame.png" alt="" loading="lazy">
+          </div>
+          <figcaption class="cap">THE COLLABORATIONS · HUNG ON THESE WALLS</figcaption>
+        </figure>
+        <p>Minting is open at the kiosk beside the canvas. The auction opens only when the
+        last sale happens. The roped piece on the charcoal wall is waiting for it.</p>
       </section>
     </div>
   </div>
@@ -1859,15 +1934,243 @@ function openBrochure(leafId) {
     const el = document.getElementById(leafId);
     if (el) leaves.scrollLeft = el.offsetLeft;
   } else leaves.scrollLeft = 0;
+  paintBroCanvas(); BRO_HEART.setActive(true);           // the guide's live prints wake with it
+  if (!broCanvasTimer) broCanvasTimer = setInterval(paintBroCanvas, 60000);
 }
 function closeBrochure() {
   broOpen = false; panelOpen = false; browrap.classList.remove('on');
+  BRO_HEART.setActive(false);
+  if (broCanvasTimer) { clearInterval(broCanvasTimer); broCanvasTimer = null; }
   if (typeof lastPanelClose !== 'undefined') lastPanelClose = performance.now();
   if (entered) { showHud(); if (typeof tryLock === 'function') tryLock(); }
 }
 broDock.addEventListener('click', e => { e.stopPropagation(); openBrochure(); });
 document.getElementById('brox').addEventListener('click', e => { e.stopPropagation(); closeBrochure(); });
 browrap.addEventListener('click', e => { if (e.target === browrap) closeBrochure(); });
+
+// ---- the guide's LIVE prints ----
+// The canvas print re-reads the hero wall's base array, which loadHeroCanvas keeps honest;
+// the caption states plainly whether the chain has actually answered. Never a fake pulse.
+const broCv = document.getElementById('broCanvas');
+let broCanvasTimer = null;
+function paintBroCanvas() {
+  if (!broCv) return;
+  const x = broCv.getContext('2d');
+  const img = x.createImageData(N, N);
+  for (let i = 0; i < N * N; i++) {
+    img.data[i * 4]     = Math.round(base[i * 3] * 255);
+    img.data[i * 4 + 1] = Math.round(base[i * 3 + 1] * 255);
+    img.data[i * 4 + 2] = Math.round(base[i * 3 + 2] * 255);
+    img.data[i * 4 + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  const cap = document.getElementById('broCanvasCap');
+  if (cap) cap.textContent = heroLive
+    ? 'LIVE FROM THE CHAIN · ' + (painted ? painted.toLocaleString() + ' OF 4,096 MINTED · ' : '') + 'REDRAWN EACH MINUTE'
+    : 'LAST SNAPSHOT · THE CHAIN HAS NOT ANSWERED YET';
+}
+
+// The heart print is the site's Heartbeat port: same seed block, same contracts, same
+// growth and draw rules, so the guide shows the same organism the full site shows.
+const BRO_HEART = (() => {
+  const cv2 = document.getElementById('broHeart');
+  if (!cv2) return { setActive() {} };
+  const HEARTBEAT = '0x4C9db8E4997F3044b9D4CF0a6B255B85ba3ffb61';
+  const SEL_PULSE = '0xdeb189b5', SEL_PAYLOAD = '0x563dc14b', SEL_SALES = '0x6605ff66';
+  const SUPPLY = 4096, CRAFT = 1154, PCOLS = 34, SEED = 25621173;
+  const REST = .40, WAVE_LEN = .30, BEAT_MS = 1000, BEAT_SLOW = 2.6, SQUEEZE = .14;
+  const COLS = 96, ROWS = 74, HN = 33;
+  const HXo = Math.floor((COLS - HN) / 2), HYo = Math.floor((ROWS - HN) / 2);
+  const SPANS = {3:[[9,13],[18,22]],4:[[7,14],[17,24]],5:[[6,15],[16,25]],6:[[5,26]],7:[[4,27]],8:[[3,28]],9:[[3,29]],10:[[2,29]],11:[[2,30]],12:[[2,30]],13:[[1,30]],14:[[1,30]],15:[[1,30]],16:[[1,29]],17:[[2,29]],18:[[2,28]],19:[[2,28]],20:[[3,27]],21:[[3,26]],22:[[4,25]],23:[[4,24]],24:[[5,22]],25:[[5,21]],26:[[6,19]],27:[[6,17]],28:[[7,15]],29:[[7,13]],30:[[8,12]],31:[[9,11]]};
+  const SULCUS = [[11,4],[10,5],[10,6],[9,7],[9,8],[9,9],[9,10],[10,11],[10,12],[11,13],[11,14],[11,15],[10,16],[10,17],[9,18],[9,19],[9,20],[10,21],[10,22],[11,23],[11,24],[12,25],[12,26]];
+  const AIV = [[11,15],[12,15],[13,14],[14,14],[15,14],[16,13],[17,13],[18,13],[19,12],[20,12],[21,12],[22,11],[23,11],[24,11],[25,10],[26,10],[27,10],[28,10],[29,10]];
+  const BRANCH = [[14,16],[15,17],[16,18],[17,19],[18,20],[19,21],[16,11],[17,10],[18,9],[19,9],[21,14],[22,15],[23,16],[24,17],[13,6],[14,5],[15,5]];
+  const M = [], B = [], G = [], DEPTH = []; let DMAX = 1;
+  (function () {
+    for (let r = 0; r < HN; r++) { M.push(new Array(HN).fill(0)); B.push(new Array(HN).fill(0)); G.push(new Array(HN).fill(0)); DEPTH.push(new Array(HN).fill(0)); }
+    for (const k in SPANS) SPANS[k].forEach(sp => { for (let c = sp[0]; c <= sp[1]; c++) M[+k][c] = 1; });
+    for (let r = 0; r < HN; r++) for (let c = 0; c < HN; c++) {
+      if (!M[r][c]) continue; let edge = false;
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(d => { const rr = r + d[0], cc = c + d[1]; if (rr < 0 || rr >= HN || cc < 0 || cc >= HN || !M[rr][cc]) edge = true; });
+      if (edge) B[r][c] = 1;
+    }
+    SULCUS.concat(AIV).forEach(p => { if (M[p[0]] && M[p[0]][p[1]]) G[p[0]][p[1]] = 2; });
+    BRANCH.forEach(p => { if (M[p[0]] && M[p[0]][p[1]] && !G[p[0]][p[1]]) G[p[0]][p[1]] = 1; });
+    const q = []; let head = 0;
+    for (let r = 0; r < HN; r++) for (let c = 0; c < HN; c++) if (B[r][c]) { DEPTH[r][c] = 1; q.push([r, c]); }
+    while (head < q.length) {
+      const p = q[head++];
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(d => {
+        const rr = p[0] + d[0], cc = p[1] + d[1];
+        if (rr >= 0 && rr < HN && cc >= 0 && cc < HN && M[rr][cc] && DEPTH[rr][cc] === 0) { DEPTH[rr][cc] = DEPTH[p[0]][p[1]] + 1; q.push([rr, cc]); }
+      });
+    }
+    for (let r = 0; r < HN; r++) for (let c = 0; c < HN; c++) if (DEPTH[r][c] > DMAX) DMAX = DEPTH[r][c];
+  })();
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function gauss(rnd, sd) { const u = 1 - rnd(), v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * sd; }
+  function growVessels(seed) {
+    const rnd = mulberry32(seed >>> 0), cells = new Map(), order = { n: 0 };
+    function free(c, r) {
+      const gc = c - HXo, gr = r - HYo;
+      if (gc >= 0 && gc < HN && gr >= 0 && gr < HN && M[gr][gc]) return false;
+      return c >= 0 && c < COLS && r >= 0 && r < ROWS;
+    }
+    function stamp(c, r, w) {
+      const h = w >> 1;
+      for (let dc = -h; dc <= h; dc++) for (let dr = -h; dr <= h; dr++) {
+        if (w === 1 && (dc || dr)) continue;
+        const cc = c + dc, rr = r + dr, key = cc + ',' + rr;
+        if (free(cc, rr) && !cells.has(key)) cells.set(key, order.n);
+      }
+      order.n++;
+    }
+    function walk(c, r, ang, w, life, depth) {
+      if (life <= 0 || w < 1 || depth > 7) return;
+      let fc = c, fr = r; const drift = gauss(rnd, 0.075), n2 = Math.floor(life);
+      let pc = Math.round(fc), pr = Math.round(fr);
+      for (let i = 0; i < n2; i++) {
+        stamp(pc, pr, w);
+        ang += drift + gauss(rnd, 0.05);
+        const nc = fc + Math.cos(ang), nr = fr + Math.sin(ang);
+        const ic = Math.round(nc), ir = Math.round(nr);
+        if (!free(ic, ir)) break;
+        if (ic !== pc && ir !== pr) {
+          if (free(ic, pr)) stamp(ic, pr, Math.max(1, w - 1));
+          else if (free(pc, ir)) stamp(pc, ir, Math.max(1, w - 1));
+        }
+        fc = nc; fr = nr; pc = ic; pr = ir;
+        if (i > n2 * 0.42 && w > 1) w--;
+      }
+      const sp = 0.45 + rnd() * 0.50;
+      walk(pc, pr, ang - sp * 0.7, Math.max(1, w), life * (0.55 + rnd() * 0.23), depth + 1);
+      walk(pc, pr, ang + sp * 0.9, Math.max(1, w - 1), life * (0.40 + rnd() * 0.22), depth + 1);
+      if (depth < 4 && rnd() < 0.45) walk(pc, pr, ang + (rnd() < 0.5 ? -1 : 1) * 1.25, 1, life * 0.4, depth + 2);
+    }
+    const PI = Math.PI;
+    [[8, -PI/2 - 0.92, 2, 15, 2], [14, -PI/2 - 0.22, 3, 20, 1], [20, -PI/2 + 0.26, 2, 18, 2], [25, -PI/2 + 0.88, 2, 13, 3]]
+      .forEach(v => { walk(HXo + v[0], HYo + v[4], v[1], v[2], v[3], 0); });
+    walk(HXo + 20, HYo + 26, PI/2 - 0.42, 2, 16, 0);
+    walk(HXo + 8,  HYo + 27, PI/2 + 0.50, 2, 14, 0);
+    return cells;
+  }
+  function frontier(cells) {
+    const dist = new Map(), q = []; let head = 0;
+    cells.forEach((_, key) => {
+      const p = key.split(','), c = +p[0], r = +p[1]; let touches = false;
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(d => {
+        const cc = c + d[0], rr = r + d[1], gc = cc - HXo, gr = rr - HYo;
+        if (gc >= 0 && gc < HN && gr >= 0 && gr < HN && M[gr][gc]) touches = true;
+      });
+      if (touches) { dist.set(key, 0); q.push([c, r]); }
+    });
+    while (head < q.length) {
+      const p = q[head++], b2 = dist.get(p[0] + ',' + p[1]);
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(d => {
+        const cc = p[0] + d[0], rr = p[1] + d[1], key = cc + ',' + rr;
+        if (cells.has(key) && !dist.has(key)) { dist.set(key, b2 + 1); q.push([cc, rr]); }
+      });
+    }
+    let far = 0; dist.forEach(v => { if (v > far) far = v; });
+    const out = new Map();
+    cells.forEach((_, key) => { out.set(key, dist.has(key) ? dist.get(key) : far + 9); });
+    return { d: out, max: far || 1 };
+  }
+  const S = { glow: 0, last: 0, since: 0, minted: 0, sales: 0, payload: null };
+  let VES = null, DIST = null, DMAXV = 1, loaded = false, raf = null, active = false, timer = null;
+  const ctx2 = cv2.getContext('2d');
+  const RMOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const t0 = performance.now();
+  const PAPER = [238,238,234], INKC = [27,27,25], VELC = [160,47,28], HOT = [214,96,68];
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const cssc = x => 'rgb(' + Math.round(x[0]) + ',' + Math.round(x[1]) + ',' + Math.round(x[2]) + ')';
+  function radialWeight(gc, gr) {
+    const grid = Math.ceil(Math.sqrt(CRAFT));
+    const i = gr * PCOLS + gc, gx = i % grid, gy = Math.floor(i / grid), cc = grid >> 1;
+    const dx = Math.abs(gx - cc), dy = Math.abs(gy - cc), maxd2 = cc * cc * 2;
+    return maxd2 ? 1000 - Math.floor((dx * dx + dy * dy) * 550 / maxd2) : 1000;
+  }
+  function draw(phase) {
+    if (phase === undefined) phase = 0;
+    cv2.width = COLS; cv2.height = ROWS;
+    ctx2.fillStyle = 'rgb(238,238,234)'; ctx2.fillRect(0, 0, COLS, ROWS);
+    const g = S.glow / 255;
+    const reach = 2 + (S.minted / SUPPLY) * 18 + Math.pow(S.sales, 0.28) * 1.9;
+    if (DIST) DIST.forEach((o, key) => {
+      if (o > reach) return;
+      const p = key.split(','), c = +p[0], r = +p[1];
+      const lift = Math.max(0, Math.sin(phase - o * WAVE_LEN));
+      const boost = lift * lift * g;
+      let col = mix(mix(INKC, VELC, g * REST), HOT, boost);
+      col = mix(col, PAPER, (o / DMAXV) * 0.30 * (1 - g * 0.4));
+      ctx2.fillStyle = cssc(col); ctx2.fillRect(c, r, 1, 1);
+    });
+    for (let gr = 0; gr < HN; gr++) for (let gc = 0; gc < HN; gc++) {
+      if (!M[gr][gc]) continue;
+      const c = HXo + gc, r = HYo + gr;
+      const w = 450 + Math.round(550 * (DEPTH[gr][gc] / DMAX));
+      const sq = Math.max(0, Math.sin(phase));
+      let v = Math.min(255, Math.round((4 + Math.round(S.glow * w / 1000)) * (1 + SQUEEZE * sq * sq * g)));
+      if (S.payload) {
+        const idx = gr * PCOLS + gc;
+        if (idx < S.payload.length) {
+          const texture = S.payload[idx] - (4 + Math.round(S.glow * radialWeight(gc, gr) / 1000));
+          v = Math.max(0, Math.min(255, v + texture));
+        }
+      }
+      let col;
+      if (B[gr][gc]) col = INKC;
+      else if (G[gr][gc] === 2) col = mix([v, v, v], INKC, 0.66);
+      else if (G[gr][gc] === 1) col = mix([v, v, v], INKC, 0.36);
+      else col = [v, v, v];
+      ctx2.fillStyle = cssc(col); ctx2.fillRect(c, r, 1, 1);
+    }
+  }
+  function pad32(n) { let h = n.toString(16); while (h.length < 64) h = '0' + h; return h; }
+  async function load() {
+    const b = (await ethCall(HEARTBEAT, SEL_PULSE)).replace(/^0x/, '');
+    S.glow = parseInt(b.slice(0, 64), 16); S.last = parseInt(b.slice(64, 128), 16);
+    S.since = parseInt(b.slice(128, 192), 16); S.minted = parseInt(b.slice(192, 256), 16);
+    S.sales = parseInt((await ethCall(CONTRACT, SEL_SALES)).replace(/^0x/, ''), 16);
+    try {
+      const p = (await ethCall(HEARTBEAT, SEL_PAYLOAD + pad32(CRAFT))).replace(/^0x/, '');
+      const len = parseInt(p.slice(64, 128), 16), data = p.slice(128, 128 + len * 2);
+      S.payload = new Uint8Array(len);
+      for (let i = 0; i < len; i++) S.payload[i] = parseInt(data.substr(i * 2, 2), 16);
+    } catch (e) { S.payload = null; }
+    if (!VES) { VES = growVessels(SEED); const f = frontier(VES); DIST = f.d; DMAXV = f.max; }
+    loaded = true;
+  }
+  const fmt = s => { if (!s) return 'NEVER'; const h = Math.floor(s / 3600); return h < 48 ? h + 'H' : Math.floor(h / 24) + 'D ' + (h % 24) + 'H'; };
+  function readout() {
+    const cap = document.getElementById('broHeartCap');
+    if (cap) cap.textContent = 'LIVE · GLOW ' + S.glow + '/255 · LAST SALE ' + fmt(S.since) + ' AGO';
+  }
+  function tick() {
+    raf = null;
+    if (!active || !DIST) return;
+    if (S.glow === 0 || RMOTION) { draw(0); return; }
+    const period = BEAT_MS * (1 + BEAT_SLOW * (1 - S.glow / 255));
+    draw(((performance.now() - t0) % period) / period * Math.PI * 2);
+    raf = requestAnimationFrame(tick);
+  }
+  function beatH() { if (active && raf === null) raf = requestAnimationFrame(tick); }
+  function stopH() { if (raf !== null) { cancelAnimationFrame(raf); raf = null; } }
+  async function refresh() {
+    if (!active) return;
+    try { await load(); beatH(); readout(); }
+    catch (e) {
+      const cap = document.getElementById('broHeartCap');
+      if (cap) cap.textContent = 'COULD NOT REACH THE CHAIN · STILL LIVE ON ETHERSCAN';
+    }
+  }
+  return { setActive(on) {
+    active = !!on;
+    if (!active) { stopH(); if (timer) { clearInterval(timer); timer = null; } return; }
+    if (!loaded) refresh(); else { beatH(); readout(); }
+    if (!timer) timer = setInterval(refresh, 60000);
+  } };
+})();
 
 // ---- mobile twin sticks: left = move (analog), right = look ----
 const sticksEl = document.getElementById('sticks');
