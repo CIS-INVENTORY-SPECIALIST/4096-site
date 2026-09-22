@@ -485,6 +485,11 @@ level  255  202  153  110  71   38   13   0</pre>
   </div>
 </div>
 <div id="hint">WASD / ARROWS TO MOVE&nbsp;&nbsp;·&nbsp;&nbsp;MOVE MOUSE TO LOOK&nbsp;&nbsp;·&nbsp;&nbsp;ESC TO RELEASE</div>
+<style>
+/* ?film: clean footage — every HUD chrome hidden; the vignette stays (it reads as lens) */
+body.film #cross, body.film #hint, body.film #lookstat, body.film #pixhud,
+body.film #broDock, body.film #mute, body.film #prompt, body.film #sticks { display: none !important; }
+</style>
 <div id="enter">
   <h1>4096</h1>
   <div class="sub">A room built by its own market. The canvas is on the far wall, still being painted.</div>
@@ -628,27 +633,32 @@ if (innerHeight > innerWidth) camera.position.x = 1.1;
 
 // ---- procedural wood ----
 function woodTexture() {
-  const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+  // 1024² tile at repeat 4×4 (was 512² at 7×6): 16 visible repeats instead of 42, and the
+  // giveaway that exposed the tiling — three HIGH-contrast end-joints per lane — becomes
+  // six SOFT ones, so the eye can't lock onto the pattern at grazing angles. Per-plank
+  // tone spread widened and the old contrast-flattening wash halved: the floor gets its
+  // depth back instead of reading as one flat brown sheet.
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 1024;
   const g = c.getContext('2d');
-  g.fillStyle = '#b07d47'; g.fillRect(0, 0, 512, 512);
-  const planks = 6, ph = 512 / planks;
+  g.fillStyle = '#b07d47'; g.fillRect(0, 0, 1024, 1024);
+  const planks = 8, ph = 1024 / planks;
   for (let i = 0; i < planks; i++) {
-    const y = i * ph, base = 108 + Math.floor(Math.random() * 46);
-    g.fillStyle = `rgb(${base + 60},${base + 18},${base - 30})`; g.fillRect(0, y, 512, ph - 2);
-    for (let s = 0; s < 26; s++) {
-      const gy = y + 3 + Math.random() * (ph - 6);
-      g.strokeStyle = `rgba(60,38,18,${0.05 + Math.random() * 0.12})`; g.lineWidth = 0.5 + Math.random();
+    const y = i * ph, base = 100 + Math.floor(Math.random() * 62);
+    g.fillStyle = `rgb(${base + 60},${base + 18},${base - 30})`; g.fillRect(0, y, 1024, ph - 3);
+    for (let s = 0; s < 40; s++) {
+      const gy = y + 4 + Math.random() * (ph - 8);
+      g.strokeStyle = `rgba(60,38,18,${0.05 + Math.random() * 0.13})`; g.lineWidth = 0.6 + Math.random() * 1.2;
       g.beginPath(); g.moveTo(0, gy);
-      g.bezierCurveTo(170, gy + (Math.random() * 6 - 3), 340, gy + (Math.random() * 6 - 3), 512, gy); g.stroke();
+      g.bezierCurveTo(340, gy + (Math.random() * 10 - 5), 680, gy + (Math.random() * 10 - 5), 1024, gy); g.stroke();
     }
-    g.fillStyle = 'rgba(40,24,10,0.5)'; g.fillRect(0, y + ph - 2, 512, 2);
-    for (let j = 0; j < 3; j++) {                       // plank end-joints so lanes don't run forever
-      g.fillStyle = 'rgba(40,24,10,0.55)'; g.fillRect(Math.random() * 512, y, 2, ph - 2);
+    g.fillStyle = 'rgba(40,24,10,0.5)'; g.fillRect(0, y + ph - 3, 1024, 3);
+    for (let j = 0; j < 6; j++) {                       // plank end-joints so lanes don't run forever
+      g.fillStyle = `rgba(40,24,10,${0.22 + Math.random() * 0.18})`; g.fillRect(Math.random() * 1024, y, 2.5, ph - 3);
     }
   }
-  g.fillStyle = 'rgba(232,224,210,0.14)'; g.fillRect(0, 0, 512, 512);   // calm the contrast
+  g.fillStyle = 'rgba(232,224,210,0.07)'; g.fillRect(0, 0, 1024, 1024);   // calm the contrast — gently now
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(7, 6); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;   // fewer, longer planks — calmer than the busy 14×15 parquet
+  t.repeat.set(4, 4); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 }
 
 const wallMat = new THREE.MeshStandardMaterial({ color: 0xefede7, roughness: 0.94 });
@@ -662,15 +672,13 @@ function contactShadow(parent, x, z, r, sx = 1, sz = 1, op = 0.13) {
 }
 const ceilMat = new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 1.0, emissive: 0xf0eee8, emissiveIntensity: 0.09 });
 
-// floor: faint sheen only — mirror kept very dim under near-opaque wood
-if (!IS_TOUCH) {   // touch skips the mirror pass entirely — sheen is not worth the GPU there
-  const reflector = new Reflector(new THREE.PlaneGeometry(RW, RD), {
-    textureWidth: 512, textureHeight: 512, color: 0x0e0e10 });   // dimmed again: the bloom-era mats got bright and their reflections crawled the floor as pale ghost shapes
-  reflector.rotation.x = -Math.PI / 2; scene.add(reflector);
-}
+// floor: SOLID wood, no mirror pass. The Reflector's low-res reflections were already on
+// record crawling the floor as pale ghost shapes, and view-dependent crawl only shows in
+// motion — the exact "looks broken while walking" the user reported. Its sheen was
+// invisible under 98.8%-opaque wood anyway, so this removes the cause (and a whole
+// scene re-render per frame) instead of dimming the symptom further.
 const woodTop = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD),
-  new THREE.MeshStandardMaterial({ map: woodTexture(), roughness: 0.9, metalness: 0.0, transparent: true, opacity: 0.988,
-    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));   // offset beats the 1mm-away reflector in the depth buffer — no shimmer at grazing angles
+  new THREE.MeshStandardMaterial({ map: woodTexture(), roughness: 0.9, metalness: 0.0 }));
 woodTop.rotation.x = -Math.PI / 2; woodTop.position.y = 0.001; woodTop.receiveShadow = true; scene.add(woodTop);
 // BAKED floor light: hero's warm pool, the skylight's cool wash, the door's daylight spill
 {
@@ -678,14 +686,35 @@ woodTop.rotation.x = -Math.PI / 2; woodTop.position.y = 0.001; woodTop.receiveSh
     const px = x => (x + RW / 2) / RW * w, pz = z => (z + RD / 2) / RD * hh;
     // skylight wash: ONE soft elongated radial down the spine — the previous rectangles
     // left visible straight seams on the wood (the "pale sheet" the audit flagged)
-    radial(g, px(0), pz(0), px(3.4) - px(0), pz(11.5) - pz(0), 'rgba(235,242,246,0.13)');
-    // hero pool: the warm ellipse in front of the canvas (warmed per audit)
-    radial(g, px(0), pz(-14.6), px(3.8) - px(0), pz(-11.6) - pz(-14.6), 'rgba(255,232,196,0.32)');   // .46 read as a blob in phone portrait — wider + softer
+    // TINTED light, never white: the additive blend pushes pale colours to blown-out
+    // white patches (the "weird white spots" the user flagged by the door, the vitrine
+    // and the hero). Saturated tints at low alpha read as LIGHT on wood; the AO overlay
+    // is what carries the floor's depth now, so these can stay whispers.
+    radial(g, px(0), pz(0), px(4.6) - px(0), pz(11.5) - pz(0), 'rgba(210,226,238,0.10)');   // skylight: cool, wide, faint
+    // hero pool: the warm ellipse in front of the canvas
+    radial(g, px(0), pz(-14.6), px(4.4) - px(0), pz(-11.2) - pz(-14.6), 'rgba(255,212,158,0.20)');
     // door spill: daylight reaching just inside
-    radial(g, px(0), pz(15.2), px(2.6) - px(0), pz(17.6) - pz(15.2), 'rgba(244,239,226,0.16)');   // soft wide daylight fade, not a spotlight puddle
+    radial(g, px(0), pz(15.2), px(3.4) - px(0), pz(17.8) - pz(15.2), 'rgba(240,226,200,0.10)');
   });
   const fGlow = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), glowMat(fTex));
-  fGlow.rotation.x = -Math.PI / 2; fGlow.position.y = 0.0075; fGlow.renderOrder = 1; scene.add(fGlow);
+  fGlow.rotation.x = -Math.PI / 2; fGlow.position.y = 0.0075; fGlow.renderOrder = 2; scene.add(fGlow);
+  // AO edge: the additive glow can only brighten, so DEPTH comes from this second overlay —
+  // normal-blended darkening feathered in from every wall, strongest where edges meet in
+  // the corners. This is the luminance gradient that stops the floor reading as one sheet.
+  const aoTex = glowTex((g, w, hh) => {
+    const dark = 'rgba(22,15,8,0.28)', none = 'rgba(22,15,8,0)', E = 130;
+    let gr = g.createLinearGradient(0, 0, E, 0); gr.addColorStop(0, dark); gr.addColorStop(1, none);
+    g.fillStyle = gr; g.fillRect(0, 0, E, hh);
+    gr = g.createLinearGradient(w, 0, w - E, 0); gr.addColorStop(0, dark); gr.addColorStop(1, none);
+    g.fillStyle = gr; g.fillRect(w - E, 0, E, hh);
+    gr = g.createLinearGradient(0, 0, 0, E); gr.addColorStop(0, dark); gr.addColorStop(1, none);
+    g.fillStyle = gr; g.fillRect(0, 0, w, E);
+    gr = g.createLinearGradient(0, hh, 0, hh - E); gr.addColorStop(0, dark); gr.addColorStop(1, none);
+    g.fillStyle = gr; g.fillRect(0, hh - E, w, E);
+  });
+  const ao = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD),
+    new THREE.MeshBasicMaterial({ map: aoTex, transparent: true, depthWrite: false }));
+  ao.rotation.x = -Math.PI / 2; ao.position.y = 0.004; ao.renderOrder = 1; scene.add(ao);   // below the glow in the order: darken first, then light pools over it
 }
 
 // SKYLIGHT: a real one — an actual opening in the ceiling with a recessed well rising to a
@@ -1450,17 +1479,33 @@ const threshold = new THREE.Group(); threshold.position.set(-1.1, 0, 11.5); scen
 // has a path and a purpose instead of a void
 const oakMat = new THREE.MeshStandardMaterial({ color: 0xa8845c, roughness: 0.55, metalness: 0.05 });
 const legMat = new THREE.MeshStandardMaterial({ color: 0x2b2a28, roughness: 0.4, metalness: 0.6 });   // neutral dark steel; 0x3f3f46 read blue under this light
-function bench(x, z, ry = 0) {
+const BENCH_SEATS = [];   // clickable: sit down and take the room in from the bench's view
+function bench(x, z, ry = 0, look) {
   const b = new THREE.Group(); b.position.set(x, 0, z); b.rotation.y = ry; scene.add(b);
   const seat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.07, 0.62), oakMat);   // slimmer slab, sturdier legs — was reading top-heavy
   seat.position.y = 0.45; seat.castShadow = true; seat.receiveShadow = true; b.add(seat);
+  seat.userData.interactive = 'bench';
+  seat.userData.sit = { pos: [x, 1.15, z], look };   // seated eye height; walking stands you up
+  BENCH_SEATS.push(seat);
   [[-1.05, -0.2], [-1.05, 0.2], [1.05, -0.2], [1.05, 0.2]].forEach(([lx, lz]) => {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.42, 0.09), legMat);
     leg.position.set(lx, 0.21, lz); leg.castShadow = true; b.add(leg);
   });
 }
-bench(0, -9); bench(12.6, 0, Math.PI / 2);   // second bench faces the right-wall bay
+bench(0, -9, 0, [0, 2.6, -16.94]); bench(12.6, 0, Math.PI / 2, [15.94, 2.2, 0]);   // second bench faces the right-wall bay
 contactShadow(scene, 0, -9, 1.0, 1.35, 0.5); contactShadow(scene, 12.6, 0, 1.0, 0.5, 1.35);
+// trashcan by the door — the small civic furniture that makes a room read as a real place
+{
+  const can = new THREE.Group(); can.position.set(2.5, 0, 16.1); scene.add(can);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.165, 0.62, 24), legMat);
+  body.position.y = 0.31; body.castShadow = true; can.add(body);
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.205, 0.2, 0.05, 24), legMat);
+  rim.position.y = 0.645; rim.castShadow = true; can.add(rim);
+  const mouth = new THREE.Mesh(new THREE.CircleGeometry(0.16, 24),
+    new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 1 }));
+  mouth.rotation.x = -Math.PI / 2; mouth.position.y = 0.671; can.add(mouth);
+  contactShadow(can, 0, 0, 0.3);
+}
 const vit = new THREE.Group(); vit.position.set(0, 0, -3); scene.add(vit);
 contactShadow(vit, 0, 0, 1.0, 0.72, 2.5);
 const vitBase = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.72, 4.6),
@@ -1769,9 +1814,9 @@ function coveredPiece(w, h, which, glitchy = false) {
     emissive: 0xfff3e0, emissiveIntensity: 0.12 }));
   mesh.castShadow = false;                                    // wall-hung rule
   mesh.position.set(0, (wrapT - hem) / 2, 0.008);             // hem drops below the frame
-  if (glitchy) GLITCH_CLOTHS.push({                           // right wall: system broken — always glitching, spiking hard every ~1s
+  if (glitchy) GLITCH_CLOTHS.push({                           // right wall: system broken — it glitches when it WANTS
     mesh, base: pos.array.slice(), baseX: mesh.position.x, baseY: mesh.position.y,
-    spikeIn: Math.random(), spike: 0, ch });
+    spikeIn: Math.random() * 2, spike: 0, ch, ghosts: [], chF: 0, amp: 1, nextIsAfter: false });
   const grp = new THREE.Group();
   grp.add(mesh); return grp;
 }
@@ -1817,8 +1862,8 @@ function stepPlotter(dt) {
   const P = PLOTTER; if (!P || !P.rig) return;
   let dist = P.speed * dt;
   P.x += P.dir * dist;
-  if (P.x >= P.W) { P.x = P.W; P.dir = -1; P.row++; }
-  else if (P.x <= 0) { P.x = 0; P.dir = 1; P.row++; }
+  if (P.x >= P.W) { P.x = P.W; P.dir = -1; P.row++; plotTick(); }
+  else if (P.x <= 0) { P.x = 0; P.dir = 1; P.row++; plotTick(); }
   if (P.row >= P.rows) P.row = 0;                              // back to the top, begin again
   const R = P.rig;
   const fy = R.cy + R.hgt / 2 - (Math.min(P.row, P.rows - 1) + 0.5) / P.rows * R.hgt;
@@ -1829,12 +1874,30 @@ function stepPlotter(dt) {
   R.pen.position.set(R.carriage.position.x, R.gantry.position.y, 0.14);
 }
 const GLITCH_CLOTHS = [];
+const _zapV = new THREE.Vector3();   // scratch for per-cover proximity — no allocation per frame
 function stepGlitch(dt) {
   for (const c of GLITCH_CLOTHS) {
     const pos = c.mesh.geometry.attributes.position;
     pos.array.set(c.base);
     c.spikeIn -= dt;
-    if (c.spikeIn <= 0) { c.spike = 0.13 + Math.random() * 0.14; c.spikeIn = 0.7 + Math.random() * 0.8; glitchZap(); }
+    if (c.spikeIn <= 0) {
+      if (!filmOn) {
+        // stochastic, like the teaser piece: no metronome. This spike's length and
+        // violence are drawn fresh; the NEXT event is an aftershock (30%), a cluster
+        // hit, or a long uneasy quiet — the system tears when it wants.
+        const isAfter = c.nextIsAfter;
+        c.spike = (isAfter ? 0.08 : 0.1) + Math.random() * (isAfter ? 0.12 : 0.35);
+        c.amp = isAfter ? 1.0 + Math.random() * 0.3 : 0.5 + Math.random() * 0.6;
+        if (!isAfter && Math.random() < 0.3) { c.nextIsAfter = true; c.spikeIn = c.spike + 0.15 + Math.random() * 0.3; }
+        else { c.nextIsAfter = false;
+          c.spikeIn = Math.random() < 0.35 ? 0.5 + Math.random() * 0.6 : 1.5 + Math.random() * 4.5; }
+        // heard where it happens (full up close, gone by ~7m), for EXACTLY the spike's
+        // length — the user's tear sample when decoded, the synth rip until then
+        c.mesh.getWorldPosition(_zapV);
+        const prox = Math.max(0, 1 - _zapV.distanceTo(camera.position) / 7);
+        if (prox > 0.01) { if (filmTearBuf) filmTearSlice(c.spike, prox * 0.85); else glitchZap(prox, c.spike); }
+      } else c.spikeIn = 0.7;   // film: covers hold still + silent, the hero is the only thing breaking
+    }
     const spiking = c.spike > 0; if (spiking) c.spike -= dt;
     // CONSTANT calm baseline: a couple of thin bands always nudging — never fully still
     const calm = 2 + (Math.random() * 2 | 0);
@@ -1842,15 +1905,32 @@ function stepGlitch(dt) {
       const y0 = (Math.random() - 0.5) * c.ch, bh = 0.03 + Math.random() * 0.06, off = (Math.random() - 0.5) * 0.06;
       for (let i = 0; i < pos.count; i++) { const y = c.base[i * 3 + 1]; if (y > y0 && y < y0 + bh) pos.array[i * 3] = c.base[i * 3] + off; }
     }
-    if (spiking) {                                            // the crazy hit, ~every second
-      const bands = 5 + (Math.random() * 5 | 0);
+    // datamosh drag: tears a spike left behind keep smearing for a beat, decaying —
+    // applied every frame (even calm) so the hit visibly bleeds out instead of snapping off
+    for (let gI = c.ghosts.length - 1; gI >= 0; gI--) { const gh = c.ghosts[gI];
+      gh.life -= dt; if (gh.life <= 0) { c.ghosts.splice(gI, 1); continue; }
+      const gOff = gh.offX * (gh.life / gh.life0);
+      for (let i = 0; i < pos.count; i++) { const y = c.base[i * 3 + 1]; if (y > gh.y0 && y < gh.y0 + gh.bh) pos.array[i * 3] = c.base[i * 3] + gOff; }
+    }
+    if (spiking) {                                            // the crazy hit — the teaser's vocabulary spoken in cloth
+      // thinner, sharper slices; a third of them clip to a BLOCK instead of full width.
+      // c.amp is THIS spike's drawn violence: shudders and total tears, never one setting
+      const bands = 6 + (Math.random() * 6 * c.amp | 0);
       for (let b = 0; b < bands; b++) {
-        const y0 = (Math.random() - 0.5) * c.ch, bh = 0.05 + Math.random() * 0.22, offX = (Math.random() - 0.5) * 0.5, offZ = (Math.random() - 0.5) * 0.13;
-        for (let i = 0; i < pos.count; i++) { const y = c.base[i * 3 + 1]; if (y > y0 && y < y0 + bh) { pos.array[i * 3] = c.base[i * 3] + offX; pos.array[i * 3 + 2] = c.base[i * 3 + 2] + offZ; } }
+        const y0 = (Math.random() - 0.5) * c.ch, bh = 0.02 + Math.random() * 0.14;
+        const offX = (Math.random() - 0.5) * 0.7 * c.amp, offZ = (Math.random() - 0.5) * 0.16 * c.amp;
+        const block = Math.random() < 0.35, x0 = (Math.random() - 0.5) * 1.6, x1 = x0 + 0.5 + Math.random() * 1.2;
+        for (let i = 0; i < pos.count; i++) { const y = c.base[i * 3 + 1];
+          if (y > y0 && y < y0 + bh) { const x = c.base[i * 3];
+            if (block && (x < x0 || x > x1)) continue;
+            pos.array[i * 3] = x + offX; pos.array[i * 3 + 2] = c.base[i * 3 + 2] + offZ; } }
       }
-      const fl = Math.random();
-      c.mesh.material.emissive.setHex(fl < 0.25 ? 0xa02f1c : fl < 0.5 ? 0x2c6338 : fl < 0.72 ? 0x283a86 : 0xfff3e0);
-      c.mesh.material.emissiveIntensity = 0.12 + Math.random() * 0.6;
+      if (Math.random() < 0.5) c.ghosts.push({ y0: (Math.random() - 0.5) * c.ch, bh: 0.04 + Math.random() * 0.1,
+        offX: (Math.random() - 0.5) * 0.5, life: 0.35, life0: 0.35 });
+      // chromatic strobe: R -> G -> B in strict sequence — channel separation, not random flicker
+      c.chF++;
+      c.mesh.material.emissive.setHex([0xa02f1c, 0x2c6338, 0x283a86][c.chF % 3]);
+      c.mesh.material.emissiveIntensity = (0.2 + Math.random() * 0.6) * (0.5 + 0.5 * c.amp);
       c.mesh.position.x = c.baseX + (Math.random() - 0.5) * 0.06;
       c.mesh.position.y = c.baseY + (Math.random() - 0.5) * 0.04;
     } else {                                                  // calm: faint shimmer, resting
@@ -1895,8 +1975,10 @@ SECTIONS.forEach(sec => {
   // numbered plate + label plaque — BELOW the framing. Collab bays show collab name + artist;
   // individual piece titles held off the wall until they're all confirmed.
   const np = numberPlate(sec.num, sec.accent); np.position.set(-1.55, 0.42, 0.02); grp.add(np);
-  const lp = plaque(sec.collab || 'RESERVED', sec.by || 'SYSTEM OBEYED VS SYSTEM BROKEN', 1.35, null);   // plain paper/ink — the colour bar stays on the vitrine cards only
-  lp.position.set(sec.collab ? -0.05 : 1.55, 0.42, 0.02); grp.add(lp);   // covered bays: label sits clear of the drape, mirroring the number plate
+  // empty bays: the plaque IS the show's only in-room label, so it must clear the drape and read —
+  // the fold-cloth widened to ~1.48 half-span, which was occluding "RESERVED" at the old x 1.55
+  const lp = plaque(sec.collab || 'RESERVED', sec.by || 'SYSTEM OBEYED VS SYSTEM BROKEN', sec.collab ? 1.35 : 1.7, null);
+  lp.position.set(sec.collab ? -0.05 : 2.4, sec.collab ? 0.42 : 1.7, 0.02); grp.add(lp);   // blank bays: beside the drape at eye line, not down at the floor
 
   // empty bays are roped off, auction-style: two brass-topped stanchions + a velvet swag.
   // each bay's swag varies slightly (spacing/droop) so three in view don't read copy-paste
@@ -2080,7 +2162,7 @@ composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
 // ---- sound ----
-let actx = null, master = null, vendGain = null, streetGain = null, lastZap = -1;
+let actx = null, master = null, vendGain = null, streetGain = null, plotGain = null, plotProx = 0, lastZap = -1;
 function initAudio() {
   if (actx) { if (actx.state === 'suspended') actx.resume().catch(() => {}); return; }
   actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2103,11 +2185,37 @@ function initAudio() {
   const noise = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
   const nd = noise.getChannelData(0);
   let last = 0;
-  for (let i = 0; i < nd.length; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; nd[i] = last * 3.0; }  // brown-ish noise
+  for (let i = 0; i < nd.length; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; nd[i] = last * 1.5; }  // brown-ish noise — ×3.0 pushed peaks past full scale and read as loud hiss
   const nsrc = actx.createBufferSource(); nsrc.buffer = noise; nsrc.loop = true;
   const slp = actx.createBiquadFilter(); slp.type = 'lowpass'; slp.frequency.value = 480;
   streetGain = actx.createGain(); streetGain.gain.value = 0;
   nsrc.connect(slp); slp.connect(streetGain); streetGain.connect(master); nsrc.start();
+  // the glitch-tear SAMPLE (user-picked): decoded once for everyone — the live covered
+  // bays slice it for their tears, and ?film uses the same buffer. Synth fallback stands
+  // until it decodes (or if it ever fails).
+  if (!filmTearBuf) fetch('/gallery/glitch-transition.mp3')
+    .then(r => r.arrayBuffer()).then(ab => actx.decodeAudioData(ab))
+    .then(b => { filmTearBuf = b;
+      // map where the sound actually LIVES: this file measured 0.6s silence, 0.6s glitch,
+      // 1.8s silence — blind offsets played nothing (or played late). Slices come from
+      // the loud windows only; the scan adapts if the file is ever swapped.
+      const ch = b.getChannelData(0), win = (b.sampleRate * 0.05) | 0, hots = [], rms = [];
+      let maxR = 0;
+      for (let i = 0; i + win <= ch.length; i += win) {
+        let s = 0; for (let j = i; j < i + win; j++) s += ch[j] * ch[j];
+        const r = Math.sqrt(s / win); rms.push(r); if (r > maxR) maxR = r;
+      }
+      for (let k = 0; k < rms.length; k++) if (rms[k] > maxR * 0.35) hots.push(k * 0.05);
+      if (hots.length) filmTearHot = hots;
+    }).catch(() => {});
+  // plotter servo: two detuned saws through a mid bandpass = a working motor's whine,
+  // deliberately nothing like the vending fridge's low drone. Proximity drives the gain.
+  // band centred low enough that the saws' strong harmonics actually pass — 880/Q1.6 threw
+  // away nearly the whole signal and the machine was inaudible
+  const plp = actx.createBiquadFilter(); plp.type = 'bandpass'; plp.frequency.value = 620; plp.Q.value = 0.9;
+  plotGain = actx.createGain(); plotGain.gain.value = 0; plp.connect(plotGain); plotGain.connect(master);
+  [176, 178.6].forEach(f => { const o = actx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f;
+    const og = actx.createGain(); og.gain.value = 1.1; o.connect(og); og.connect(plp); o.start(); });
 }
 function updateVendHum() {
   if (!vendGain) return;
@@ -2117,9 +2225,24 @@ function updateVendHum() {
   vendGain.gain.setTargetAtTime(t * t * 0.14, actx.currentTime, 0.12);
   if (streetGain) {                                       // door ambience: loudest at the threshold
     const ds = Math.hypot(o.position.x - 0, o.position.z - (RD / 2 - 0.3));
-    const ts = Math.max(0, 1 - ds / 8);
-    streetGain.gain.setTargetAtTime(ts * ts * 0.09, actx.currentTime, 0.15);
+    const ts = Math.max(0, 1 - ds / 5);   // a doorway sound, not a room sound: gone within a few steps
+    streetGain.gain.setTargetAtTime(ts * ts * 0.05, actx.currentTime, 0.15);
   }
+  if (plotGain && PLOTTER && PLOTTER.rig) {               // the machine is heard working, not broadcasting
+    PLOTTER.rig.gantry.getWorldPosition(_zapV);
+    plotProx = Math.max(0, 1 - _zapV.distanceTo(o.position) / 6);
+    plotGain.gain.setTargetAtTime(plotProx * plotProx * 0.11, actx.currentTime, 0.15);
+  }
+}
+function plotTick() {
+  // the stepper's clack at each end of a sweep — heard only standing at the machine
+  if (!actx || !master || master.gain.value === 0 || plotProx <= 0.02) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'square'; o.frequency.value = 1900 + Math.random() * 300;
+  const v = Math.max(0.0002, plotProx * plotProx * 0.09);
+  g.gain.setValueAtTime(0.0001, actx.currentTime); g.gain.exponentialRampToValueAtTime(v, actx.currentTime + 0.003);
+  g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.045);
+  o.connect(g); g.connect(master); o.start(); o.stop(actx.currentTime + 0.05);
 }
 function playTick() {
   if (!actx || master.gain.value === 0) return;
@@ -2140,14 +2263,16 @@ function playChime() {
   });
 }
 
-function glitchZap() {
+function glitchZap(lvl = 1, vDur = 0) {
   // the audio glitch synced to a cover's tear: a bandpassed noise burst whose gain
   // STUTTERS on and off (the volume glitch), plus a detuned square zap. Respects mute.
-  if (!actx || !master || master.gain.value === 0) return;
+  // lvl scales the whole event by proximity — a tear across the room is barely a whisper.
+  // vDur, when given, is the VISUAL spike's length: sound and cloth end together.
+  if (!actx || !master || master.gain.value === 0 || lvl <= 0.01) return;
   const now = actx.currentTime;
   if (now - lastZap < 0.22) return;                            // don't stack into mush
   lastZap = now;
-  const dur = 0.10 + Math.random() * 0.16;
+  const dur = vDur > 0 ? vDur : 0.10 + Math.random() * 0.16;
   const buf = actx.createBuffer(1, Math.max(1, (actx.sampleRate * dur) | 0), actx.sampleRate);
   const d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
@@ -2157,14 +2282,14 @@ function glitchZap() {
   const g = actx.createGain();
   const steps = 5 + (Math.random() * 6 | 0);                   // rapid on/off = the stutter
   for (let s = 0; s < steps; s++)
-    g.gain.setValueAtTime(Math.random() < 0.45 ? 0 : 0.05 + Math.random() * 0.06, now + (s / steps) * dur);
+    g.gain.setValueAtTime(Math.random() < 0.45 ? 0 : (0.055 + Math.random() * 0.06) * lvl, now + (s / steps) * dur);
   g.gain.setValueAtTime(0, now + dur);
   src.connect(bp); bp.connect(g); g.connect(master); src.start(now); src.stop(now + dur);
   if (Math.random() < 0.7) {                                   // a digital square zap on top
     const o = actx.createOscillator(), og = actx.createGain();
     o.type = 'square'; o.frequency.setValueAtTime(120 + Math.random() * 900, now);
     o.frequency.exponentialRampToValueAtTime(50 + Math.random() * 220, now + dur * 0.85);
-    og.gain.setValueAtTime(0.05, now); og.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    og.gain.setValueAtTime(0.04 * lvl, now); og.gain.exponentialRampToValueAtTime(0.0008, now + dur);
     o.connect(og); og.connect(master); o.start(now); o.stop(now + dur + 0.02);
   }
 }
@@ -2530,9 +2655,11 @@ function closeWizard() {
 document.getElementById('wizok').addEventListener('click', e => { e.stopPropagation(); closeWizard(); });
 enter.addEventListener('click', () => {
   initAudio(); entered = true;
+  if (FILM) startFilm();          // ?film: the teaser sequence begins on the arrival click
   enter.style.display = 'none';
   revealScene();          // fade the room up now — this is the arrival
-  if (!wizSeen()) openWizard();                        // first visit: controls card before the HUD
+  if (FILM) { /* film mode: no wizard, no HUD, no pointer lock — the camera is scripted */ }
+  else if (!wizSeen()) openWizard();                    // first visit: controls card before the HUD
   else { showHud(); tryLock(); }
 });
 let lockClickStrikes = 0;
@@ -2864,7 +2991,7 @@ mintwrap.addEventListener('click', e => { if (e.target === mintwrap) closeMint()
 // ---- crosshair interaction (kiosk) ----
 const ray = new THREE.Raycaster();
 const centre = new THREE.Vector2(0, 0);
-const interactives = [kScreen, vGlass, vBody, heartArt];   // anything the crosshair can activate
+const interactives = [kScreen, vGlass, vBody, heartArt, ...BENCH_SEATS];   // anything the crosshair can activate
 let hotTarget = null, rayTimer = 0;
 function checkHover() {
   ray.setFromCamera(centre, camera);
@@ -2940,6 +3067,10 @@ function queueOwner(cell) {
 function activateHot() {
   if (!hotTarget || panelOpen) return;
   if (hotTarget.userData.interactive === 'heart') openBrochure('bro-heart');   // straight to the heart leaf
+  else if (hotTarget.userData.interactive === 'bench') {                       // sit: glide onto the seat, stand by walking
+    seated = true;
+    startGlide({ pos: hotTarget.userData.sit.pos, look: hotTarget.userData.sit.look });
+  }
   else openMint();
 }
 // ---- click-to-glide: tween the camera to a piece's viewing spot ----
@@ -2987,7 +3118,7 @@ renderer.domElement.addEventListener('click', onWorldClick);
 // ---- movement ----
 const velocity = new THREE.Vector3(), direction = new THREE.Vector3(), clock = new THREE.Clock();
 const SPEED = 38, DAMP = 9, clamp = (v, a, b) => Math.max(a, Math.min(b, v));   // 24 felt sluggish — brisker walk per user
-let stepTimer = 0;
+let stepTimer = 0, seated = false;   // seated: eye drops to bench height until the visitor walks
 function step(dt) {
   // Q/E keyboard look — cannot fail anywhere, whatever the mouse situation
   if (keys.KeyQ) rotateCam(-1.9 * dt, 0);
@@ -3009,9 +3140,10 @@ function step(dt) {
   if (direction.z) velocity.z -= direction.z * SPEED * dt;
   if (direction.x) velocity.x += direction.x * SPEED * dt;
   controls.moveRight(velocity.x * dt); controls.moveForward(-velocity.z * dt);
+  if (seated && (direction.x || direction.z)) seated = false;   // any step stands you up
   const o = controls.getObject(), M = 1.1;
   o.position.x = clamp(o.position.x, -RW / 2 + M, RW / 2 - M);
-  o.position.z = clamp(o.position.z, -RD / 2 + M, RD / 2 - M); o.position.y = 1.6;
+  o.position.z = clamp(o.position.z, -RD / 2 + M, RD / 2 - M); o.position.y = seated ? 1.15 : 1.6;
   // don't walk through the threshold panel (x -2.3..0.1, z 11.5±0.09 + margin): push out in z
   if (o.position.x > -2.65 && o.position.x < 0.45 && o.position.z > 11.05 && o.position.z < 11.95)
     o.position.z = o.position.z > 11.5 ? 11.95 : 11.05;
@@ -3020,6 +3152,21 @@ function step(dt) {
     o.position.x = Math.sign(o.position.x || 1) * 1.0;
   // respect the auction rope
   if (o.position.x > -7.3 && o.position.x < -3.9 && o.position.z < -15.0) o.position.z = -15.0;
+  // respect the empty bays' stanchion ropes: nothing walks between rope and drape.
+  // rope line sits ~1.7m off each wall; spans are per-bay (see the roped-off builder)
+  if (Math.abs(o.position.z) < 1.9 && o.position.x < -14.15) o.position.x = -14.15;                 // bay 02
+  if (Math.abs(o.position.z - 10) < 1.9 && o.position.x > 14.15) o.position.x = 14.15;             // bay 06
+  if (Math.abs(o.position.z + 10) < 1.9 && o.position.x > 14.15) o.position.x = 14.15;             // bay 04
+  // benches are solid (skip while seated — the seat pose sits inside its own block)
+  if (!seated) {
+    if (Math.abs(o.position.x) < 1.55 && o.position.z > -9.75 && o.position.z < -8.25)
+      o.position.z = o.position.z > -9 ? -8.25 : -9.75;
+    if (o.position.x > 11.85 && Math.abs(o.position.z) < 1.55 && o.position.x < 13.35)
+      o.position.x = o.position.x > 12.6 ? 13.35 : 11.85;
+  }
+  // the trashcan by the door
+  if (Math.abs(o.position.x - 2.5) < 0.55 && Math.abs(o.position.z - 16.1) < 0.55)
+    o.position.x = o.position.x > 2.5 ? 3.05 : 1.95;
   if (Math.abs(velocity.x) + Math.abs(velocity.z) > 1.2) { stepTimer += dt; if (stepTimer > 0.42) { stepTimer = 0; playTick(); } }
 }
 
@@ -3034,8 +3181,6 @@ if (DEBUG) {   // diagnostics live only behind ?debug
 window.__paint = (i, r, g, b) => { base[i * 3] = r; base[i * 3 + 1] = g; base[i * 3 + 2] = b; drawCell(i, r, g, b); heroTex.needsUpdate = true; };
 window.__mint = demoMint;
 window.__glitchNow = () => GLITCH_CLOTHS.forEach(c => { c.spike = 0.4; });   // force a cover glitch spike
-
-window.__cam = (px, py, pz, lx, ly, lz) => { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); };
 window.__coveState = () => [covePulse, coveStrip.material.emissiveIntensity, coveGlowPulse.material.opacity];   // debug, strip at final
 window.__lights = on => { let n = 0; scene.traverse(o => { if (o.isRectAreaLight || o.isSpotLight) { if (!on) { o.userData._i = o.intensity; o.intensity = 0; } else if (o.userData._i !== undefined) o.intensity = o.userData._i; n++; } }); return n; };   // bake A/B tool
 window.__glideTo = n => startGlide(glideTargets[n].view);                                           // debug, strip at final
@@ -3043,6 +3188,295 @@ window.__glideN = () => glideTargets.length;                                    
 window.__people = () => { if (!PEOPLE_ON) return 'people off'; visitors.forEach(v => v.viewT = Math.min(v.viewT, 0.1)); walker.position.x = -2; return visitors.map(v => [v.state, v.m.position.x.toFixed(1), v.m.position.z.toFixed(1)]); };
 window.__hero = () => { let white = 0, dark = 0, other = 0; for (let i = 0; i < N * N; i++) { const r = base[i*3], g = base[i*3+1], b = base[i*3+2]; if (r === 1 && g === 1 && b === 1) white++; else if (Math.abs(r - 196/255) < .002 && Math.abs(g - 194/255) < .002) dark++; else other++; } return { live: heroLive, white, dark, other }; };
 }
+
+// ---- ?film: the show teaser — ONE house piece on the real hero canvas ----
+// A flow-field generative system paints itself by its own rules (system obeyed), then
+// REAL glitch techniques tear it (system broken): true per-channel shift, threshold
+// pixel sorting, block databending with mirrored blocks, wave/CRT — under Bayer dither
+// and heavy grain. Scripted POV: browsing bay 05, a zap behind you, the turn, the walk
+// down the room while the piece fights itself. Runs ONLY with ?film; normal visitors
+// and the live hero canvas are untouched, and __filmStop() restores everything.
+const FILM = location.search.includes('film');
+let filmOn = false, filmT0 = null, filmPad = null, filmTearBuf = null, filmTearHot = [0];
+const FB = 640, FTB = 384;
+let fgcv, fg, fpcv, fp, ftcv, ft, fecv, fe, filmTex = null, filmSavedMap = null, filmSavedBloom = null, filmSavedHeart = null;
+let fParticles = [], fFSEED = 0, fCSEED = 0;
+const F_PAL = ['#ff3524', '#ff6a3d', '#22c766', '#39b061', '#3a74ff', '#5f8bff', '#ffffff'];
+const F_RGB = ['#ff3524', '#22c766', '#3a74ff'];
+
+function fHash(i, j) { const n = Math.sin(i * 127.1 + j * 311.7) * 43758.5453; return n - Math.floor(n); }
+function fNoise(x, y) { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = fHash(xi, yi), b = fHash(xi + 1, yi), c = fHash(xi, yi + 1), d = fHash(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
+function fField(px, py) { return fNoise(px / FB * 3.2 + fFSEED, py / FB * 3.2 + fFSEED) * Math.PI * 4; }
+function fColorFor(px, py) {                       // RGB territories emerge from a second field
+  const n = fNoise(px / FB * 1.5 + fCSEED, py / FB * 1.5 + fCSEED);
+  if (n < 0.30) return F_PAL[Math.random() < 0.5 ? 0 : 1];
+  if (n < 0.58) return F_PAL[Math.random() < 0.5 ? 2 : 3];
+  if (n < 0.86) return F_PAL[Math.random() < 0.5 ? 4 : 5];
+  return F_PAL[6]; }
+function fSeedPiece() { fParticles = []; fFSEED = Math.random() * 100; fCSEED = Math.random() * 100;
+  for (let i = 0; i < 2100; i++) { const px = Math.random() * FB, py = Math.random() * FB;
+    fParticles.push({ x: px, y: py, life: 20 + Math.random() * 120, col: fColorFor(px, py) }); } }
+function fClear() { fg.globalCompositeOperation = 'source-over'; fg.fillStyle = '#0a0a0e'; fg.fillRect(0, 0, FB, FB); }
+function fPaint(intensity) {
+  fg.globalCompositeOperation = 'lighter'; fg.lineWidth = 1.2; fg.lineCap = 'round';
+  for (const p of fParticles) {
+    const a = fField(p.x, p.y), nx = p.x + Math.cos(a) * 1.6, ny = p.y + Math.sin(a) * 1.6;
+    fg.strokeStyle = p.col; fg.globalAlpha = 0.085 * intensity;   // hotter: the 3.5s window must reach full density
+    fg.beginPath(); fg.moveTo(p.x, p.y); fg.lineTo(nx, ny); fg.stroke();
+    p.x = nx; p.y = ny; p.life--;
+    if (p.life <= 0 || p.x < 0 || p.x > FB || p.y < 0 || p.y > FB) {
+      p.x = Math.random() * FB; p.y = Math.random() * FB; p.life = 20 + Math.random() * 120; p.col = fColorFor(p.x, p.y); } }
+  fg.globalAlpha = 1; fg.globalCompositeOperation = 'source-over'; }
+function fFadeBuf(k) { fg.globalCompositeOperation = 'source-over'; fg.fillStyle = 'rgba(10,10,14,' + k + ')'; fg.fillRect(0, 0, FB, FB); }
+
+// -- the real glitch techniques, applied on the FTB working buffer --
+function fBright(d, i) { return d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114; }
+function fChannelShift(dx) {                       // true per-channel resampling
+  const src = ft.getImageData(0, 0, FTB, FTB).data, out = ft.createImageData(FTB, FTB), o = out.data;
+  for (let y = 0; y < FTB; y++) for (let xx = 0; xx < FTB; xx++) { const i = (y * FTB + xx) * 4;
+    const rx = Math.max(0, Math.min(FTB - 1, xx + dx)), bx = Math.max(0, Math.min(FTB - 1, xx - dx));
+    o[i] = src[(y * FTB + rx) * 4]; o[i + 1] = src[i + 1]; o[i + 2] = src[(y * FTB + bx) * 4 + 2]; o[i + 3] = 255; }
+  ft.putImageData(out, 0, 0); }
+function fPixelSort(amt) {                          // classic threshold sort along rows
+  const im = ft.getImageData(0, 0, FTB, FTB), d = im.data, thresh = 42 + (1 - amt) * 64;
+  for (let y = 0; y < FTB; y++) { if (Math.random() > 0.45 + 0.5 * amt) continue; let xx = 0;
+    while (xx < FTB) { while (xx < FTB && fBright(d, (y * FTB + xx) * 4) < thresh) xx++; const s = xx;
+      while (xx < FTB && fBright(d, (y * FTB + xx) * 4) >= thresh) xx++; const e = xx;
+      if (e - s > 2) { const arr = []; for (let k = s; k < e; k++) { const i = (y * FTB + k) * 4; arr.push([d[i], d[i + 1], d[i + 2]]); }
+        arr.sort((p, q) => (p[0] * 0.299 + p[1] * 0.587 + p[2] * 0.114) - (q[0] * 0.299 + q[1] * 0.587 + q[2] * 0.114));
+        for (let k = s; k < e; k++) { const i = (y * FTB + k) * 4, c = arr[k - s]; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; } } } }
+  ft.putImageData(im, 0, 0); }
+const F_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+function fDither(levels) {                          // ordered 4x4 Bayer — the halftone grit
+  const im = ft.getImageData(0, 0, FTB, FTB), d = im.data, st = 255 / (levels - 1);
+  for (let y = 0; y < FTB; y++) for (let xx = 0; xx < FTB; xx++) { const i = (y * FTB + xx) * 4;
+    const th = (F_BAYER[(y & 3) * 4 + (xx & 3)] / 16 - 0.5) * st;
+    d[i]     = Math.round(Math.max(0, Math.min(255, d[i]     + th)) / st) * st;
+    d[i + 1] = Math.round(Math.max(0, Math.min(255, d[i + 1] + th)) / st) * st;
+    d[i + 2] = Math.round(Math.max(0, Math.min(255, d[i + 2] + th)) / st) * st; }
+  ft.putImageData(im, 0, 0); }
+function fDatabend(amt) {                           // block shifts, some MIRRORED like databent photos
+  const n = Math.floor(amt * 24);
+  for (let k = 0; k < n; k++) { const bw = 14 + Math.random() * 95, bh = 6 + Math.random() * 46;
+    const sx = Math.random() * (FTB - bw), sy = Math.random() * (FTB - bh);
+    const dx = Math.max(0, Math.min(FTB - bw, sx + (Math.random() * 2 - 1) * amt * 120)), dy = sy + (Math.random() * 2 - 1) * 10;
+    if (Math.random() < 0.35) { ft.save(); ft.translate(dx + bw, dy); ft.scale(-1, 1);
+      ft.drawImage(ftcv, sx, sy, bw, bh, 0, 0, bw, bh); ft.restore(); }
+    else ft.drawImage(ftcv, sx, sy, bw, bh, dx, dy, bw, bh);
+    if (Math.random() < 0.22) { ft.globalCompositeOperation = 'lighter'; ft.globalAlpha = 0.5;
+      ft.fillStyle = F_RGB[(Math.random() * 3) | 0]; ft.fillRect(dx, dy, bw, bh); ft.globalAlpha = 1; ft.globalCompositeOperation = 'source-over'; } } }
+
+function fPresent(gl, type, phase) {
+  fp.globalCompositeOperation = 'source-over'; fp.globalAlpha = 1;
+  if (gl <= 0.001) { fp.drawImage(fgcv, 0, 0);
+    for (let k = 0; k < 60; k++) { fp.globalAlpha = 0.05; fp.fillStyle = '#fff';   // faint constant grain: filmic, never sterile
+      fp.fillRect(Math.random() * FB, Math.random() * FB, 1.5, 1.5); }
+    fp.globalAlpha = 1; return; }
+  if (Math.random() < 0.3) fe.drawImage(fpcv, 0, 0);   // freeze the LAST frame — stutter source
+  ft.setTransform(1, 0, 0, 1, 0, 0); ft.globalAlpha = 1; ft.globalCompositeOperation = 'source-over';
+  ft.clearRect(0, 0, FTB, FTB); ft.drawImage(fgcv, 0, 0, FB, FB, 0, 0, FTB, FTB);
+  if (type === 0) { fChannelShift(Math.round(gl * FTB * 0.035)); if (gl > 0.6) fDither(6); }
+  else if (type === 1) fPixelSort(gl);
+  else if (type === 2) { fDatabend(gl); fDither(5); }
+  fp.fillStyle = '#0a0a0e'; fp.fillRect(0, 0, FB, FB);
+  if (type === 3) { const bands = 96; for (let i = 0; i < bands; i++) {
+      const off = Math.sin(i * 0.5 + phase) * gl * FB * 0.05 + (Math.random() < 0.10 ? (Math.random() * 2 - 1) * gl * FB * 0.12 : 0);
+      fp.drawImage(ftcv, 0, i / bands * FTB, FTB, FTB / bands, off, i / bands * FB, FB, FB / bands + 1); } }
+  else { const bands = 32; for (let i = 0; i < bands; i++) { if (Math.random() < gl * 0.08) continue;
+      const off = Math.random() < 0.55 ? (Math.random() * 2 - 1) * gl * FB * 0.15 : 0;
+      fp.drawImage(ftcv, 0, i / bands * FTB, FTB, FTB / bands, off, i / bands * FB, FB, FB / bands + 1); } }
+  fp.globalCompositeOperation = 'lighter'; fp.globalAlpha = 0.3 * gl;
+  fp.drawImage(ftcv, (Math.random() * 2 - 1) * gl * FB * 0.02, 0, FB, FB);
+  fp.globalAlpha = 1; fp.globalCompositeOperation = 'source-over';
+  // frame-stutter strips: bands of the FROZEN previous frame jammed over the live one —
+  // the visual twin of the audio's gate stutter (digital "stuck buffer", not analog tear)
+  const stut = 2 + (Math.random() * 4 | 0);
+  for (let k = 0; k < stut; k++) { const sy2 = Math.random() * FB, sh2 = 8 + Math.random() * 40;
+    fp.globalAlpha = 0.6 + Math.random() * 0.4;
+    fp.drawImage(fecv, 0, sy2, FB, sh2, (Math.random() * 2 - 1) * gl * FB * 0.06, sy2 + (Math.random() * 2 - 1) * 14, FB, sh2); }
+  fp.globalAlpha = 1;
+  fp.fillStyle = 'rgba(0,0,0,' + (0.12 * gl) + ')';
+  for (let sy = 0; sy < FB; sy += 3) fp.fillRect(0, sy, FB, 1);
+  const nn = Math.floor(gl * 380);                  // heavy dirty grain over every tear
+  for (let k = 0; k < nn; k++) { fp.fillStyle = Math.random() < 0.5 ? '#fff' : F_RGB[(Math.random() * 3) | 0];
+    fp.globalAlpha = 0.25 + Math.random() * 0.6;
+    fp.fillRect(Math.random() * FB, Math.random() * FB, 1 + Math.random() * 2.5, 1 + Math.random() * 2.5); }
+  fp.globalAlpha = 1; }
+
+function filmTearSlice(dur, vol, off = null, when = 0) {
+  // a slice of the user's tear sample EXACTLY as long as the visual glitch — audio and
+  // image break together and stop together. Offsets come ONLY from the file's loud
+  // windows (filmTearHot): a random offset into a mostly-silent file was playing
+  // nothing. 6ms ramps kill clicks; `when` lets the big tear chain two hits.
+  if (!filmTearBuf || !actx || !master || master.gain.value === 0) return;
+  const t0 = actx.currentTime + when;
+  const src = actx.createBufferSource(); src.buffer = filmTearBuf;
+  src.playbackRate.value = 0.92 + Math.random() * 0.16;
+  const lastHot = filmTearHot[filmTearHot.length - 1];
+  const usable = filmTearHot.filter(h => h + dur <= lastHot + 0.1);
+  const start = off !== null ? off : (usable.length ? usable[(Math.random() * usable.length) | 0] : filmTearHot[0]);
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + 0.006);
+  g.gain.setValueAtTime(vol, t0 + Math.max(0.01, dur - 0.05));
+  g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(g); g.connect(master); src.start(t0, start); src.stop(t0 + dur + 0.02);
+}
+function filmZap(brkLen = 1.2) {
+  // the tear's voice — an actual RIP, not pitched blips. The last version's bitcrushed
+  // square + bytebeat were pitched and rhythmic, which read as "things bouncing." A tear
+  // is noise-based and continuous: a bright snap, then broadband noise shredded through a
+  // resonant bandpass sweeping DOWN (the descending resonance IS the tearing), torn by
+  // APERIODIC amplitude tatter (random hold lengths — any rhythm reads as bounce), with a
+  // touch of quantisation on the tail so the shred still reads digital. Respects mute.
+  if (!actx || !master || master.gain.value === 0) return;
+  if (filmTearBuf) {
+    // sized to THIS tear: a short rip gets one hit, a long one chains a second varied hit
+    // — audio always ends inside the visual tear, whatever length the machine drew
+    const h0 = filmTearHot[0];
+    filmTearSlice(Math.min(0.65, brkLen), 0.9, h0, 0);
+    if (brkLen > 0.85) filmTearSlice(Math.min(0.7, brkLen - 0.55), 0.7, h0, 0.55);
+    return;
+  }
+  const now = actx.currentTime, sr = actx.sampleRate, dur = Math.min(0.48, brkLen), n = (sr * dur) | 0;
+  const buf = actx.createBuffer(1, n, sr), d = buf.getChannelData(0);
+  let lo1 = 0, b1 = 0, lo2 = 0, b2 = 0, tat = 1, tatN = 0;
+  const f0 = 3800 + Math.random() * 1600;                    // each tear rips from a different height
+  for (let i = 0; i < n; i++) {
+    const t = i / n, tt = i / sr;
+    const x = Math.random() * 2 - 1;
+    // main shred: resonant bandpass (state-variable) sweeping f0 -> 260Hz
+    const fc1 = f0 * Math.pow(260 / f0, t), f1 = 2 * Math.sin(Math.PI * fc1 / sr);
+    lo1 += f1 * b1; const hi1 = x - lo1 - 0.17 * b1; b1 += f1 * hi1;
+    // low body under it: 900 -> 110Hz, broader — the weight of the rip
+    const fc2 = 900 * Math.pow(110 / 900, t), f2 = 2 * Math.sin(Math.PI * fc2 / sr);
+    lo2 += f2 * b2; const hi2 = x - lo2 - 0.4 * b2; b2 += f2 * hi2;
+    // tatter: random-length holds at random levels — fibres letting go, never a beat
+    if (--tatN <= 0) { tatN = (sr * (0.004 + Math.random() * 0.02)) | 0;
+      tat = Math.random() < 0.28 ? 0.15 : 0.55 + Math.random() * 0.45; }
+    // the snap: 12ms of raw bright noise up front — the crack that starts the rip
+    const snap = tt < 0.012 ? x * (1 - tt / 0.012) * 0.9 : 0;
+    let s = (b1 * 0.85 + b2 * 0.5) * tat + snap;
+    if (t > 0.4) { const st = 1 / 16; s = st * Math.floor(s / st + 0.5); }   // 5-bit grit on the tail only
+    const env = tt < 0.004 ? tt / 0.004 : Math.pow(1 - t, 0.85);
+    d[i] = Math.max(-1, Math.min(1, s * env * 0.6));   // 0.75 let the resonant peak clip (measured 1.43 pre-clamp)
+  }
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const g = actx.createGain(); g.gain.value = 1.0;
+  src.connect(g); g.connect(master); src.start(now); src.stop(now + dur + 0.02);
+}
+function startFilm() {
+  if (!FILM || filmOn) return; filmOn = true;
+  fgcv = document.createElement('canvas'); fgcv.width = fgcv.height = FB; fg = fgcv.getContext('2d');
+  fpcv = document.createElement('canvas'); fpcv.width = fpcv.height = FB; fp = fpcv.getContext('2d');
+  ftcv = document.createElement('canvas'); ftcv.width = ftcv.height = FTB; ft = ftcv.getContext('2d');
+  fecv = document.createElement('canvas'); fecv.width = fecv.height = FB; fe = fecv.getContext('2d');
+  fe.fillStyle = '#0a0a0e'; fe.fillRect(0, 0, FB, FB);
+  fClear(); fSeedPiece();
+  filmTex = new THREE.CanvasTexture(fpcv); filmTex.colorSpace = THREE.SRGBColorSpace;
+  filmSavedMap = hero.material.emissiveMap; hero.material.emissiveMap = filmTex;
+  filmSavedBloom = { strength: bloom.strength, radius: bloom.radius, threshold: bloom.threshold };
+  bloom.strength = 0.48; bloom.radius = 0.55; bloom.threshold = 0.90;   // the piece radiates; 0.75/0.82 blew out the white walls and the heart
+  filmSavedHeart = heartArt.material.emissiveIntensity;
+  // the heart sits on a knife-edge with bloom's threshold: ANY dimming (0.9 tried, 0.68 tried)
+  // drops it under and it goes flat instead of dim. Leave intensity alone — the raised film
+  // threshold (0.90 vs 0.82) is what tamed the original blowout, and that's enough.
+  if (actx && !filmPad) { filmPad = actx.createGain(); filmPad.gain.value = 0; filmPad.connect(master);
+    [110, 164.8, 220].forEach((f2, i) => { const o = actx.createOscillator(); o.type = 'sine';
+      o.frequency.value = f2 * (1 + i * 0.002); o.connect(filmPad); o.start(); }); }
+  // (the tear sample loads in initAudio for EVERYONE now — the live glitch bays use it too)
+  document.body.classList.add('film');
+  filmT0 = null;
+}
+window.__filmStop = () => {                         // restore everything the film touched
+  if (!filmOn) return; filmOn = false;
+  hero.material.emissiveMap = filmSavedMap; heroTex.needsUpdate = true;
+  if (filmSavedBloom) Object.assign(bloom, filmSavedBloom);
+  if (filmSavedHeart !== null) heartArt.material.emissiveIntensity = filmSavedHeart;
+  if (filmPad) filmPad.gain.value = 0;
+  if (filmTex) filmTex.dispose();
+  document.body.classList.remove('film');
+};
+
+// the beat: NO metronome. A broken system glitches when it WANTS — the timeline is a
+// random state machine: generation runs anywhere from barely-formed to nearly-finished,
+// tears vary in length and violence, 30% of tears aren't done and AFTERSHOCK after a
+// beat, and the technique is drawn fresh each tear instead of rotating. Only the very
+// first cycle is fixed (gen = 2.0s) so its tear is the sound you hear behind you while
+// browsing — the scripted camera turn depends on that one cue.
+const F_GEN0 = 2.0;
+let fMode = 'gen', fModeEnd = F_GEN0, fGenStart = 0, fGenLen = F_GEN0,
+    fBrkStart = 0, fBrkLen = 1.2, fBrkAmp = 1, fBrkType = 0, fAfterOK = true, fCycleN = 0;
+let fMicroIn = 1.4, fMicroT = 0;   // micro-glitches: the broken side never fully lets go
+// scripted POV: browsing bay 05 (THE KILLERS) -> the zap -> the turn -> the walk down the room
+const F_CAM = [
+  { t: 0.0,  pos: [13.0, 1.6,  0.6], look: [15.7, 2.2, 0.0] },
+  { t: 2.2,  pos: [12.9, 1.6,  0.4], look: [15.7, 2.1, 0.3] },
+  { t: 4.6,  pos: [12.0, 1.6, -0.8], look: [0, 3.1, -16.94] },
+  { t: 12.5, pos: [0.0,  1.6, -9.6], look: [0, 3.1, -16.94] },
+];
+const fEase = u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+function fCam(t) {
+  let a = F_CAM[0], b = F_CAM[F_CAM.length - 1];
+  for (let i = 0; i < F_CAM.length - 1; i++) if (t >= F_CAM[i].t && t < F_CAM[i + 1].t) { a = F_CAM[i]; b = F_CAM[i + 1]; break; }
+  let u = t >= b.t ? 1 : (t - a.t) / (b.t - a.t); u = fEase(Math.max(0, Math.min(1, u)));
+  const sway = t > F_CAM[F_CAM.length - 1].t ? Math.min(1, t - F_CAM[F_CAM.length - 1].t) : 0;
+  const p = [0, 1, 2].map(i => a.pos[i] + (b.pos[i] - a.pos[i]) * u);
+  const l = [0, 1, 2].map(i => a.look[i] + (b.look[i] - a.look[i]) * u);
+  p[0] += Math.sin(t * 0.7) * 0.05 * sway; p[1] += Math.sin(t * 1.1) * 0.03 * sway;   // breathing at the hold
+  camera.position.set(p[0], p[1], p[2]);
+  camera.lookAt(l[0], l[1], l[2]);
+}
+function stepFilm(dt) {
+  if (!filmOn || !entered) return;
+  const now = performance.now() / 1000;
+  if (filmT0 === null) filmT0 = now;
+  const t = now - filmT0;
+  // advance the stochastic state machine — every duration and decision drawn fresh
+  if (t >= fModeEnd) {
+    if (fMode === 'gen') {                                 // the system snaps
+      fMode = 'brk'; fBrkStart = t; fBrkLen = 0.5 + Math.random() * 1.7;
+      fBrkAmp = 0.55 + Math.random() * 0.45; fBrkType = (Math.random() * 4) | 0;
+      fModeEnd = t + fBrkLen; fAfterOK = true; filmZap(fBrkLen);
+    } else if (fMode === 'brk') {
+      if (fAfterOK && Math.random() < 0.3) {               // it wasn't done tearing
+        fMode = 'lull'; fModeEnd = t + 0.15 + Math.random() * 0.3;
+      } else { fMode = 'hold'; fModeEnd = t + 0.25 + Math.random() * 0.35; }
+    } else if (fMode === 'lull') {                         // the aftershock
+      fMode = 'brk'; fBrkStart = t; fBrkLen = 0.3 + Math.random() * 0.5;
+      fBrkAmp = 0.7 + Math.random() * 0.3; fBrkType = (Math.random() * 4) | 0;
+      fModeEnd = t + fBrkLen; fAfterOK = false; filmZap(fBrkLen);
+    } else {                                               // hold -> a fresh generation
+      fMode = 'gen'; fGenStart = t; fCycleN++;
+      fGenLen = 2.0 + Math.random() * 4.0; fModeEnd = t + fGenLen;
+      fSeedPiece();
+    }
+  }
+  let gl = 0;
+  if (fMode === 'gen') {
+    fPaint(0.5 + 1.4 * Math.min(1, (t - fGenStart) / fGenLen));
+    if (fCycleN > 0 && t - fGenStart < 1.2) fFadeBuf(0.06);   // last piece dissolves UNDER this one — no black gap
+    // micro-glitches CLUSTER: 40% chance the next flicker follows in a breath, else a
+    // long uneasy quiet — never an even pulse. Each stab is exactly its flicker's length.
+    fMicroIn -= dt;
+    if (fMicroIn <= 0) { fMicroT = 0.1 + Math.random() * 0.12;
+      fMicroIn = Math.random() < 0.4 ? 0.12 + Math.random() * 0.25 : 0.8 + Math.random() * 3.2;
+      filmTearSlice(fMicroT, 0.4); }
+    if (fMicroT > 0) { fMicroT -= dt; gl = 0.18 + Math.random() * 0.15; }
+    if (filmPad && actx) filmPad.gain.setTargetAtTime(0.06, actx.currentTime, 0.4);
+  } else if (fMode === 'brk') {
+    gl = (0.4 + 0.6 * Math.sin(((t - fBrkStart) / fBrkLen) * Math.PI)) * fBrkAmp;
+    // ease down but NEVER off — the bed dropping near-silent read as "a clip resetting"
+    if (filmPad && actx) filmPad.gain.setTargetAtTime(0.04, actx.currentTime, 0.3);
+  } /* lull + hold: the healed piece sits clean for a beat */
+  fPresent(gl, fBrkType, t * 6);
+  filmTex.needsUpdate = true;
+  fCam(t);
+}
+
+window.__cam = (px, py, pz, lx, ly, lz) => { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); };
 
 let lastW = 0, lastH = 0;
 function applySize() {
@@ -3103,6 +3537,7 @@ function animate() {
   rayTimer += dt; if (rayTimer > 0.1) { rayTimer = 0; if (!panelOpen) checkHover(); }
   // (the demo ticker is GONE: it painted random fake trades onto what is now the
   //  real artwork. Flashes now come only from loadHeroCanvas seeing real mints.)
+  if (FILM) stepFilm(dt);   // ?film runs LAST: its camera write must win the frame
   composer.render();
 }
 // ---- ?perf: profiling overlay for REAL devices. Shows live fps + quality; each toggle
