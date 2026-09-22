@@ -1599,11 +1599,60 @@ const SECTIONS = [
     sides: [{ url: 'dt-carpediem.png', ar: 924 / 1232 }, { url: 'dt-lonelyspeck.png', ar: 1, pixel: true }] },
   { num: '06', side:  1, z: 10, accent: '#8c3340', frame: 0x2c1c20 },   // empty · roped
 ];
+// Artist media handler: still images, animated GIFs, and video all become textures the
+// bays can wear. Oversized files are downscaled under the GPU cap so a giant upload can't
+// crash the scene. GIFs animate by redrawing a live (offscreen) <img> to a canvas each frame.
+const MEDIA_GIFS = [];
 function realArtTex(url, pixel) {
-  const t = new THREE.TextureLoader().load(url);
-  t.colorSpace = THREE.SRGBColorSpace;
-  if (pixel) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; } else t.anisotropy = 8;
+  const setFilter = t => { t.colorSpace = THREE.SRGBColorSpace;
+    if (pixel) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; } else t.anisotropy = 8; };
+  const ext = (url.split('?')[0].split('.').pop() || '').toLowerCase();
+
+  if (ext === 'mp4' || ext === 'webm' || ext === 'mov') {         // VIDEO — auto-updates each frame
+    const v = document.createElement('video');
+    v.src = url; v.loop = true; v.muted = true; v.autoplay = true; v.playsInline = true; v.crossOrigin = 'anonymous';
+    v.play().catch(() => {});
+    const t = new THREE.VideoTexture(v); setFilter(t); return t;
+  }
+
+  if (ext === 'gif') {                                           // ANIMATED GIF — drawn to a canvas per frame
+    const img = document.createElement('img');
+    img.crossOrigin = 'anonymous';
+    img.style.cssText = 'position:absolute;left:-99999px;top:0;width:1px;height:1px;';   // live in DOM (display:none pauses gifs)
+    document.body.appendChild(img);
+    const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+    canvas.width = canvas.height = 2;                            // real size set on load
+    const t = new THREE.CanvasTexture(canvas); setFilter(t);
+    img.onload = () => {
+      const cap = 2048, s = Math.min(1, cap / Math.max(img.naturalWidth, img.naturalHeight));
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * s));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * s));
+      MEDIA_GIFS.push({ img, ctx, canvas, tex: t });
+    };
+    img.onerror = () => console.warn('gif failed to load:', url);
+    img.src = url;
+    return t;
+  }
+
+  // STILL IMAGE — TextureLoader, but downscale anything past the GPU cap so giant files are safe
+  const t = new THREE.Texture(); setFilter(t);
+  const im = new Image(); im.crossOrigin = 'anonymous';
+  im.onload = () => {
+    const cap = 4096, big = Math.max(im.naturalWidth, im.naturalHeight);
+    if (big > cap) {
+      const s = cap / big, cv = document.createElement('canvas');
+      cv.width = Math.round(im.naturalWidth * s); cv.height = Math.round(im.naturalHeight * s);
+      cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+      t.image = cv;
+    } else t.image = im;
+    t.needsUpdate = true;
+  };
+  im.onerror = () => console.warn('image failed to load:', url);
+  im.src = url;
   return t;
+}
+function stepMedia() {                                           // called from animate(): keeps GIFs moving
+  for (const g of MEDIA_GIFS) { g.ctx.drawImage(g.img, 0, 0, g.canvas.width, g.canvas.height); g.tex.needsUpdate = true; }
 }
 
 function pieceMesh(tex, w, h, frameColor, artAR, lit = true) {
@@ -1647,6 +1696,173 @@ function pieceMesh(tex, w, h, frameColor, artAR, lit = true) {
   grp.add(outer, lip, mat, art); return grp;
 }
 
+// ---- covered piece: a photographed drop-cloth, mapped onto a shallow block ----
+function coveredPiece(w, h, which, glitchy = false) {
+  // Cloth over an unrevealed canvas, in the room's own matte language. What sells it:
+  // a few DEFINED vertical fold ridges (narrow, seeded, deepening toward the hem) with
+  // valley shadow BAKED into vertex colours, plus a hem that hangs below the frame.
+  // One opaque form: no photos, no transparency.
+  const rnd = (() => { let a = ((which * 37 + 11) * 2654435761) >>> 0; return () => {
+    a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();
+  const D = 0.13;                                            // standoff, like the framed pieces
+  const wrapT = 0.08, hem = 0.22;                            // over the top edge; hanging below
+  const cw = w * 1.04, ch = h + wrapT + hem;
+  const chh = ch / 2, cwh = cw / 2;
+  const fTop = chh - wrapT - 0.02;
+  const fBot = -chh + hem;
+  // Two fold registers, like real hung cloth: a few BROAD primary folds spread across
+  // the face (each leaning as it falls), and finer secondary creases between them.
+  // Everything deepens toward the hem, so the top reads taut and the bottom gathered.
+  const folds = [];
+  for (let k = 0; k < 3; k++) folds.push({
+    x: (-0.60 + k * 0.60 + (rnd() - 0.5) * 0.30) * cwh,
+    wd: cw * (0.09 + rnd() * 0.05),
+    a: (0.030 + rnd() * 0.016) * (rnd() < 0.35 ? -1 : 1),
+    drift: (rnd() - 0.5) * 0.55 });
+  for (let k = 0; k < 6; k++) folds.push({
+    x: (rnd() - 0.5) * 0.92 * cw,
+    wd: cw * (0.028 + rnd() * 0.030),
+    a: (0.011 + rnd() * 0.012) * (rnd() < 0.4 ? -1 : 1),
+    drift: (rnd() - 0.5) * 0.9 });
+  const geo = new THREE.PlaneGeometry(cw, ch, 64, 80);
+  const pos = geo.attributes.position;
+  const cols = new Float32Array(pos.count * 3);
+  const bull = (t, band) => { if (t >= band) return 1; if (t <= 0) return 0; return Math.sin((t / band) * Math.PI / 2); };
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i), y = pos.getY(i);
+    const s = bull(cwh - Math.abs(x), cw * 0.085) * bull(chh - y, wrapT + 0.10);
+    const dn = Math.min(1, (fTop - y) / (fTop - fBot + hem));   // 0 at top → 1 at hem
+    const grow = 0.25 + 0.75 * dn;
+    let f = 0, fs = 0;
+    for (const fo of folds) {
+      const cx = fo.x + fo.drift * dn * 0.28 * cw;                  // the fold leans as it falls
+      const d = (x - cx) / fo.wd;
+      f += fo.a * Math.exp(-d * d) * grow;
+      const ds = (x - cx) / (fo.wd * 1.8);                          // shadow spreads wider than the ridge
+      fs += fo.a * Math.exp(-ds * ds) * grow;
+    }
+    // fine fabric ripple between the folds — two frequencies so it never reads as a sine
+    f += (0.006 * Math.sin(x * 11 + y * 2.6 + which * 2.1)
+        + 0.004 * Math.sin(x * 21 - y * 4.8 + which * 5.3)) * grow;
+    let z = D * s + f * s;
+    pos.setZ(i, z);
+    if (y < -chh + 0.09) {
+      // the hem gathers: it LIFTS wherever a fold meets it (cloth bunches at a ridge),
+      // with small irregular points between — never a smooth even curve
+      const t = 1 - (y + chh) / 0.09;
+      let lift = 0;
+      for (const fo of folds) { const d = (x - (fo.x + fo.drift * 0.28 * cw)) / fo.wd; lift += Math.abs(fo.a) * 1.5 * Math.exp(-d * d); }
+      pos.setY(i, y + (lift + 0.028 * Math.sin(x * 6.2 + which) + 0.02 * Math.sin(x * 15.7 + which * 3)) * t);
+    }
+    // baked valley shadow: crests catch light, valleys go genuinely dark — the contrast
+    // is what sells cloth over plastic; a whisper of noise stands in for weave
+    const fN = Math.max(-0.05, Math.min(0.05, fs)) / 0.05;
+    const weave = (Math.sin(x * 57.3 + y * 71.7) + Math.sin(x * 91.1 - y * 43.9)) * 0.012;
+    const b = (0.68 + 0.30 * fN * (0.75 + 0.45 * dn)) * (0.78 + 0.22 * s) + weave;
+    cols[i * 3] = cols[i * 3 + 1] = cols[i * 3 + 2] = b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+    color: 0xd8d0bd, roughness: 0.95, metalness: 0.0, vertexColors: true,
+    emissive: 0xfff3e0, emissiveIntensity: 0.12 }));
+  mesh.castShadow = false;                                    // wall-hung rule
+  mesh.position.set(0, (wrapT - hem) / 2, 0.008);             // hem drops below the frame
+  if (glitchy) GLITCH_CLOTHS.push({                           // right wall: system broken — always glitching, spiking hard every ~1s
+    mesh, base: pos.array.slice(), baseX: mesh.position.x, baseY: mesh.position.y,
+    spikeIn: Math.random(), spike: 0, ch });
+  const grp = new THREE.Group();
+  grp.add(mesh); return grp;
+}
+// Glitch bursts for the "system broken" covers: horizontal slice tears + emissive
+// flicker, then the cloth snaps back whole.
+// ---- THE PLOTTER: gen art's sacred machine, drawing live on the obeyed wall ----
+// A gantry rig mounted over bay 02's main canvas. The carriage sweeps, the pen inks,
+// and a seeded generative drawing materialises row by row, in strict order. Complete,
+// hold, wipe, re-run with a new seed: the system obeys, forever, in public.
+let PLOTTER = null;
+function plotterTex() {
+  const W = 256, H = 320;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#efede6'; ctx.fillRect(0, 0, W, H);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  PLOTTER = { ctx, tex, W, H, row: 0, x: 0, dir: 1, phase: 'draw', hold: 0,
+    seed: Math.random() * 1000, rows: 30, speed: 120, lastPx: null };
+  return tex;
+}
+function plotterNoise(s, a, b) { const v = Math.sin(s + a * 12.9898 + b * 78.233) * 43758.5453; return v - Math.floor(v); }
+function buildPlotter(grp) {
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x1b1b19, roughness: 0.5, metalness: 0.35 });
+  const w = 2.3, hgt = 2.9, cy = 2.35;                        // the canvas this rig serves
+  for (const sx of [-1, 1]) {                                  // vertical side rails
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.05, hgt + 0.5, 0.05), railMat);
+    rail.position.set(sx * (w / 2 + 0.28), cy, 0.16); rail.castShadow = false; grp.add(rail);
+  }
+  const gantry = new THREE.Mesh(new THREE.BoxGeometry(w + 0.56, 0.06, 0.05), railMat);
+  gantry.position.set(0, cy + hgt / 2, 0.18); gantry.castShadow = false; grp.add(gantry);
+  const carriage = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.1), railMat);
+  carriage.position.set(0, cy + hgt / 2, 0.2); carriage.castShadow = false; grp.add(carriage);
+  const pen = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.008, 0.16, 8),
+    new THREE.MeshStandardMaterial({ color: 0xf58312, roughness: 0.6 }));   // the one accent: the pen
+  pen.rotation.x = Math.PI / 2; pen.position.set(0, cy + hgt / 2, 0.14); pen.castShadow = false; grp.add(pen);
+  PLOTTER.rig = { gantry, carriage, pen, w, hgt, cy };
+}
+function stepPlotter(dt) {
+  // The machine WORKS but never shows the work: carriage sweeping, gantry stepping
+  // down row by row, then returning to the top — forever. The sheet stays blank.
+  // Whatever it's preparing stays sealed until the show. Even the machine keeps the secret.
+  const P = PLOTTER; if (!P || !P.rig) return;
+  let dist = P.speed * dt;
+  P.x += P.dir * dist;
+  if (P.x >= P.W) { P.x = P.W; P.dir = -1; P.row++; }
+  else if (P.x <= 0) { P.x = 0; P.dir = 1; P.row++; }
+  if (P.row >= P.rows) P.row = 0;                              // back to the top, begin again
+  const R = P.rig;
+  const fy = R.cy + R.hgt / 2 - (Math.min(P.row, P.rows - 1) + 0.5) / P.rows * R.hgt;
+  const fx = (P.x / P.W - 0.5) * R.w;
+  R.gantry.position.y += (fy - R.gantry.position.y) * Math.min(1, dt * 8);
+  R.carriage.position.x += (fx - R.carriage.position.x) * Math.min(1, dt * 10);
+  R.carriage.position.y = R.gantry.position.y;
+  R.pen.position.set(R.carriage.position.x, R.gantry.position.y, 0.14);
+}
+const GLITCH_CLOTHS = [];
+function stepGlitch(dt) {
+  for (const c of GLITCH_CLOTHS) {
+    const pos = c.mesh.geometry.attributes.position;
+    pos.array.set(c.base);
+    c.spikeIn -= dt;
+    if (c.spikeIn <= 0) { c.spike = 0.13 + Math.random() * 0.14; c.spikeIn = 0.7 + Math.random() * 0.8; glitchZap(); }
+    const spiking = c.spike > 0; if (spiking) c.spike -= dt;
+    // CONSTANT calm baseline: a couple of thin bands always nudging — never fully still
+    const calm = 2 + (Math.random() * 2 | 0);
+    for (let b = 0; b < calm; b++) {
+      const y0 = (Math.random() - 0.5) * c.ch, bh = 0.03 + Math.random() * 0.06, off = (Math.random() - 0.5) * 0.06;
+      for (let i = 0; i < pos.count; i++) { const y = c.base[i * 3 + 1]; if (y > y0 && y < y0 + bh) pos.array[i * 3] = c.base[i * 3] + off; }
+    }
+    if (spiking) {                                            // the crazy hit, ~every second
+      const bands = 5 + (Math.random() * 5 | 0);
+      for (let b = 0; b < bands; b++) {
+        const y0 = (Math.random() - 0.5) * c.ch, bh = 0.05 + Math.random() * 0.22, offX = (Math.random() - 0.5) * 0.5, offZ = (Math.random() - 0.5) * 0.13;
+        for (let i = 0; i < pos.count; i++) { const y = c.base[i * 3 + 1]; if (y > y0 && y < y0 + bh) { pos.array[i * 3] = c.base[i * 3] + offX; pos.array[i * 3 + 2] = c.base[i * 3 + 2] + offZ; } }
+      }
+      const fl = Math.random();
+      c.mesh.material.emissive.setHex(fl < 0.25 ? 0xa02f1c : fl < 0.5 ? 0x2c6338 : fl < 0.72 ? 0x283a86 : 0xfff3e0);
+      c.mesh.material.emissiveIntensity = 0.12 + Math.random() * 0.6;
+      c.mesh.position.x = c.baseX + (Math.random() - 0.5) * 0.06;
+      c.mesh.position.y = c.baseY + (Math.random() - 0.5) * 0.04;
+    } else {                                                  // calm: faint shimmer, resting
+      c.mesh.material.emissive.setHex(0xfff3e0);
+      c.mesh.material.emissiveIntensity = 0.12 + Math.random() * 0.05;
+      c.mesh.position.x = c.baseX; c.mesh.position.y = c.baseY;
+    }
+    pos.needsUpdate = true;
+  }
+}
+
+
 const LX = RW / 2 - 0.06;
 SECTIONS.forEach(sec => {
   const grp = new THREE.Group();
@@ -1655,23 +1871,32 @@ SECTIONS.forEach(sec => {
   scene.add(grp);
 
   // main piece — real hero art if delivered, else COMING SOON
-  const mainTex = sec.main ? realArtTex(sec.main.url, sec.main.pixel) : comingSoonArt();
-  const main = pieceMesh(mainTex, 2.3, 2.9, sec.frame, sec.main && sec.main.ar, !!sec.collab);
+  const isPlotter = !sec.collab && sec.side === -1;   // bay 02: the machine draws in the open
+  const mainTex = sec.main ? realArtTex(sec.main.url, sec.main.pixel) : (isPlotter ? plotterTex() : comingSoonArt());
+  const main = pieceMesh(mainTex, 2.3, 2.9, sec.frame, sec.main && sec.main.ar, !!sec.collab || isPlotter);
   main.position.set(0, 2.35, 0); grp.add(main);
+  if (isPlotter) buildPlotter(grp);
+  if (!sec.collab && !isPlotter) {                    // covered for the show
+    main.visible = false;
+    const cover = coveredPiece(2.3 + 2 * 0.16 + 2 * 0.11, 2.9 + 2 * 0.16 + 2 * 0.11, parseInt(sec.num, 10) / 2 - 1, sec.side === 1);
+    cover.position.set(0, 2.35, 0); grp.add(cover);
+  }
+
   glideTargets.push({ obj: main, empty: !sec.collab, view: {   // empty: visitors skip roped coming-soon bays
     pos: [sec.side * (LX - 3.4), 1.6, sec.z], look: [sec.side * LX, 2.35, sec.z] } });
   // two supporting pieces, flanking — hung LEVEL with each other (the ±0.08 stagger read as a mistake)
-  [-2.45, 2.45].forEach((ox, i) => {
+  // show bays hold ONE artwork — the 1/1. Flankers exist only on collab bays.
+  if (sec.collab) [-2.45, 2.45].forEach((ox, i) => {
     const sd = sec.sides && sec.sides[i];
     const supTex = sd ? realArtTex(sd.url, sd.pixel) : comingSoonArt(384, 480);
-    const sup = pieceMesh(supTex, 1.15, 1.45, sec.frame, sd && sd.ar, !!sec.collab);
+    const sup = pieceMesh(supTex, 1.15, 1.45, sec.frame, sd && sd.ar, true);
     sup.position.set(ox, 2.25, 0); grp.add(sup);
   });
   // numbered plate + label plaque — BELOW the framing. Collab bays show collab name + artist;
   // individual piece titles held off the wall until they're all confirmed.
   const np = numberPlate(sec.num, sec.accent); np.position.set(-1.55, 0.42, 0.02); grp.add(np);
-  const lp = plaque(sec.collab || `BAY ${sec.num}`, sec.by || 'coming soon', 1.35, null);   // plain paper/ink — the colour bar stays on the vitrine cards only
-  lp.position.set(-0.05, 0.42, 0.02); grp.add(lp);
+  const lp = plaque(sec.collab || 'RESERVED', sec.by || 'SYSTEM OBEYED VS SYSTEM BROKEN', 1.35, null);   // plain paper/ink — the colour bar stays on the vitrine cards only
+  lp.position.set(sec.collab ? -0.05 : 1.55, 0.42, 0.02); grp.add(lp);   // covered bays: label sits clear of the drape, mirroring the number plate
 
   // empty bays are roped off, auction-style: two brass-topped stanchions + a velvet swag.
   // each bay's swag varies slightly (spacing/droop) so three in view don't read copy-paste
@@ -1698,9 +1923,9 @@ SECTIONS.forEach(sec => {
   //  The glow now comes from BLOOM on the bright mats + art, like the hero: free and real.)
   // one can per PIECE: the painted pools crown all three works, so a lone centre can
   // read as a mismatch — fixtures now match the light (aimedSpot is pure fixture, no cost)
-  aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5, !!sec.collab);
-  for (const so of [-2.45, 2.45])
-    aimedSpot(sec.side * (RW / 2 - 0.3), 2.25, sec.z + so, sec.side * (RW / 2 - 1.6), sec.z + so, 5, !!sec.collab);
+  aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5, !!sec.collab || (!sec.collab && sec.side === -1));   // the machine works under its light
+  if (sec.collab) for (const so of [-2.45, 2.45])   // no fixtures over flankers that no longer exist
+    aimedSpot(sec.side * (RW / 2 - 0.3), 2.25, sec.z + so, sec.side * (RW / 2 - 1.6), sec.z + so, 5, true);
 });
 
 // ---- AMBIENT PEOPLE: a few stylized visitors so the gallery reads lived-in ----
@@ -1855,7 +2080,7 @@ composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
 // ---- sound ----
-let actx = null, master = null, vendGain = null, streetGain = null;
+let actx = null, master = null, vendGain = null, streetGain = null, lastZap = -1;
 function initAudio() {
   if (actx) { if (actx.state === 'suspended') actx.resume().catch(() => {}); return; }
   actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1913,6 +2138,35 @@ function playChime() {
     g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.7);
     o.connect(g); g.connect(master); o.start(); o.stop(actx.currentTime + 0.75);
   });
+}
+
+function glitchZap() {
+  // the audio glitch synced to a cover's tear: a bandpassed noise burst whose gain
+  // STUTTERS on and off (the volume glitch), plus a detuned square zap. Respects mute.
+  if (!actx || !master || master.gain.value === 0) return;
+  const now = actx.currentTime;
+  if (now - lastZap < 0.22) return;                            // don't stack into mush
+  lastZap = now;
+  const dur = 0.10 + Math.random() * 0.16;
+  const buf = actx.createBuffer(1, Math.max(1, (actx.sampleRate * dur) | 0), actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5;
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const bp = actx.createBiquadFilter(); bp.type = 'bandpass';
+  bp.frequency.value = 600 + Math.random() * 2600; bp.Q.value = 4 + Math.random() * 9;
+  const g = actx.createGain();
+  const steps = 5 + (Math.random() * 6 | 0);                   // rapid on/off = the stutter
+  for (let s = 0; s < steps; s++)
+    g.gain.setValueAtTime(Math.random() < 0.45 ? 0 : 0.05 + Math.random() * 0.06, now + (s / steps) * dur);
+  g.gain.setValueAtTime(0, now + dur);
+  src.connect(bp); bp.connect(g); g.connect(master); src.start(now); src.stop(now + dur);
+  if (Math.random() < 0.7) {                                   // a digital square zap on top
+    const o = actx.createOscillator(), og = actx.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(120 + Math.random() * 900, now);
+    o.frequency.exponentialRampToValueAtTime(50 + Math.random() * 220, now + dur * 0.85);
+    og.gain.setValueAtTime(0.05, now); og.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    o.connect(og); og.connect(master); o.start(now); o.stop(now + dur + 0.02);
+  }
 }
 const muteBtn = document.getElementById('mute');
 muteBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!master) return; master.gain.value = master.gain.value === 0 ? 0.5 : 0; muteBtn.textContent = master.gain.value === 0 ? '♪̸' : '♪'; });
@@ -2779,6 +3033,8 @@ function demoMint() {
 if (DEBUG) {   // diagnostics live only behind ?debug
 window.__paint = (i, r, g, b) => { base[i * 3] = r; base[i * 3 + 1] = g; base[i * 3 + 2] = b; drawCell(i, r, g, b); heroTex.needsUpdate = true; };
 window.__mint = demoMint;
+window.__glitchNow = () => GLITCH_CLOTHS.forEach(c => { c.spike = 0.4; });   // force a cover glitch spike
+
 window.__cam = (px, py, pz, lx, ly, lz) => { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); };
 window.__coveState = () => [covePulse, coveStrip.material.emissiveIntensity, coveGlowPulse.material.opacity];   // debug, strip at final
 window.__lights = on => { let n = 0; scene.traverse(o => { if (o.isRectAreaLight || o.isSpotLight) { if (!on) { o.userData._i = o.intensity; o.intensity = 0; } else if (o.userData._i !== undefined) o.intensity = o.userData._i; n++; } }); return n; };   // bake A/B tool
@@ -2839,7 +3095,7 @@ function animate() {
     lookStat.textContent = `${fpsShown | 0}fps · q${QUALITY} · look: ${controls.isLocked ? 'locked' : (lockBroken ? 'cursor (no lock)' : 'cursor')} · yaw ${(lookEuler.y * 57.3).toFixed(0)}°${peopleDead ? ' · people:ERR' : ''}`;
     lookStat.classList.add('on');
   } else lookStat.classList.remove('on');
-  stepFlashes(dt); stepCove(dt);
+  stepFlashes(dt); stepCove(dt); stepMedia(); stepGlitch(dt); stepPlotter(dt);
   // people are AMBIENT — isolated so a fault in them can never take down look/walk/render.
   // Not silent: logs loudly once and flags the status line (see CRAFT: report the true state).
   if (PEOPLE_ON && !peopleDead) { try { stepPeople(dt, performance.now() / 1000); } catch (err) {
