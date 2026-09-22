@@ -858,8 +858,11 @@ wall(RD, RH, -RW / 2, RH / 2, 0, Math.PI / 2); wall(RD, RH, RW / 2, RH / 2, 0, -
 }
 
 // ---- lighting: HDRI image-based + fill ----
-const ambient = new THREE.AmbientLight(0xffffff, 0.66);
-const hemi = new THREE.HemisphereLight(0xffffff, 0xd5cfc2, 0.4);
+// designed daylight (the Chicago gesture — Moholy-Nagy / MCA skylit galleries): a COOL
+// north-sky wash from above over a WARM floor bounce, with the warm sun-key raking across
+// it. Light as the medium, no new objects. Subtle — an intentional cast, never a blue room.
+const ambient = new THREE.AmbientLight(0xf2f5fa, 0.6);              // flat fill, a hair cool
+const hemi = new THREE.HemisphereLight(0xd8e4f2, 0xd9cfbe, 0.46);   // cool sky over warm wood-bounce ground
 scene.add(ambient, hemi);
 const pmrem = new THREE.PMREMGenerator(renderer);
 new RGBELoader().load('studio_small_08_1k.hdr', hdr => {
@@ -878,7 +881,7 @@ function markReady() { sceneReady = true; if (SHOOT || revealWanted) litUp(); }
 function revealScene() { revealWanted = true; if (sceneReady) litUp(); }   // called on enter
 setTimeout(markReady, 2500);   // hard fallback so the room can never stay dark
 
-const key = new THREE.DirectionalLight(0xfff6ea, 0.32);
+const key = new THREE.DirectionalLight(0xfff2e2, 0.36);   // the warm sun through the cool sky — a touch stronger so the daylight reads directional
 key.position.set(4, 11, 7); key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048); key.shadow.camera.near = 1; key.shadow.camera.far = 48;
 // fit the orthographic shadow box to the room: the default frustum spread 1024px across
@@ -1494,17 +1497,82 @@ function bench(x, z, ry = 0, look) {
 }
 bench(0, -9, 0, [0, 2.6, -16.94]); bench(12.6, 0, Math.PI / 2, [15.94, 2.2, 0]);   // second bench faces the right-wall bay
 contactShadow(scene, 0, -9, 1.0, 1.35, 0.5); contactShadow(scene, 12.6, 0, 1.0, 0.5, 1.35);
-// trashcan by the door — the small civic furniture that makes a room read as a real place
+// trashcan by the door — an ARCHITECTURAL bin, not office furniture: a gently tapered
+// square steel monolith with a brass-framed recessed opening. The near-black inset reads
+// as depth without ever showing a gaping mouth; the brass echoes the stanchion caps.
 {
-  const can = new THREE.Group(); can.position.set(2.5, 0, 16.1); scene.add(can);
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.165, 0.62, 24), legMat);
-  body.position.y = 0.31; body.castShadow = true; can.add(body);
-  const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.205, 0.2, 0.05, 24), legMat);
-  rim.position.y = 0.645; rim.castShadow = true; can.add(rim);
-  const mouth = new THREE.Mesh(new THREE.CircleGeometry(0.16, 24),
-    new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 1 }));
-  mouth.rotation.x = -Math.PI / 2; mouth.position.y = 0.671; can.add(mouth);
-  contactShadow(can, 0, 0, 0.3);
+  const can = new THREE.Group(); can.position.set(3.5, 0, 16.0); scene.add(can);   // beside the desk's door-end: the pair reads as one composed corner
+  const binMat = legMat.clone(); binMat.flatShading = true;   // crisp facets — smooth normals rounded the corners off
+  // 4-segment cylinder = a square frustum; rotate 45° to axis-align the faces
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.198, 0.24, 0.62, 4), binMat);
+  body.rotation.y = Math.PI / 4; body.position.y = 0.31; body.castShadow = true; can.add(body);
+  // the well: a matte void inset below the rim — you look INTO dark, not at a hole
+  const well = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.22),
+    new THREE.MeshStandardMaterial({ color: 0x0b0b0c, roughness: 1 }));
+  well.rotation.x = -Math.PI / 2; well.position.y = 0.622; can.add(well);
+  // brass frame around the opening, raised a centimetre — the rim
+  const fb = new THREE.BoxGeometry(0.30, 0.025, 0.035), fs = new THREE.BoxGeometry(0.035, 0.025, 0.30);
+  [[0, 0.1325, fb], [0, -0.1325, fb], [0.1325, 0, fs], [-0.1325, 0, fs]].forEach(([fx, fz, geo]) => {
+    const bar = new THREE.Mesh(geo, brassMat); bar.position.set(fx, 0.634, fz); bar.castShadow = true; can.add(bar);
+  });
+  // (the folded receipt lives here when there's a mechanic behind it — empty for now)
+  contactShadow(can, 0, 0, 0.34);
+}
+// guest sign-in desk — the entrance's statement piece: a floating oak monolith with an
+// angled signing top, one brass line, and the open guestbook waiting. Interaction (the
+// actual onchain signing) wires in with the guestbook contract build; the book is tagged.
+{
+  const desk = new THREE.Group(); desk.position.set(3.4, 0, 14.4);
+  desk.rotation.y = -Math.PI / 2 + 0.15;   // right of the entry, facing the aisle, the bin at its door-side end
+  scene.add(desk);
+  const toe = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.08, 0.52), legMat);
+  toe.position.y = 0.04; desk.add(toe);                                  // recessed toe-kick: the monolith floats
+  const bodyD = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.86, 0.6), oakMat);
+  bodyD.position.y = 0.51; bodyD.castShadow = true; desk.add(bodyD);
+  const inlay = new THREE.Mesh(new THREE.BoxGeometry(1.61, 0.012, 0.015), brassMat);
+  inlay.position.set(0, 0.16, 0.30); desk.add(inlay);                    // brass line low, under the logo
+  // the 4096 mark, front centre: the 2×2 brand pixels over the wordmark — same motif as
+  // the gallery guide's cover. Canvas-baked, redrawn once the real serif loads.
+  {
+    const lc = document.createElement('canvas'); lc.width = 256; lc.height = 200;
+    const lg = lc.getContext('2d');
+    const drawLogo = () => {
+      lg.clearRect(0, 0, 256, 200);
+      const cols = ['#a02f1c', '#2c6338', '#283a86', '#efede7'];
+      const s = 44, gap = 6, ox = (256 - s * 2 - gap) / 2, oy = 16;
+      [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([cx, cy], i) => {
+        lg.fillStyle = cols[i]; lg.fillRect(ox + cx * (s + gap), oy + cy * (s + gap), s, s); });
+      lg.fillStyle = '#2a2622'; lg.textAlign = 'center';
+      lg.font = '400 46px "Libre Baskerville", Georgia, serif';
+      lg.fillText('4096', 128, 176);
+    };
+    drawLogo();
+    const lt = new THREE.CanvasTexture(lc); lt.colorSpace = THREE.SRGBColorSpace; lt.anisotropy = 4;
+    document.fonts.ready.then(() => { drawLogo(); lt.needsUpdate = true; });
+    const mark = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.33),
+      new THREE.MeshStandardMaterial({ map: lt, transparent: true, roughness: 0.9 }));
+    mark.position.set(0, 0.56, 0.302); desk.add(mark);
+  }
+  const riser = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.08, 0.07), oakMat);
+  riser.position.set(0, 0.965, -0.285); riser.castShadow = true; desk.add(riser);   // back rail closes the slab's tilt gap
+  // the angled signing surface and everything on it tilt together
+  const top = new THREE.Group(); top.position.y = 0.975; top.rotation.x = -0.14; desk.add(top);
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.05, 0.64), oakMat);
+  slab.castShadow = true; top.add(slab);
+  const ledge = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.018, 0.035), brassMat);
+  ledge.position.set(0, 0.034, 0.285); top.add(ledge);                   // pen rest doubles as the book stop
+  const book = new THREE.Group(); book.position.set(0, 0.045, 0.0); book.rotation.y = 0.05;
+  book.userData.guestbook = true; top.add(book);                         // the future sign-in wires to THIS
+  const cover = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.012, 0.34),
+    new THREE.MeshStandardMaterial({ color: 0x3a3028, roughness: 0.8 }));
+  book.add(cover);
+  const pageMat = new THREE.MeshStandardMaterial({ color: 0xf6f3ea, roughness: 0.95 });
+  [-0.112, 0.112].forEach(px => { const pg = new THREE.Mesh(new THREE.BoxGeometry(0.215, 0.018, 0.31), pageMat);
+    pg.position.set(px, 0.014, 0); book.add(pg); });
+  const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.002, 0.17),
+    new THREE.MeshStandardMaterial({ color: 0x8c3340, roughness: 0.7 }));
+  ribbon.position.set(0.14, 0.024, 0.06); book.add(ribbon);
+  contactShadow(desk, 0, 0, 1.0, 1.05, 0.5);
 }
 const vit = new THREE.Group(); vit.position.set(0, 0, -3); scene.add(vit);
 contactShadow(vit, 0, 0, 1.0, 0.72, 2.5);
@@ -3150,23 +3218,25 @@ function step(dt) {
   // don't walk through the vitrine (z -5.7..-0.3, x ±0.56 + margin)
   if (Math.abs(o.position.x) < 1.0 && o.position.z > -6.0 && o.position.z < 0.0)
     o.position.x = Math.sign(o.position.x || 1) * 1.0;
-  // respect the auction rope
-  if (o.position.x > -7.3 && o.position.x < -3.9 && o.position.z < -15.0) o.position.z = -15.0;
-  // respect the empty bays' stanchion ropes: nothing walks between rope and drape.
-  // rope line sits ~1.7m off each wall; spans are per-bay (see the roped-off builder)
-  if (Math.abs(o.position.z) < 1.9 && o.position.x < -14.15) o.position.x = -14.15;                 // bay 02
-  if (Math.abs(o.position.z - 10) < 1.9 && o.position.x > 14.15) o.position.x = 14.15;             // bay 06
-  if (Math.abs(o.position.z + 10) < 1.9 && o.position.x > 14.15) o.position.x = 14.15;             // bay 04
-  // benches are solid (skip while seated — the seat pose sits inside its own block)
-  if (!seated) {
-    if (Math.abs(o.position.x) < 1.55 && o.position.z > -9.75 && o.position.z < -8.25)
-      o.position.z = o.position.z > -9 ? -8.25 : -9.75;
-    if (o.position.x > 11.85 && Math.abs(o.position.z) < 1.55 && o.position.x < 13.35)
-      o.position.x = o.position.x > 12.6 ? 13.35 : 11.85;
-  }
-  // the trashcan by the door
-  if (Math.abs(o.position.x - 2.5) < 0.55 && Math.abs(o.position.z - 16.1) < 0.55)
-    o.position.x = o.position.x > 2.5 ? 3.05 : 1.95;
+  // solid objects & roped-off strips resolve by LEAST PENETRATION — push out the nearest
+  // face so you stop and slide along it. The old single-axis snaps flung you clear across
+  // an object (or a rope strip) to the far side when you met an end at an angle: the
+  // "teleport" the user hit at the ropes.
+  const block = (cx, cz, hx, hz) => {
+    const dx = o.position.x - cx, dz = o.position.z - cz;
+    const px = hx - Math.abs(dx), pz = hz - Math.abs(dz);
+    if (px <= 0 || pz <= 0) return;
+    if (px < pz) o.position.x = cx + (dx < 0 ? -hx : hx);
+    else o.position.z = cz + (dz < 0 ? -hz : hz);
+  };
+  // roped-off bays: the strip between the rope (~1.7m off wall) and the wall is forbidden
+  block(-(RW / 2) + 0.95, 0, 0.95, 1.9);     // bay 02, left wall
+  block((RW / 2) - 0.95, 10, 0.95, 1.9);     // bay 06, right wall
+  block((RW / 2) - 0.95, -10, 0.95, 1.9);    // bay 04, right wall
+  block(-5.6, -16, 1.7, 1.05);               // auction bay rope
+  if (!seated) { block(0, -9, 1.35, 0.45); block(12.6, 0, 0.45, 1.35); }   // benches
+  block(3.5, 16.0, 0.42, 0.42);              // trashcan
+  block(3.4, 14.4, 0.55, 1.05);              // guest desk (1.6m width runs along z)
   if (Math.abs(velocity.x) + Math.abs(velocity.z) > 1.2) { stepTimer += dt; if (stepTimer > 0.42) { stepTimer = 0; playTick(); } }
 }
 
