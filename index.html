@@ -600,7 +600,7 @@ async function readMinted() {
   return null;
 }
 
-const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: location.search.includes('film') });
 renderer.setSize(innerWidth, innerHeight);
 // QUALITY is the one render-resolution knob. The governor below only ever LOWERS it,
 // so weak devices settle smooth and it never oscillates. Touch starts lighter.
@@ -1071,16 +1071,19 @@ glideTargets.push({ obj: hero, view: { pos: [0, 1.6, -10.4], look: [0, 3.1, -16.
   }
 }
 
-function plaque(title, sub, w, accent, dark = false) {
+function plaque(title, sub, w, accent, dark = false, status = null) {
   // brand type: Baskerville title over a Plex Mono sub, on paper/charcoal card.
   // redraws once real fonts load (canvas bakes whatever font is ready at draw time).
-  const cc = document.createElement('canvas'); cc.width = 768; cc.height = 192;
+  // status (optional) adds a third, smaller mono line — added for the show bays
+  // ("1/1 · auction coming soon") without disturbing the two-line plaques everywhere else.
+  const H = status ? 256 : 192;
+  const cc = document.createElement('canvas'); cc.width = 768; cc.height = H;
   const g = cc.getContext('2d');
   const draw = () => {
-    g.clearRect(0, 0, 768, 192);
-    g.fillStyle = dark ? '#2a2a30' : '#f4f2ec'; g.fillRect(0, 0, 768, 192);
-    g.strokeStyle = dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)'; g.lineWidth = 4; g.strokeRect(3, 3, 762, 186);
-    if (accent) { g.fillStyle = accent; g.fillRect(3, 3, 13, 186); }
+    g.clearRect(0, 0, 768, H);
+    g.fillStyle = dark ? '#2a2a30' : '#f4f2ec'; g.fillRect(0, 0, 768, H);
+    g.strokeStyle = dark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)'; g.lineWidth = 4; g.strokeRect(3, 3, 762, H - 6);
+    if (accent) { g.fillStyle = accent; g.fillRect(3, 3, 13, H - 6); }
     g.textAlign = 'left';
     g.fillStyle = dark ? '#f4f2ec' : '#26241f';
     // long titles truncated at the canvas edge ("THE END OF THE WORL…") — shrink to fit
@@ -1091,12 +1094,16 @@ function plaque(title, sub, w, accent, dark = false) {
     let ss = 32; g.font = `400 ${ss}px "IBM Plex Mono", monospace`; g.letterSpacing = '1px';
     while (ss > 20 && g.measureText(sub).width > 768 - 92) { ss -= 2; g.font = `400 ${ss}px "IBM Plex Mono", monospace`; }
     g.fillText(sub, 46, 138);
+    if (status) {   // third line: quieter than the sub, same mono voice
+      g.font = '400 26px "IBM Plex Mono", monospace';
+      g.fillText(status, 46, 208);
+    }
     g.letterSpacing = '0px';
   };
   draw();
   const tx = new THREE.CanvasTexture(cc); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4;
   document.fonts.ready.then(() => { draw(); tx.needsUpdate = true; });
-  return new THREE.Mesh(new THREE.PlaneGeometry(w, w / 4), new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9 }));
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, w * H / 768), new THREE.MeshStandardMaterial({ map: tx, roughness: 0.9 }));
 }
 // quiet live-count signage: museum vinyl-text on the charcoal wall, whisper-contrast.
 // `painted` holds the REAL minted() count once readMinted answers; null shows a dash.
@@ -1705,7 +1712,12 @@ const SECTIONS = [
     collab: 'THE END OF THE WORLD', by: 'Cake Nygard',
     main: { url: 'cake-eotw.png', ar: 1 },   // end of the world #282
     sides: [{ url: 'cake-cowboy.jpg', ar: 1500 / 3000 }, { url: 'cake-rainbow.jpg', ar: 3276 / 4095 }] },
-  { num: '04', side:  1, z: -10, accent: '#6b3f6b', frame: 0x2a1f2a },   // empty · roped
+  { num: '04', side:  1, z: -10, accent: '#6b3f6b', frame: 0x2a1f2a,   // ASHISH — the first reveal (2026-09-28)
+    collab: 'TO LIVE IS TO DEVOUR OTHERS', by: 'Ashish (@ashishmode)',
+    status: '1/1 · auction coming soon',
+    main: { url: 'ashish-devour.mp4', ar: 866 / 1080 },   // the 1/1 — web-optimized mp4 cut from his gif
+    sides: [{ url: 'ashish-dopamine.mp4', ar: 640 / 800,
+      label: { title: 'DOPAMINE OVERDOSE', sub: 'free patron edition' } }] },   // patron edition on the smaller canvas
   { num: '05', side:  1, z: 0, accent: '#3f6b4a', frame: 0x20291f,
     collab: 'THE KILLERS', by: 'Daniel Todd',
     main: { url: 'dt-killer89.png', ar: 1, pixel: true },
@@ -1716,6 +1728,7 @@ const SECTIONS = [
 // bays can wear. Oversized files are downscaled under the GPU cap so a giant upload can't
 // crash the scene. GIFs animate by redrawing a live (offscreen) <img> to a canvas each frame.
 const MEDIA_GIFS = [];
+const MEDIA_VIDEOS = [];   // bay videos + their bay's world position, for the near-only playback in stepMedia
 function realArtTex(url, pixel) {
   const setFilter = t => { t.colorSpace = THREE.SRGBColorSpace;
     if (pixel) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; } else t.anisotropy = 8; };
@@ -1764,8 +1777,16 @@ function realArtTex(url, pixel) {
   im.src = url;
   return t;
 }
+let vidTick = 0;
 function stepMedia() {                                           // called from animate(): keeps GIFs moving
   for (const g of MEDIA_GIFS) { g.ctx.drawImage(g.img, 0, 0, g.canvas.width, g.canvas.height); g.tex.needsUpdate = true; }
+  // bay videos run only while you're near their bay — an idle far bay costs nothing.
+  // checked ~2×/s rather than per frame: the check is cheap but play()/pause() churn isn't.
+  if (++vidTick % 30 === 0) for (const m of MEDIA_VIDEOS) {
+    const near = Math.hypot(camera.position.x - m.x, camera.position.z - m.z) < 16;
+    if (near && m.v.paused) m.v.play().catch(() => {});
+    else if (!near && !m.v.paused) m.v.pause();
+  }
 }
 
 function pieceMesh(tex, w, h, frameColor, artAR, lit = true) {
@@ -2021,6 +2042,7 @@ SECTIONS.forEach(sec => {
   // main piece — real hero art if delivered, else COMING SOON
   const isPlotter = !sec.collab && sec.side === -1;   // bay 02: the machine draws in the open
   const mainTex = sec.main ? realArtTex(sec.main.url, sec.main.pixel) : (isPlotter ? plotterTex() : comingSoonArt());
+  if (mainTex.isVideoTexture) MEDIA_VIDEOS.push({ v: mainTex.image, x: sec.side * LX, z: sec.z });   // near-only playback
   const main = pieceMesh(mainTex, 2.3, 2.9, sec.frame, sec.main && sec.main.ar, !!sec.collab || isPlotter);
   main.position.set(0, 2.35, 0); grp.add(main);
   if (isPlotter) buildPlotter(grp);
@@ -2036,16 +2058,24 @@ SECTIONS.forEach(sec => {
   // show bays hold ONE artwork — the 1/1. Flankers exist only on collab bays.
   if (sec.collab) [-2.45, 2.45].forEach((ox, i) => {
     const sd = sec.sides && sec.sides[i];
-    const supTex = sd ? realArtTex(sd.url, sd.pixel) : comingSoonArt(384, 480);
-    const sup = pieceMesh(supTex, 1.15, 1.45, sec.frame, sd && sd.ar, true);
+    // a bay with fewer side works hangs NOTHING in the empty slot — a COMING SOON flanker
+    // beside a revealed 1/1 would read as a missing delivery, not a placeholder
+    if (!sd) return;
+    const supTex = realArtTex(sd.url, sd.pixel);
+    if (supTex.isVideoTexture) MEDIA_VIDEOS.push({ v: supTex.image, x: sec.side * LX, z: sec.z });   // near-only playback
+    const sup = pieceMesh(supTex, 1.15, 1.45, sec.frame, sd.ar, true);
     sup.position.set(ox, 2.25, 0); grp.add(sup);
+    if (sd.label) {   // side works can carry their own wall label (the patron edition names itself)
+      const sp = plaque(sd.label.title, sd.label.sub, 0.9, null);
+      sp.position.set(ox, 1.1, 0.02); grp.add(sp);
+    }
   });
   // numbered plate + label plaque — BELOW the framing. Collab bays show collab name + artist;
   // individual piece titles held off the wall until they're all confirmed.
   const np = numberPlate(sec.num, sec.accent); np.position.set(-1.55, 0.42, 0.02); grp.add(np);
   // empty bays: the plaque IS the show's only in-room label, so it must clear the drape and read —
   // the fold-cloth widened to ~1.48 half-span, which was occluding "RESERVED" at the old x 1.55
-  const lp = plaque(sec.collab || 'RESERVED', sec.by || 'SYSTEM OBEYED VS SYSTEM BROKEN', sec.collab ? 1.35 : 1.7, null);
+  const lp = plaque(sec.collab || 'RESERVED', sec.by || 'SYSTEM OBEYED VS SYSTEM BROKEN', sec.collab ? 1.35 : 1.7, null, false, sec.status || null);
   lp.position.set(sec.collab ? -0.05 : 2.4, sec.collab ? 0.42 : 1.7, 0.02); grp.add(lp);   // blank bays: beside the drape at eye line, not down at the floor
 
   // empty bays are roped off, auction-style: two brass-topped stanchions + a velvet swag.
@@ -2074,8 +2104,9 @@ SECTIONS.forEach(sec => {
   // one can per PIECE: the painted pools crown all three works, so a lone centre can
   // read as a mismatch — fixtures now match the light (aimedSpot is pure fixture, no cost)
   aimedSpot(sec.side * (RW / 2 - 0.3), 2.35, sec.z, sec.side * (RW / 2 - 1.6), sec.z, 5, !!sec.collab || (!sec.collab && sec.side === -1));   // the machine works under its light
-  if (sec.collab) for (const so of [-2.45, 2.45])   // no fixtures over flankers that no longer exist
-    aimedSpot(sec.side * (RW / 2 - 0.3), 2.25, sec.z + so, sec.side * (RW / 2 - 1.6), sec.z + so, 5, true);
+  if (sec.collab) [-2.45, 2.45].forEach((so, i) => {   // fixture only where a side work actually hangs
+    if (sec.sides && sec.sides[i]) aimedSpot(sec.side * (RW / 2 - 0.3), 2.25, sec.z + so, sec.side * (RW / 2 - 1.6), sec.z + so, 5, true);
+  });
 });
 
 // ---- AMBIENT PEOPLE: a few stylized visitors so the gallery reads lived-in ----
@@ -3268,6 +3299,60 @@ window.__hero = () => { let white = 0, dark = 0, other = 0; for (let i = 0; i < 
 // and the live hero canvas are untouched, and __filmStop() restores everything.
 const FILM = location.search.includes('film');
 let filmOn = false, filmT0 = null, filmPad = null, filmTearBuf = null, filmTearHot = [0];
+
+// -- film capture: in ?film, press R to record a take (canvas + live audio,
+// synced), R again to save. Prefers webm (reliable video); mp4 fallback.
+// Restarts the sequence from the top so a take gets the whole journey.
+let filmRec = null, filmRecChunks = [], filmRecDest = null;
+function filmRecMime() {
+  const want = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+  for (const m of want) if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+  return '';
+}
+function filmRecStart() {
+  if (!window.MediaRecorder) { console.warn('[film] MediaRecorder unsupported here'); return; }
+  initAudio();
+  const cv = document.getElementById('c');
+  if (!cv.captureStream) { console.warn('[film] captureStream unsupported here'); return; }
+  const tracks = cv.captureStream(30).getVideoTracks();
+  if (actx && master) {
+    filmRecDest = actx.createMediaStreamDestination();
+    master.connect(filmRecDest);
+    const at = filmRecDest.stream.getAudioTracks()[0];
+    if (at) tracks.push(at);
+  }
+  const mime = filmRecMime();
+  filmRecChunks = [];
+  filmRec = new MediaRecorder(new MediaStream(tracks),
+    mime ? { mimeType: mime, videoBitsPerSecond: 12e6 } : { videoBitsPerSecond: 12e6 });
+  filmRec.ondataavailable = e => { if (e.data && e.data.size) filmRecChunks.push(e.data); };
+  filmRec.onstop = () => {
+    if (filmRecDest && master) { try { master.disconnect(filmRecDest); } catch (e) {} filmRecDest = null; }
+    const type = filmRec.mimeType || mime || 'video/webm';
+    const ext = type.indexOf('mp4') >= 0 ? 'mp4' : 'webm';
+    const blob = new Blob(filmRecChunks, { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'teaser-4096.' + ext;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    console.log('[film] saved ' + ext + ' — ' + (blob.size / 1e6).toFixed(1) + 'MB');
+  };
+  // restart the scripted sequence from the top so the take captures the whole
+  // journey: browsing THE KILLERS -> the tear behind you -> the turn -> the walk
+  filmT0 = null; if (filmPad) filmPad.gain.value = 0;
+  fMode = 'gen'; fModeEnd = F_GEN0; fGenStart = 0; fGenLen = F_GEN0;
+  fBrkStart = 0; fBrkLen = 1.2; fBrkAmp = 1; fBrkType = 0; fAfterOK = true; fCycleN = 0;
+  fMicroIn = 1.4; fMicroT = 0;
+  if (fg) fClear(); fSeedPiece();
+  filmRec.start();
+  console.log('[film] recording from the top… (R again to stop)  ' + (mime || 'default codec'));
+}
+function filmRecStop() { if (filmRec && filmRec.state !== 'inactive') filmRec.stop(); }
+if (FILM) addEventListener('keydown', e => {
+  if (e.key === 'r' || e.key === 'R') {
+    if (filmRec && filmRec.state === 'recording') filmRecStop(); else filmRecStart();
+  }
+});
 const FB = 640, FTB = 384;
 let fgcv, fg, fpcv, fp, ftcv, ft, fecv, fe, filmTex = null, filmSavedMap = null, filmSavedBloom = null, filmSavedHeart = null;
 let fParticles = [], fFSEED = 0, fCSEED = 0;
@@ -3339,41 +3424,43 @@ function fDatabend(amt) {                           // block shifts, some MIRROR
     if (Math.random() < 0.22) { ft.globalCompositeOperation = 'lighter'; ft.globalAlpha = 0.5;
       ft.fillStyle = F_RGB[(Math.random() * 3) | 0]; ft.fillRect(dx, dy, bw, bh); ft.globalAlpha = 1; ft.globalCompositeOperation = 'source-over'; } } }
 
+// -- glitch keyed to the TRACES only: every bright flow-line pixel goes grainy
+// and splits into offset RGB, while the black between the lines stays untouched.
+// The corruption happens to the strokes themselves, never to a block of frame.
+function fTraceGlitch(gl) {
+  const id = fp.getImageData(0, 0, FB, FB), s = id.data;
+  const out = fp.createImageData(FB, FB), o = out.data;
+  const d = 1 + Math.round(gl * 6);                    // RGB split distance grows with the tear
+  const gAmt = 45 + gl * 150;                          // grain strength
+  for (let y = 0; y < FB; y++) {
+    const jit = Math.random() < 0.16 ? (((Math.random() * 2 - 1) * gl * 11) | 0) : 0;   // some trace rows jump — the line breaking up
+    for (let x = 0; x < FB; x++) {
+      const i = (y * FB + x) * 4;
+      const ol = s[i] * 0.299 + s[i + 1] * 0.587 + s[i + 2] * 0.114;
+      if (ol > 20) {                                   // a trace pixel: grain it, split it, maybe jump it
+        const rx = Math.max(0, Math.min(FB - 1, x + d + jit));
+        const gx = Math.max(0, Math.min(FB - 1, x + jit));
+        const bx = Math.max(0, Math.min(FB - 1, x - d + jit));
+        const n = (Math.random() - 0.5) * gAmt;
+        o[i]     = Math.max(0, Math.min(255, s[(y * FB + rx) * 4]     + n));
+        o[i + 1] = Math.max(0, Math.min(255, s[(y * FB + gx) * 4 + 1] + n));
+        o[i + 2] = Math.max(0, Math.min(255, s[(y * FB + bx) * 4 + 2] + n));
+      } else { o[i] = s[i]; o[i + 1] = s[i + 1]; o[i + 2] = s[i + 2]; }   // background stays clean
+      o[i + 3] = 255;
+    }
+  }
+  fp.putImageData(out, 0, 0);
+}
 function fPresent(gl, type, phase) {
   fp.globalCompositeOperation = 'source-over'; fp.globalAlpha = 1;
-  if (gl <= 0.001) { fp.drawImage(fgcv, 0, 0);
-    for (let k = 0; k < 60; k++) { fp.globalAlpha = 0.05; fp.fillStyle = '#fff';   // faint constant grain: filmic, never sterile
-      fp.fillRect(Math.random() * FB, Math.random() * FB, 1.5, 1.5); }
+  fp.drawImage(fgcv, 0, 0);                            // the flow, always streaming underneath
+  if (gl <= 0.001) {                                  // clean: only a faint filmic grain
+    for (let k = 0; k < 40; k++) { fp.globalAlpha = 0.04; fp.fillStyle = '#fff';
+      fp.fillRect(Math.random() * FB, Math.random() * FB, 1.4, 1.4); }
     fp.globalAlpha = 1; return; }
-  if (Math.random() < 0.3) fe.drawImage(fpcv, 0, 0);   // freeze the LAST frame — stutter source
-  ft.setTransform(1, 0, 0, 1, 0, 0); ft.globalAlpha = 1; ft.globalCompositeOperation = 'source-over';
-  ft.clearRect(0, 0, FTB, FTB); ft.drawImage(fgcv, 0, 0, FB, FB, 0, 0, FTB, FTB);
-  if (type === 0) { fChannelShift(Math.round(gl * FTB * 0.035)); if (gl > 0.6) fDither(6); }
-  else if (type === 1) fPixelSort(gl);
-  else if (type === 2) { fDatabend(gl); fDither(5); }
-  fp.fillStyle = '#0a0a0e'; fp.fillRect(0, 0, FB, FB);
-  if (type === 3) { const bands = 96; for (let i = 0; i < bands; i++) {
-      const off = Math.sin(i * 0.5 + phase) * gl * FB * 0.05 + (Math.random() < 0.10 ? (Math.random() * 2 - 1) * gl * FB * 0.12 : 0);
-      fp.drawImage(ftcv, 0, i / bands * FTB, FTB, FTB / bands, off, i / bands * FB, FB, FB / bands + 1); } }
-  else { const bands = 32; for (let i = 0; i < bands; i++) { if (Math.random() < gl * 0.08) continue;
-      const off = Math.random() < 0.55 ? (Math.random() * 2 - 1) * gl * FB * 0.15 : 0;
-      fp.drawImage(ftcv, 0, i / bands * FTB, FTB, FTB / bands, off, i / bands * FB, FB, FB / bands + 1); } }
-  fp.globalCompositeOperation = 'lighter'; fp.globalAlpha = 0.3 * gl;
-  fp.drawImage(ftcv, (Math.random() * 2 - 1) * gl * FB * 0.02, 0, FB, FB);
-  fp.globalAlpha = 1; fp.globalCompositeOperation = 'source-over';
-  // frame-stutter strips: bands of the FROZEN previous frame jammed over the live one —
-  // the visual twin of the audio's gate stutter (digital "stuck buffer", not analog tear)
-  const stut = 2 + (Math.random() * 4 | 0);
-  for (let k = 0; k < stut; k++) { const sy2 = Math.random() * FB, sh2 = 8 + Math.random() * 40;
-    fp.globalAlpha = 0.6 + Math.random() * 0.4;
-    fp.drawImage(fecv, 0, sy2, FB, sh2, (Math.random() * 2 - 1) * gl * FB * 0.06, sy2 + (Math.random() * 2 - 1) * 14, FB, sh2); }
-  fp.globalAlpha = 1;
-  fp.fillStyle = 'rgba(0,0,0,' + (0.12 * gl) + ')';
-  for (let sy = 0; sy < FB; sy += 3) fp.fillRect(0, sy, FB, 1);
-  const nn = Math.floor(gl * 380);                  // heavy dirty grain over every tear
-  for (let k = 0; k < nn; k++) { fp.fillStyle = Math.random() < 0.5 ? '#fff' : F_RGB[(Math.random() * 3) | 0];
-    fp.globalAlpha = 0.25 + Math.random() * 0.6;
-    fp.fillRect(Math.random() * FB, Math.random() * FB, 1 + Math.random() * 2.5, 1 + Math.random() * 2.5); }
+  // a tear picks its band(s) once and holds them through the break, so the
+  // corruption sits in one place and intensifies instead of flickering around
+  fTraceGlitch(gl);                                   // only the bright traces go grainy and split — nothing else
   fp.globalAlpha = 1; }
 
 function filmTearSlice(dur, vol, off = null, when = 0) {
