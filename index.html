@@ -113,35 +113,48 @@
     background:rgba(245,244,238,.55);box-shadow:0 1px 6px rgba(0,0,0,.28);transition:transform .08s;}
   /* GALLERY GUIDE brochure: a folded pamphlet docked bottom-right; opens as a printed fold-out.
      On touch the right stick owns that corner, so the pamphlet tucks under the mute button. */
-  body.touch #broDock{top:calc(14px + env(safe-area-inset-top,0px));bottom:auto;left:calc(14px + env(safe-area-inset-left,0px));right:auto;transform:rotate(-4deg) scale(.72);transform-origin:top left;}
-  body.touch #broDock .bd-key{display:none;}
+  body.touch #broDock,body.touch #showDock{top:calc(14px + env(safe-area-inset-top,0px));bottom:auto;left:calc(14px + env(safe-area-inset-left,0px));right:auto;transform:rotate(-4deg) scale(.72);transform-origin:top left;}
+  body.touch #broDock .bd-key,body.touch #showDock .bd-key{display:none;}
   /* the printed gallery guide, resting on the glass: a cover carrying the REAL 4096 mark
      (RGB + white channels), a folded leaf peeking out the right, stacked sheets beneath */
-  #broDock{position:fixed;right:22px;bottom:20px;z-index:8;width:90px;height:126px;cursor:pointer;
+  #broDock,#showDock{position:fixed;right:22px;bottom:20px;z-index:8;width:90px;height:126px;cursor:pointer;
     display:none;color:var(--ink);transform:rotate(-4deg);transform-origin:bottom right;
     transition:transform .2s,filter .2s;}
   #broDock.on{display:block;}
-  #broDock::before{content:'';position:absolute;right:-6px;top:6px;bottom:10px;width:20px;   /* folded leaf peeking behind */
+  #broDock.on + #showDock{display:block;}   /* the show pamphlet rides the guide's visibility — no JS to keep in step */
+  #broDock::before,#showDock::before{content:'';position:absolute;right:-6px;top:6px;bottom:10px;width:20px;   /* folded leaf peeking behind */
     background:linear-gradient(90deg,#e2dfd6,#ebe8e0);transform:rotate(2.4deg);
     box-shadow:3px 7px 13px rgba(27,27,25,.2);}
-  #broDock .bd-cover{position:absolute;inset:0;box-sizing:border-box;padding:15px 9px 12px;text-align:center;
+  #broDock .bd-cover,#showDock .bd-cover{position:absolute;inset:0;box-sizing:border-box;padding:15px 9px 12px;text-align:center;
     background:linear-gradient(158deg,#f6f4ee,#efece4 58%,#e9e6dc);
     border-left:1px solid rgba(27,27,25,.09);   /* the saddle-stitch spine */
     box-shadow:0 2px 0 #e7e4db,0 4px 0 -1px #dedbd1,0 6px 0 -2px #d5d2c8,   /* the page stack */
       5px 12px 24px rgba(27,27,25,.3);}
-  #broDock .bd-cover::after{content:'';position:absolute;left:5px;top:0;bottom:0;width:1px;background:rgba(27,27,25,.06);}
+  #broDock .bd-cover::after,#showDock .bd-cover::after{content:'';position:absolute;left:5px;top:0;bottom:0;width:1px;background:rgba(27,27,25,.06);}
   #broDock .bd-mark{display:inline-grid;grid-template-columns:1fr 1fr;gap:2px;width:26px;height:26px;margin:3px auto 0;}
   #broDock .bd-mark i{display:block;}
   #broDock .bd-mark i:nth-child(1){background:#a02f1c;} #broDock .bd-mark i:nth-child(2){background:#2c6338;}
   #broDock .bd-mark i:nth-child(3){background:#283a86;} #broDock .bd-mark i:nth-child(4){background:#f4f2ec;box-shadow:inset 0 0 0 2px #b9b9ae;}
   #broDock .bd-num{font-family:var(--serif);font-size:20px;letter-spacing:.01em;margin-top:11px;}
-  #broDock .bd-rule{width:24px;height:1px;background:#cfccc2;margin:8px auto 7px;}
+  #broDock .bd-rule,#showDock .bd-rule{width:24px;height:1px;background:#cfccc2;margin:8px auto 7px;}
   #broDock .bd-sub{font-family:var(--mono);font-size:6.5px;letter-spacing:.22em;color:#6b675e;text-indent:.22em;}
-  #broDock:hover{transform:rotate(-2.5deg) translateY(-7px);filter:brightness(1.02);}
-  #broDock:hover .bd-cover{box-shadow:0 2px 0 #e7e4db,0 4px 0 -1px #dedbd1,0 6px 0 -2px #d5d2c8,
+  #broDock:hover,#showDock:hover{transform:rotate(-2.5deg) translateY(-7px);filter:brightness(1.02);}
+  #broDock:hover .bd-cover,#showDock:hover .bd-cover{box-shadow:0 2px 0 #e7e4db,0 4px 0 -1px #dedbd1,0 6px 0 -2px #d5d2c8,
       8px 20px 34px rgba(27,27,25,.36);}
-  #broDock .bd-key{position:absolute;left:-30px;bottom:6px;font-family:var(--mono);font-size:9px;
+  #broDock .bd-key,#showDock .bd-key{position:absolute;left:-30px;bottom:6px;font-family:var(--mono);font-size:9px;
     color:#cfcfd4;background:rgba(22,22,26,.5);padding:3px 7px;border-radius:9px;transform:rotate(5deg);}
+  /* the two pamphlets stack on the glass. The BACK one tucks up-left behind the front;
+     clicking it steps it forward, clicking the front one opens it. */
+  #showDock .sd-t{font-family:var(--mono);font-size:7px;letter-spacing:.2em;line-height:1.75;color:var(--ink);margin-top:4px;}
+  #showDock .sd-vs{font-family:var(--serif);font-style:italic;font-size:13px;color:#6b675e;}
+  /* the sign's letter split, in miniature: SYST red · EM OB green · EYED blue */
+  #showDock .sd-r{color:#c8402a;} #showDock .sd-g{color:#2a9150;} #showDock .sd-b{color:#2f63d6;}
+  /* and the broken words carry a static channel split — glitch as typography, no motion */
+  #showDock .sd-glitch{text-shadow:-1px 0 rgba(200,64,42,.7),1px 0 rgba(47,99,214,.7);}
+  #broDock.back,#showDock.back{transform:rotate(-10deg) translate(-30px,-38px) scale(.86);z-index:7;filter:brightness(.95);}
+  #broDock.back:hover,#showDock.back:hover{transform:rotate(-8deg) translate(-30px,-44px) scale(.86);filter:brightness(1);}
+  /* BOTH key chips stay visible on desktop: on a locked pointer the cards can't be
+     clicked, so G and H are the only doors in — hiding the back card's chip hid H forever */
   #browrap{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
     background:rgba(27,27,25,.5);backdrop-filter:blur(3px);}
   #browrap.on{display:flex;}
@@ -212,13 +225,14 @@
   }
   /* mint panel */
   /* mint panel: the site's paper-and-ink editorial language — serif prose, mono data, hairline rules */
-  #mintwrap{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
+  /* #gbwrap/#gbnote share the mint panel's chrome exactly — one card language, no drift */
+  #mintwrap,#gbwrap{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
     background:rgba(27,27,25,.5);backdrop-filter:blur(3px);}
-  #mintwrap.on{display:flex;}
-  #mint{width:min(400px,92vw);background:var(--paper);border:1px solid var(--rule);
+  #mintwrap.on,#gbwrap.on{display:flex;}
+  #mint,#gbnote{width:min(400px,92vw);background:var(--paper);border:1px solid var(--rule);
     padding:30px 32px 26px;box-shadow:0 24px 70px rgba(27,27,25,.4);position:relative;color:var(--ink);}
-  #mint h2{margin:0 0 12px;font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.34em;}
-  #mint .lede{margin:0 0 22px;font-family:var(--serif);font-style:italic;font-size:13.5px;color:#4c4c46;
+  #mint h2,#gbnote h2{margin:0 0 12px;font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.34em;}
+  #mint .lede,#gbnote .lede{margin:0 0 22px;font-family:var(--serif);font-style:italic;font-size:13.5px;color:#4c4c46;
     line-height:1.75;}
   #mint .row{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--rule);
     font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;}
@@ -232,7 +246,7 @@
   #mint .cta:hover{background:var(--paper);color:var(--ink);}
   #mint .note{margin:12px 0 0;font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:#84847c;
     line-height:1.6;text-align:center;}
-  #mint .x{position:absolute;top:10px;right:12px;border:none;background:none;font-size:18px;color:#84847c;
+  #mint .x,#gbnote .x{position:absolute;top:10px;right:12px;border:none;background:none;font-size:18px;color:#84847c;
     cursor:pointer;line-height:1;font-family:var(--mono);}
   /* quantity stepper — the site's own qty language, hairline box and mono digits */
   #mint .mintrow{display:flex;gap:10px;margin-top:20px;align-items:stretch;}
@@ -288,11 +302,24 @@
   </div>
   <span class="bd-key">G</span>
 </div>
+<!-- the SHOW's own pamphlet, stacked with the guide (visibility rides #broDock.on via CSS) -->
+<div id="showDock" title="the show (H)">
+  <div class="bd-cover">
+    <!-- the card wears the sign's own treatments in miniature: the obeyed words carry the
+         print's RGB letter split, the broken words a channel-split shadow -->
+    <div class="sd-t"><span class="sd-r">SYST</span><span class="sd-g">EM</span><br><span class="sd-g">OB</span><span class="sd-b">EYED</span></div>
+    <div class="bd-rule"></div>
+    <div class="sd-vs">vs</div>
+    <div class="bd-rule"></div>
+    <div class="sd-t sd-glitch">SYSTEM<br>BROKEN</div>
+  </div>
+  <span class="bd-key">H</span>
+</div>
 
 <div id="browrap">
   <div id="brochure">
     <button class="x" id="brox">×</button>
-    <div class="ribbon"><span class="rib-l"><span class="rib-mark"><i></i><i></i><i></i><i></i></span>4096 · GALLERY GUIDE</span><span>FOURZERONINESIX.XYZ</span></div>
+    <div class="ribbon"><span class="rib-l"><span class="rib-mark"><i></i><i></i><i></i><i></i></span><span id="broTitle">4096 · GALLERY GUIDE</span></span><span>FOURZERONINESIX.XYZ</span></div>
     <div class="leaves">
       <section class="leaf" id="bro-about">
         <h4>ABOUT</h4>
@@ -482,13 +509,66 @@ level  255  202  153  110  71   38   13   0</pre>
         last sale happens. The roped piece on the charcoal wall is waiting for it.</p>
       </section>
     </div>
+    <!-- the SHOW brochure: same pamphlet, a second set of leaves swapped in by setBroMode('show').
+         One leaf per artist plus the show and the visit. No dashes, gallery voice. -->
+    <div class="leaves" id="showLeaves" style="display:none">
+      <div class="leaf">
+        <h4>THE SHOW</h4>
+        <h3>System Obeyed vs System Broken</h3>
+        <p>A group exhibition. Work that follows the machine to its final state, beside work
+        that breaks it. Generative art that obeys its rules, and glitch art that tears them
+        apart, shown in a gallery you can walk through.</p>
+        <p class="mono dim">opening this october</p>
+      </div>
+      <div class="leaf">
+        <h4>THE BROKEN SIDE</h4>
+        <h3>Ashish</h3>
+        <figure class="paste r1"><img src="ashish-devour-still.jpg" alt="To Live is To Devour Others, Ashish" loading="lazy">
+          <figcaption class="cap">TO LIVE IS TO DEVOUR OTHERS · 1/1</figcaption></figure>
+        <p>Ashish is a glitch artist who works figuratively. For this show he moved into a
+        register different from the pieces people know him for.</p>
+        <figure class="paste r2"><img src="ashish-dopamine-still.jpg" alt="Dopamine Overdose, Ashish" loading="lazy">
+          <figcaption class="cap">DOPAMINE OVERDOSE · PATRON EDITION</figcaption></figure>
+        <p>In his work, everything gets devoured. People by their screens, by their work, by
+        each other. The image gets devoured the same way, its surface eaten by dither and
+        noise. That is the broken side, where a machine failing becomes a language.</p>
+        <p class="mono">"I pour my heart into every piece I create, and I'm willing to wait
+        for the right eyes to find my work. Art doesn't need to be rushed, it finds who it's
+        meant for."</p>
+      </div>
+      <div class="leaf">
+        <h4>THE BROKEN SIDE</h4>
+        <h3>hmm.labs</h3>
+        <div class="paste r3"><div style="aspect-ratio:1;display:grid;place-items:center;background:#e9e6dc;font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:#8a867d;">REVEALING&nbsp;SOON</div></div>
+        <p>hmm.labs works in glitch. This show is the first time the work touches Ethereum.
+        The piece reveals here soon.</p>
+      </div>
+      <div class="leaf">
+        <h4>THE OBEYED SIDE</h4>
+        <h3>Andrew Mitchell</h3>
+        <div class="paste r1"><div style="aspect-ratio:1;display:grid;place-items:center;background:#e9e6dc;font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:#8a867d;">REVEALING&nbsp;SOON</div></div>
+        <p>Andrew Mitchell makes generative work that builds itself to a final state. His
+        piece for the show, and how it is made, reveal here soon.</p>
+      </div>
+      <div class="leaf">
+        <h4>VISITING</h4>
+        <p>The exhibition opens this October in the 4096 gallery, a room you can walk
+        through.</p>
+        <p>The auction pieces open at 0 and run 24 hours each. Every bid in the final minutes
+        adds time, so a piece ends when the bidding ends.</p>
+        <p>A free patron edition is minted to everyone who signs the guestbook in the room
+        during the show.</p>
+        <p class="mono dim">one system. what it makes when it follows the rules, and what it
+        makes when it breaks.</p>
+      </div>
+    </div>
   </div>
 </div>
 <div id="hint">WASD / ARROWS TO MOVE&nbsp;&nbsp;·&nbsp;&nbsp;MOVE MOUSE TO LOOK&nbsp;&nbsp;·&nbsp;&nbsp;ESC TO RELEASE</div>
 <style>
 /* ?film: clean footage — every HUD chrome hidden; the vignette stays (it reads as lens) */
 body.film #cross, body.film #hint, body.film #lookstat, body.film #pixhud,
-body.film #broDock, body.film #mute, body.film #prompt, body.film #sticks { display: none !important; }
+body.film #broDock, body.film #showDock, body.film #mute, body.film #prompt, body.film #sticks { display: none !important; }
 </style>
 <div id="enter">
   <h1>4096</h1>
@@ -511,6 +591,15 @@ body.film #broDock, body.film #mute, body.film #prompt, body.film #sticks { disp
       <button class="cta" id="m-go">CONNECT WALLET</button>
     </div>
     <p class="note" id="m-note">The transaction comes from your own wallet, on Ethereum mainnet.</p>
+  </div>
+</div>
+
+<!-- the guestbook's honest "not yet" — same card chrome as the mint panel -->
+<div id="gbwrap">
+  <div id="gbnote">
+    <button class="x" id="gbx">×</button>
+    <h2>THE GUESTBOOK</h2>
+    <p class="lede">The guestbook opens when the show does. Come back this October, sign it in the room, and the patron edition is yours.</p>
   </div>
 </div>
 
@@ -1420,6 +1509,150 @@ parkedCar(-3.4, 4.2, 0x8c3340); parkedCar(3.8, 4.2, 0x9a978f);   // one colour, 
   plate.position.set(1.35, 1.55, -0.055); plate.rotation.y = Math.PI; doorG.add(plate);
 }
 
+// ---- the SHOW SIGN: the title card's end state, rendered LIVE (reference: title-sign.html) ----
+// SYSTEM OBEYED printed and static under its rail, "vs", SYSTEM BROKEN glitching without
+// end. Live because a recorded loop kept baking in dropped frames (a hidden pane throttles
+// rAF to ~12fps during capture) — rendered here the glitch truly rolls. The expensive
+// per-pixel glitch recomputes every OTHER update, and stepSign() only updates while the
+// camera is near the board. Everything below is lifted from title-sign.html, same numbers.
+const SIGN = (() => {
+  const SZ = 1080;
+  const c = document.createElement('canvas'); c.width = c.height = SZ; const g = c.getContext('2d');
+  const BG = '#ece7db';
+  const fstr = px => '900 ' + px + 'px "Helvetica Neue", "Arial Black", Arial, sans-serif';
+  let FS = 92;
+  g.font = fstr(FS); try { g.letterSpacing = '5px'; } catch (e) {}
+  const wmax = () => Math.max(g.measureText('SYSTEM OBEYED').width, g.measureText('SYSTEM BROKEN').width);
+  while (FS > 30 && wmax() > 900 * 0.94) { FS -= 2; g.font = fstr(FS); }
+  const OW = 900, OH = 170, OX = 90, OY = 180, BX = 90, BY = 385;
+  function wordMask(text) {
+    const m = document.createElement('canvas'); m.width = OW; m.height = OH; const x = m.getContext('2d');
+    x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = fstr(FS);
+    try { x.letterSpacing = '5px'; } catch (e) {} x.fillText(text, OW / 2, OH / 2);
+    return m;
+  }
+  const obMask = wordMask('SYSTEM OBEYED'), brMask = wordMask('SYSTEM BROKEN');
+  const strip = document.createElement('canvas'); strip.width = OW; strip.height = OH; const sh = strip.getContext('2d');
+  function paintClipped(art, mask, x, y) {                 // art ∩ letters -> onto the paper
+    sh.globalCompositeOperation = 'source-over'; sh.globalAlpha = 1; sh.clearRect(0, 0, OW, OH);
+    sh.drawImage(art, 0, 0);
+    sh.globalCompositeOperation = 'destination-in'; sh.drawImage(mask, 0, 0);
+    sh.globalCompositeOperation = 'source-over';
+    g.drawImage(strip, x, y);
+  }
+  // OBEYED type buffer, built once: RGB per measured letter (SYST red · EM OB green · EYED
+  // blue), then the old-print ink pass. Static forever — the sign holds the printed state.
+  const obBuf = document.createElement('canvas'); obBuf.width = OW; obBuf.height = OH; const ot = obBuf.getContext('2d');
+  let textT = OH, colL = OW, colR = 0;
+  {
+    ot.font = fstr(FS); try { ot.letterSpacing = '5px'; } catch (e) {} ot.textAlign = 'left'; ot.textBaseline = 'middle';
+    const leftEdge = OW / 2 - ot.measureText('SYSTEM OBEYED').width / 2;
+    const redEnd = leftEdge + ot.measureText('SYST').width + 3;
+    const greenEnd = leftEdge + ot.measureText('SYSTEM OB').width + 3;
+    ot.fillStyle = '#c8402a'; ot.fillRect(0, 0, redEnd, OH);
+    ot.fillStyle = '#2a9150'; ot.fillRect(redEnd, 0, greenEnd - redEnd, OH);
+    ot.fillStyle = '#2f63d6'; ot.fillRect(greenEnd, 0, OW - greenEnd, OH);
+    ot.globalCompositeOperation = 'destination-in'; ot.drawImage(obMask, 0, 0); ot.globalCompositeOperation = 'source-over';
+    const im = ot.getImageData(0, 0, OW, OH), dd = im.data;
+    for (let y = 0; y < OH; y++) for (let x = 0; x < OW; x++) { const i = (y * OW + x) * 4; if (dd[i + 3] < 8) continue;
+      let a = dd[i + 3] / 255;
+      a *= 0.80 + 0.20 * Math.random();                 // grain
+      a *= 0.92 + 0.08 * Math.sin(y * 0.55);            // faint ribbon banding
+      if ((x & 1) === 0 && (y & 1) === 0) a *= 0.62;    // dot-matrix dots
+      if (Math.random() < 0.05) a *= 0.35;              // ink starve
+      dd[i + 3] = Math.max(0, Math.min(255, a * 255 * 0.94));
+    }
+    ot.putImageData(im, 0, 0);
+    const md = obMask.getContext('2d').getImageData(0, 0, OW, OH).data;   // letter extents, for the rail
+    for (let y = 0; y < OH; y++) for (let x = 0; x < OW; x++) if (md[(y * OW + x) * 4 + 3] > 128) {
+      if (y < textT) textT = y; if (x < colL) colL = x; if (x > colR) colR = x; }
+  }
+  // BROKEN glitch — verbatim from the title card (block databend, channel split,
+  // per-channel Bayer dither, row pixel-sort, scanlines)
+  const brArt = document.createElement('canvas'); brArt.width = OW; brArt.height = OH; const ba = brArt.getContext('2d');
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  function drawBrokenGlitch(gl) {
+    ba.globalCompositeOperation = 'source-over'; ba.globalAlpha = 1;
+    ba.fillStyle = '#0b0b10'; ba.fillRect(0, 0, OW, OH);
+    ba.fillStyle = '#f2f2f4'; ba.textAlign = 'center'; ba.textBaseline = 'middle'; ba.font = fstr(FS);
+    try { ba.letterSpacing = '5px'; } catch (e) {} ba.fillText('SYSTEM BROKEN', OW / 2, OH / 2);
+    if (gl <= 0.001) return;
+    const nb = (gl * 10) | 0;
+    for (let k = 0; k < nb; k++) { const by = (Math.random() * OH) | 0, bh = 4 + Math.random() * 22;
+      ba.drawImage(brArt, 0, by, OW, bh, (Math.random() * 2 - 1) * gl * 90, by, OW, bh); }
+    const id = ba.getImageData(0, 0, OW, OH), s = id.data, out = ba.createImageData(OW, OH), o = out.data;
+    const d = 1 + Math.round(gl * 10), st = 255 / (gl > 0.6 ? 3 : 5);
+    for (let y = 0; y < OH; y++) {
+      const sort = Math.random() < 0.35 * gl;
+      for (let x = 0; x < OW; x++) {
+        const i = (y * OW + x) * 4;
+        const rx = Math.max(0, Math.min(OW - 1, x + d)), bx = Math.max(0, Math.min(OW - 1, x - d));
+        let r = s[(y * OW + rx) * 4], gg = s[i + 1], b = s[(y * OW + bx) * 4 + 2];
+        const b0 = (y & 3) * 4 + (x & 3);
+        r = Math.round((r + (BAYER[b0] / 16 - 0.5) * st) / st) * st;
+        gg = Math.round((gg + (BAYER[(b0 + 5) & 15] / 16 - 0.5) * st) / st) * st;
+        b = Math.round((b + (BAYER[(b0 + 10) & 15] / 16 - 0.5) * st) / st) * st;
+        const n = (Math.random() - 0.5) * gl * 70;
+        o[i] = Math.max(0, Math.min(255, r + n)); o[i + 1] = Math.max(0, Math.min(255, gg + n)); o[i + 2] = Math.max(0, Math.min(255, b + n)); o[i + 3] = 255;
+      }
+      if (sort) {
+        let x = 0; while (x < OW) { let a2 = x; while (x < OW && o[(y * OW + x) * 4] + o[(y * OW + x) * 4 + 1] + o[(y * OW + x) * 4 + 2] < 200) x++; a2 = x;
+          while (x < OW && o[(y * OW + x) * 4] + o[(y * OW + x) * 4 + 1] + o[(y * OW + x) * 4 + 2] >= 200) x++;
+          if (x - a2 > 3) { const arr = []; for (let k = a2; k < x; k++) { const j = (y * OW + k) * 4; arr.push([o[j], o[j + 1], o[j + 2]]); }
+            arr.sort((p, q) => (p[0] + p[1] + p[2]) - (q[0] + q[1] + q[2]));
+            for (let k = a2; k < x; k++) { const j = (y * OW + k) * 4, cc = arr[k - a2]; o[j] = cc[0]; o[j + 1] = cc[1]; o[j + 2] = cc[2]; } } } }
+    }
+    ba.putImageData(out, 0, 0);
+    ba.fillStyle = 'rgba(0,0,0,' + (0.16 * gl) + ')';
+    for (let y = ((performance.now() * 0.05) | 0) % 3; y < OH; y += 3) ba.fillRect(0, y, OW, 1);
+  }
+  drawBrokenGlitch(0.34);                                  // first frame is never blank
+  function drawLockupStatic() {                            // the 4096 presents lockup, landed —
+    const cx = SZ / 2;                                     // static, centred, ~1.2x the card's scale
+    const MS = 41, MG = 5, mx = cx - MS - MG / 2, my = 620;
+    const pix = [['#a02f1c', mx, my], ['#2c6338', mx + MS + MG, my], ['#283a86', mx, my + MS + MG], ['#f4f2ec', mx + MS + MG, my + MS + MG]];
+    for (let i = 0; i < 4; i++) { g.fillStyle = pix[i][0]; g.fillRect(pix[i][1], pix[i][2], MS, MS); }
+    g.strokeStyle = '#b9b9ae'; g.lineWidth = 3; g.strokeRect(mx + MS + MG + 1.8, my + MS + MG + 1.8, MS - 3.6, MS - 3.6);
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillStyle = '#1b1b19'; g.font = '400 115px "Libre Baskerville", Georgia, serif'; g.fillText('4096', cx, 824);
+    g.fillStyle = '#d2d2ca'; g.fillRect(cx - 132, 866, 264, 3);
+    g.fillStyle = '#6b675e'; g.font = '400 26px "IBM Plex Mono", monospace'; try { g.letterSpacing = '10px'; } catch (e) {}
+    g.fillText('PRESENTS', cx + 5, 912); try { g.letterSpacing = '0px'; } catch (e) {}
+  }
+  let flip = 0;
+  function draw() {
+    const t = performance.now() / 1000;
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+    g.fillStyle = BG; g.fillRect(0, 0, SZ, SZ);
+    g.drawImage(obBuf, OX, OY);                            // OBEYED — printed, still
+    const railY = OY + textT - 30;                         // the carriage rail stays, its work done
+    g.strokeStyle = '#b3ada0'; g.globalAlpha = 0.85; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(OX + colL - 34, railY); g.lineTo(OX + colR + 34, railY); g.stroke(); g.globalAlpha = 1;
+    g.font = fstr(28); g.textAlign = 'center'; g.textBaseline = 'middle'; try { g.letterSpacing = '2px'; } catch (e) {}
+    g.globalAlpha = 0.5; g.fillStyle = '#8f8676'; g.fillText('vs', SZ / 2, 367); g.globalAlpha = 1;
+    const gl = 0.34 + 0.14 * Math.abs(Math.sin(t * 6));    // the living low-grade break
+    flip = (flip + 1) & 1;
+    if (flip === 0) drawBrokenGlitch(gl);                  // every other frame; noise reads alive
+    paintClipped(brArt, brMask, BX, BY);
+    drawLockupStatic();                                    // 4096 presents, under the two words
+    g.globalAlpha = 0.04;                                  // paper grain
+    for (let k = 0; k < 70; k++) { g.fillStyle = Math.random() < 0.5 ? '#fff' : '#6b6252'; g.fillRect(Math.random() * SZ, Math.random() * SZ, 1.3, 1.3); }
+    g.globalAlpha = 1;
+  }
+  draw();
+  return { canvas: c, draw, tex: null };
+})();
+let signLast = 0;
+function stepSign() {                                      // called from animate()
+  if (panelOpen) return;                                   // sign is behind an overlay — don't pay for it
+  const dx = camera.position.x + 1.1, dz = camera.position.z - 11.5;
+  if (dx * dx + dz * dz > 144) return;                     // >12u from the board: hold the last frame
+  const now = performance.now();
+  if (now - signLast < 45) return;                         // ~22fps updates (glitch flips every other = ~11fps):
+  signLast = now;                                          // reads as intentional flicker, and mouse-look near
+  SIGN.draw(); if (SIGN.tex) SIGN.tex.needsUpdate = true;  // spawn stops paying the per-pixel bill every frame
+}
+
 // ---- THRESHOLD: freestanding intro panel just inside the door ----
 // The whole room used to be visible on spawn — a showroom. This panel makes an arc:
 // enter → read the placard → step around it → the hero wall reveals. Offset left of the
@@ -1432,32 +1665,12 @@ const threshold = new THREE.Group(); threshold.position.set(-1.1, 0, 11.5); scen
   const foot = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.06, 0.4),
     new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.6, metalness: 0.3 }));
   foot.position.y = 0.03; threshold.add(foot);
-  // paper placard on the door-facing side — austere, museum signage, no marketing
-  const tc = document.createElement('canvas'); tc.width = 1024; tc.height = 768; const tg = tc.getContext('2d');
-  const drawIntro = () => {
-    tg.fillStyle = '#eeeeea'; tg.fillRect(0, 0, 1024, 768);
-    tg.strokeStyle = '#d2d2ca'; tg.lineWidth = 6; tg.strokeRect(5, 5, 1014, 758);
-    // the real 4096 mark: 2×2 RGB + outlined-white grid, centred above the wordmark
-    const MS = 58, MG = 4, mx = 512 - MS - MG / 2, my = 86;
-    tg.fillStyle = '#a02f1c'; tg.fillRect(mx, my, MS, MS);
-    tg.fillStyle = '#2c6338'; tg.fillRect(mx + MS + MG, my, MS, MS);
-    tg.fillStyle = '#283a86'; tg.fillRect(mx, my + MS + MG, MS, MS);
-    tg.fillStyle = '#f4f2ec'; tg.fillRect(mx + MS + MG, my + MS + MG, MS, MS);
-    tg.strokeStyle = '#b9b9ae'; tg.lineWidth = 4;
-    tg.strokeRect(mx + MS + MG + 2, my + MS + MG + 2, MS - 4, MS - 4);
-    tg.textAlign = 'center';
-    tg.fillStyle = '#1b1b19'; tg.font = '400 140px "Libre Baskerville", Georgia, serif';
-    tg.fillText('4096', 512, 388);
-    tg.fillStyle = '#d2d2ca'; tg.fillRect(362, 448, 300, 3);
-    tg.fillStyle = '#6b675e'; tg.font = '400 40px "IBM Plex Mono", monospace'; tg.letterSpacing = '4px';
-    tg.fillText('A CANVAS PAINTED', 512, 552);
-    tg.fillText('BY ITS MARKET', 512, 617);
-    tg.letterSpacing = '0px';
-  };
-  drawIntro();
-  const tt = new THREE.CanvasTexture(tc); tt.colorSpace = THREE.SRGBColorSpace; tt.anisotropy = 4;
-  document.fonts.ready.then(() => { drawIntro(); tt.needsUpdate = true; });
-  const placard = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.125),
+  // the SHOW SIGN on the door-facing side — the live title-card end state (see SIGN above).
+  // The "4096 / A CANVAS PAINTED BY ITS MARKET" paper placard steps aside for the show;
+  // it returns when the show is over (git holds it).
+  const tt = new THREE.CanvasTexture(SIGN.canvas); tt.colorSpace = THREE.SRGBColorSpace; tt.anisotropy = 4;
+  SIGN.tex = tt;
+  const placard = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7),
     // color multiplier dulls the near-white paper below the bloom threshold —
     // without it the placard bloomed into a lightbox halo regardless of spot intensity
     new THREE.MeshStandardMaterial({ map: tt, color: 0xc9c7c0, roughness: 0.9 }));
@@ -1528,6 +1741,7 @@ contactShadow(scene, 0, -9, 1.0, 1.35, 0.5); contactShadow(scene, 12.6, 0, 1.0, 
 // guest sign-in desk — the entrance's statement piece: a floating oak monolith with an
 // angled signing top, one brass line, and the open guestbook waiting. Interaction (the
 // actual onchain signing) wires in with the guestbook contract build; the book is tagged.
+let guestbookHit = null;   // the book's raycast target — declared out here so `interactives` (far below) can reach it
 {
   const desk = new THREE.Group(); desk.position.set(3.4, 0, 14.4);
   desk.rotation.y = -Math.PI / 2 + 0.15;   // right of the entry, facing the aisle, the bin at its door-side end
@@ -1570,6 +1784,12 @@ contactShadow(scene, 0, -9, 1.0, 1.35, 0.5); contactShadow(scene, 12.6, 0, 1.0, 
   ledge.position.set(0, 0.034, 0.285); top.add(ledge);                   // pen rest doubles as the book stop
   const book = new THREE.Group(); book.position.set(0, 0.045, 0.0); book.rotation.y = 0.05;
   book.userData.guestbook = true; top.add(book);                         // the future sign-in wires to THIS
+  // clickable NOW, honestly: opens the "come back this October" note, never a fake sign flow.
+  // opacity-0 (NOT visible=false — the raycaster skips invisible objects) box over the book.
+  guestbookHit = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.16, 0.42),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  guestbookHit.position.set(0, 0.09, 0.0);
+  guestbookHit.userData.interactive = 'guestbook'; top.add(guestbookHit);
   const cover = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.012, 0.34),
     new THREE.MeshStandardMaterial({ color: 0x3a3028, roughness: 0.8 }));
   book.add(cover);
@@ -2398,9 +2618,17 @@ muteBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!master) ret
 // ---- GALLERY GUIDE brochure (replaced the old ≡ tabs menu) ----
 const broDock = document.getElementById('broDock');
 const browrap = document.getElementById('browrap');
-let broOpen = false;
+let broOpen = false, broWhich = null;   // which pamphlet is up: 'guide' | 'show' | null
+// one pamphlet overlay, two pamphlets' contents: the guide's leaves and the show's leaves
+// share #brochure so every printed style applies to both — and only one can be open, ever.
+function setBroMode(mode) {
+  document.querySelector('#brochure .leaves').style.display = mode === 'guide' ? '' : 'none';   // first .leaves = the guide's
+  document.getElementById('showLeaves').style.display = mode === 'show' ? '' : 'none';
+  document.getElementById('broTitle').textContent = mode === 'guide' ? '4096 · GALLERY GUIDE' : 'SYSTEM OBEYED VS SYSTEM BROKEN';
+}
 function openBrochure(leafId) {
   if (panelOpen) closeMint();
+  setBroMode('guide'); broWhich = 'guide';
   broOpen = true; panelOpen = true; browrap.classList.add('on');
   cross.classList.remove('on'); promptEl.classList.remove('on');
   broDock.classList.remove('on'); sticksEl.classList.remove('on');
@@ -2415,13 +2643,38 @@ function openBrochure(leafId) {
   if (!broCanvasTimer) broCanvasTimer = setInterval(paintBroCanvas, 60000);
 }
 function closeBrochure() {
-  broOpen = false; panelOpen = false; browrap.classList.remove('on');
+  broOpen = false; broWhich = null; panelOpen = false; browrap.classList.remove('on');
   BRO_HEART.setActive(false);
   if (broCanvasTimer) { clearInterval(broCanvasTimer); broCanvasTimer = null; }
   if (typeof lastPanelClose !== 'undefined') lastPanelClose = performance.now();
   if (entered) { showHud(); if (typeof tryLock === 'function') tryLock(); }
 }
-broDock.addEventListener('click', e => { e.stopPropagation(); openBrochure(); });
+// the show's pamphlet — same overlay in show mode. No live-print wake, no canvas timer:
+// those belong to the guide alone.
+function openShowBro() {
+  if (panelOpen) closeMint();
+  setBroMode('show'); broWhich = 'show';
+  broOpen = true; panelOpen = true; browrap.classList.add('on');
+  cross.classList.remove('on'); promptEl.classList.remove('on');
+  broDock.classList.remove('on'); sticksEl.classList.remove('on');
+  renderer.domElement.classList.remove('walk');
+  if (controls.isLocked) controls.unlock();
+  document.getElementById('showLeaves').scrollLeft = 0;
+}
+// two pamphlets on the glass: click the back one and it steps forward; click the front one
+// and it opens. G always opens the guide directly, regardless of the stack.
+const showDock = document.getElementById('showDock');
+let frontDock = 'guide';
+function setFrontDock(which) {
+  frontDock = which;
+  broDock.classList.toggle('back', which !== 'guide');
+  showDock.classList.toggle('back', which !== 'show');
+}
+setFrontDock('show');   // the show is what's on — it fronts the stack until the run ends
+broDock.addEventListener('click', e => { e.stopPropagation();
+  if (frontDock !== 'guide') { setFrontDock('guide'); return; } openBrochure(); });
+showDock.addEventListener('click', e => { e.stopPropagation();
+  if (frontDock !== 'show') { setFrontDock('show'); return; } openShowBro(); });
 document.getElementById('brox').addEventListener('click', e => { e.stopPropagation(); closeBrochure(); });
 browrap.addEventListener('click', e => { if (e.target === browrap) closeBrochure(); });
 
@@ -2824,13 +3077,17 @@ addEventListener('keydown', e => {
   if (e.code === 'Escape' && glide) { glide = null; lastPanelClose = performance.now(); }   // Esc exits a glide, never the room
   else if (e.code === 'Escape' && wizOpen) closeWizard();
   else if (e.code === 'Escape' && broOpen) closeBrochure();
-  else if (e.code === 'Escape' && panelOpen) closeMint();
+  else if (e.code === 'Escape' && panelOpen) { if (gbwrap.classList.contains('on')) closeGuestbookNote(); else closeMint(); }   // close whichever card is actually up
   else if (e.code === 'Escape' && entered && !controls.isLocked
            && performance.now() - lastPanelClose > 800) exitToOverlay();   // grace: a double-Esc after a panel can't eject you to the start screen
   if (e.code === 'KeyE' && hotTarget) activateHot();
-  if (e.code === 'KeyG' && entered) {                    // G toggles the gallery guide
-    if (broOpen) closeBrochure();
-    else if (!panelOpen) openBrochure();
+  if (e.code === 'KeyG' && entered) {                    // G toggles the gallery guide (switches from the show)
+    if (broWhich === 'guide') closeBrochure();
+    else if (!panelOpen || broWhich === 'show') openBrochure();
+  }
+  if (e.code === 'KeyH' && entered) {                    // H toggles the show pamphlet (switches from the guide)
+    if (broWhich === 'show') closeBrochure();
+    else if (!panelOpen || broWhich === 'guide') openShowBro();
   }
 });
 addEventListener('keyup', e => keys[e.code] = false);
@@ -3087,10 +3344,27 @@ function closeMint() {
 document.getElementById('mintx').addEventListener('click', e => { e.stopPropagation(); closeMint(); });
 mintwrap.addEventListener('click', e => { if (e.target === mintwrap) closeMint(); });
 
+// ---- guestbook note: mirrors the mint panel's open/close exactly ----
+const gbwrap = document.getElementById('gbwrap');
+function openGuestbookNote() {
+  if (panelOpen) return;
+  panelOpen = true; gbwrap.classList.add('on');
+  cross.classList.remove('on'); promptEl.classList.remove('on'); broDock.classList.remove('on'); sticksEl.classList.remove('on');
+  renderer.domElement.classList.remove('walk');
+  if (controls.isLocked) controls.unlock();
+}
+function closeGuestbookNote() {
+  panelOpen = false; gbwrap.classList.remove('on'); lastPanelClose = performance.now();
+  if (entered) { showHud(); tryLock(); }
+  else enter.style.display = 'flex';
+}
+document.getElementById('gbx').addEventListener('click', e => { e.stopPropagation(); closeGuestbookNote(); });
+gbwrap.addEventListener('click', e => { if (e.target === gbwrap) closeGuestbookNote(); });
+
 // ---- crosshair interaction (kiosk) ----
 const ray = new THREE.Raycaster();
 const centre = new THREE.Vector2(0, 0);
-const interactives = [kScreen, vGlass, vBody, heartArt, ...BENCH_SEATS];   // anything the crosshair can activate
+const interactives = [kScreen, vGlass, vBody, heartArt, ...BENCH_SEATS, guestbookHit].filter(Boolean);   // anything the crosshair can activate
 let hotTarget = null, rayTimer = 0;
 function checkHover() {
   ray.setFromCamera(centre, camera);
@@ -3170,6 +3444,7 @@ function activateHot() {
     seated = true;
     startGlide({ pos: hotTarget.userData.sit.pos, look: hotTarget.userData.sit.look });
   }
+  else if (hotTarget.userData.interactive === 'guestbook') openGuestbookNote();   // honest "not yet" card
   else openMint();
 }
 // ---- click-to-glide: tween the camera to a piece's viewing spot ----
@@ -3686,7 +3961,7 @@ function animate() {
     lookStat.textContent = `${fpsShown | 0}fps · q${QUALITY} · look: ${controls.isLocked ? 'locked' : (lockBroken ? 'cursor (no lock)' : 'cursor')} · yaw ${(lookEuler.y * 57.3).toFixed(0)}°${peopleDead ? ' · people:ERR' : ''}`;
     lookStat.classList.add('on');
   } else lookStat.classList.remove('on');
-  stepFlashes(dt); stepCove(dt); stepMedia(); stepGlitch(dt); stepPlotter(dt);
+  stepFlashes(dt); stepCove(dt); stepMedia(); stepGlitch(dt); stepPlotter(dt); stepSign();
   // people are AMBIENT — isolated so a fault in them can never take down look/walk/render.
   // Not silent: logs loudly once and flags the status line (see CRAFT: report the true state).
   if (PEOPLE_ON && !peopleDead) { try { stepPeople(dt, performance.now() / 1000); } catch (err) {
