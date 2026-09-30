@@ -569,6 +569,11 @@ level  255  202  153  110  71   38   13   0</pre>
 /* ?film: clean footage — every HUD chrome hidden; the vignette stays (it reads as lens) */
 body.film #cross, body.film #hint, body.film #lookstat, body.film #pixhud,
 body.film #broDock, body.film #showDock, body.film #mute, body.film #prompt, body.film #sticks { display: none !important; }
+/* clean view (V): the visitor's version of ?film — every overlay steps aside so only the
+   art is on screen. Touch keeps its sticks (hiding them would strand the visitor). */
+body.clean #cross, body.clean #hint, body.clean #lookstat, body.clean #pixhud,
+body.clean #broDock, body.clean #showDock, body.clean #mute, body.clean #prompt { display: none !important; }
+body.clean:not(.touch) #sticks { display: none !important; }
 </style>
 <div id="enter">
   <h1>4096</h1>
@@ -1717,6 +1722,12 @@ function bench(x, z, ry = 0, look) {
 }
 bench(0, -9, 0, [0, 2.6, -16.94]); bench(12.6, 0, Math.PI / 2, [15.94, 2.2, 0]);   // second bench faces the right-wall bay
 contactShadow(scene, 0, -9, 1.0, 1.35, 0.5); contactShadow(scene, 12.6, 0, 1.0, 0.5, 1.35);
+{ // one paddle left on the right-wall bench, mid-viewing — the human trace by Ashish's wall
+  const lone = makePaddle('12');
+  lone.rotation.x = -Math.PI / 2; lone.rotation.z = 0.4;
+  lone.position.set(12.62, 0.492, -0.82);                    // near the seat's end (bench runs along z here)
+  scene.add(lone);
+}
 // trashcan by the door — an ARCHITECTURAL bin, not office furniture: a gently tapered
 // square steel monolith with a brass-framed recessed opening. The near-black inset reads
 // as depth without ever showing a gaping mouth; the brass echoes the stanchion caps.
@@ -1738,6 +1749,39 @@ contactShadow(scene, 0, -9, 1.0, 1.35, 0.5); contactShadow(scene, 12.6, 0, 1.0, 
   // (the folded receipt lives here when there's a mechanic behind it — empty for now)
   contactShadow(can, 0, 0, 0.34);
 }
+// auction bidder paddles — hand props, not signage. A numbered card on an oak stick:
+// the room says "auctions happen here" without a single word of marketing. Matte paper
+// (near-white blooms in this scene), number baked to the card's front face only.
+function makePaddle(num) {
+  const p = new THREE.Group();
+  const paperCol = 0xd8d4c8;
+  const plainPaper = new THREE.MeshStandardMaterial({ color: paperCol, roughness: 0.9 });
+  const pc = document.createElement('canvas'); pc.width = 128; pc.height = 170;
+  const pg2 = pc.getContext('2d');
+  const drawFace = () => {
+    pg2.fillStyle = '#d8d4c8'; pg2.fillRect(0, 0, 128, 170);
+    pg2.strokeStyle = 'rgba(27,27,25,.18)'; pg2.lineWidth = 3; pg2.strokeRect(4, 4, 120, 162);
+    const MS = 9, MG = 2, mx = 64 - MS - MG / 2, my = 22;                 // tiny 4096 mark up top
+    [['#a02f1c', 0, 0], ['#2c6338', 1, 0], ['#283a86', 0, 1], ['#f4f2ec', 1, 1]].forEach(([col, gx, gy]) => {
+      pg2.fillStyle = col; pg2.fillRect(mx + gx * (MS + MG), my + gy * (MS + MG), MS, MS); });
+    pg2.fillStyle = '#1b1b19'; pg2.textAlign = 'center';
+    pg2.font = '400 74px "Libre Baskerville", Georgia, serif';
+    pg2.fillText(num, 64, 128);
+  };
+  drawFace();
+  const pt = new THREE.CanvasTexture(pc); pt.colorSpace = THREE.SRGBColorSpace; pt.anisotropy = 4;
+  document.fonts.ready.then(() => { drawFace(); pt.needsUpdate = true; });
+  const faceMat = new THREE.MeshStandardMaterial({ map: pt, roughness: 0.9 });
+  // BoxGeometry face order [+x,-x,+y,-y,+z,-z]: number on the front (+z) only
+  const card = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.20, 0.012),
+    [plainPaper, plainPaper, plainPaper, plainPaper, faceMat, plainPaper]);
+  card.position.y = 0.16; card.castShadow = true; p.add(card);
+  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.13, 0.012), oakMat);
+  handle.position.y = 0.05; handle.position.z = -0.0035;   // tucked a hair behind the card:
+  handle.castShadow = true; p.add(handle);                 // coplanar boxes z-fought where they overlap
+  return p;
+}
+
 // guest sign-in desk — the entrance's statement piece: a floating oak monolith with an
 // angled signing top, one brass line, and the open guestbook waiting. Interaction (the
 // actual onchain signing) wires in with the guestbook contract build; the book is tagged.
@@ -1799,6 +1843,15 @@ let guestbookHit = null;   // the book's raycast target — declared out here so
   const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.002, 0.17),
     new THREE.MeshStandardMaterial({ color: 0x8c3340, roughness: 0.7 }));
   ribbon.position.set(0.14, 0.024, 0.06); book.add(ribbon);
+  // a loose fan of bidder paddles set down left of the book — children of the angled
+  // top so they rest ON the slab plane. Varied yaw + stagger: a hand of cards, not a stack.
+  [['04', -0.62, 0.10, 0.55], ['09', -0.52, 0.04, 0.25], ['17', -0.44, -0.03, -0.15], ['23', -0.55, -0.12, -0.55]]
+    .forEach(([n, px, pz, yaw], i) => {
+      const pad = makePaddle(n);
+      pad.rotation.x = -Math.PI / 2; pad.rotation.z = yaw;
+      pad.position.set(px, 0.033 + i * 0.013, pz);           // each a card-thickness higher: they overlap, not intersect
+      top.add(pad);
+    });
   contactShadow(desk, 0, 0, 1.0, 1.05, 0.5);
 }
 const vit = new THREE.Group(); vit.position.set(0, 0, -3); scene.add(vit);
@@ -2993,6 +3046,7 @@ function openWizard() {
   ] : [
     ['MOVE', 'WASD / arrows'], ['LOOK', 'move the mouse'],
     ['VIEW A PIECE', 'click it'], ['GALLERY GUIDE', 'G · or the pamphlet'],
+    ['CLEAN VIEW', 'V · art only, V again to return'],
   ];
   document.getElementById('wizrows').innerHTML =
     rows.map(([a, b]) => `<div class="wrow"><b>${a}</b><span>${b}</span></div>`).join('');
@@ -3089,6 +3143,8 @@ addEventListener('keydown', e => {
     if (broWhich === 'show') closeBrochure();
     else if (!panelOpen || broWhich === 'guide') openShowBro();
   }
+  if (e.code === 'KeyV' && entered && !panelOpen)        // V: clean view — hide every overlay, art only
+    document.body.classList.toggle('clean');
 });
 addEventListener('keyup', e => keys[e.code] = false);
 
