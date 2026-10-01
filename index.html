@@ -187,7 +187,7 @@
   /* a pasted print: white border, tape over the top corners, typed slip beneath */
   #brochure .paste{margin:2px 0 16px;background:#fbfaf6;padding:7px 7px 0;position:relative;
     box-shadow:0 2px 10px rgba(27,27,25,.3);}
-  #brochure .paste img,#brochure .paste canvas{display:block;width:100%;height:auto;}
+  #brochure .paste img,#brochure .paste canvas,#brochure .paste video{display:block;width:100%;height:auto;}
   #brochure .paste::before,#brochure .paste::after{content:'';position:absolute;top:-7px;width:42px;height:13px;
     background:rgba(233,229,213,.85);border:1px solid rgba(27,27,25,.07);box-shadow:0 1px 2px rgba(27,27,25,.1);}
   #brochure .paste::before{left:10%;transform:rotate(-4deg);}
@@ -523,11 +523,11 @@ level  255  202  153  110  71   38   13   0</pre>
       <div class="leaf">
         <h4>THE BROKEN SIDE</h4>
         <h3>Ashish</h3>
-        <figure class="paste r1"><img src="ashish-devour-still.jpg" alt="To Live is To Devour Others, Ashish" loading="lazy">
+        <figure class="paste r1"><video src="ashish-devour.mp4" poster="ashish-devour-still.jpg" aria-label="To Live is To Devour Others, Ashish" loop muted playsinline preload="none"></video>
           <figcaption class="cap">TO LIVE IS TO DEVOUR OTHERS · 1/1</figcaption></figure>
         <p>Ashish is a glitch artist who works figuratively. For this show he moved into a
         register different from the pieces people know him for.</p>
-        <figure class="paste r2"><img src="ashish-dopamine-still.jpg" alt="Dopamine Overdose, Ashish" loading="lazy">
+        <figure class="paste r2"><video src="ashish-dopamine.mp4" poster="ashish-dopamine-still.jpg" aria-label="Dopamine Overdose, Ashish" loop muted playsinline preload="none"></video>
           <figcaption class="cap">DOPAMINE OVERDOSE · PATRON EDITION</figcaption></figure>
         <p>In his work, everything gets devoured. People by their screens, by their work, by
         each other. The image gets devoured the same way, its surface eaten by dither and
@@ -539,9 +539,19 @@ level  255  202  153  110  71   38   13   0</pre>
       <div class="leaf">
         <h4>THE BROKEN SIDE</h4>
         <h3>hmm.labs</h3>
-        <div class="paste r3"><div style="aspect-ratio:1;display:grid;place-items:center;background:#e9e6dc;font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:#8a867d;">REVEALING&nbsp;SOON</div></div>
-        <p>hmm.labs works in glitch. This show is the first time the work touches Ethereum.
-        The piece reveals here soon.</p>
+        <figure class="paste r1"><video src="hmm-heviilance-bro.mp4" poster="hmm-heviilance-still.jpg" aria-label="Heviilancẽ, hmm.labs" loop muted playsinline preload="none"></video>
+          <figcaption class="cap">HEVIILANCẼ · 1/1</figcaption></figure>
+        <p>hmm.labs is a glitch artist. They work in stills and gifs like a lot of the space,
+        but they also build short form video with sound, which far fewer people do. Their work
+        has lived on Tezos and still does, and this is one of the first times it touches
+        Ethereum.</p>
+        <figure class="paste r2"><video src="hmm-brokenform-bro.mp4" poster="hmm-brokenform-still.jpg" aria-label="Broken Form, hmm.labs" loop muted playsinline preload="none"></video>
+          <figcaption class="cap">BROKEN FORM · PATRON EDITION</figcaption></figure>
+        <p>On the broken side, the machine does not distort the figure so much as consume it,
+        until what is left is only signal.</p>
+        <p class="mono">"the roar of the atmosphere within an ego exposed to digitalization…
+        memories dissolving into fragmented signals and layers of noise, where emotion,
+        identity, and technology merge into an unstable landscape of the self."</p>
       </div>
       <div class="leaf">
         <h4>THE OBEYED SIDE</h4>
@@ -650,6 +660,7 @@ function radial(g, x, y, rx, ry, rgba) {
 const RW = 32, RD = 34, RH = 6.2;
 const SHOOT = location.search.includes('shoot');
 const DEBUG = location.search.includes('debug');   // ?debug: status line + window.__ hooks, hidden for visitors
+const REC = new URLSearchParams(location.search).get('rec');   // ?rec=plotter|glitch|sign: film a ~5s clip of one living element (inert otherwise)
 const PERF = location.search.includes('perf');     // ?perf: fps + cost-toggle overlay for profiling on real devices
 // touch UI only when the PRIMARY pointer is coarse AND touch exists — an OR here gave
 // touchscreen laptops (mouse + touch) the mobile sticks by mistake. Declared early:
@@ -1995,7 +2006,13 @@ const SECTIONS = [
     collab: 'THE KILLERS', by: 'Daniel Todd',
     main: { url: 'dt-killer89.png', ar: 1, pixel: true },
     sides: [{ url: 'dt-carpediem.png', ar: 924 / 1232 }, { url: 'dt-lonelyspeck.png', ar: 1, pixel: true }] },
-  { num: '06', side:  1, z: 10, accent: '#8c3340', frame: 0x2c1c20 },   // empty · roped
+  { num: '06', side:  1, z: 10, accent: '#8c3340', frame: 0x2c1c20,   // HMM.LABS — the broken side's second bay
+    collab: 'HEVIILANCẼ', by: 'hmm.labs (@00bzy)',
+    status: '1/1 · auction coming soon',
+    audio: true,                                          // the 1/1 carries its own glitch sound
+    main: { url: 'hmm-1of1.mp4', ar: 1 },                 // Heviilancẽ (with audio)
+    sides: [{ url: 'hmm-patron.mp4', ar: 1,
+      label: { title: 'BROKEN FORM', sub: 'free patron edition' } }] },   // name confirmed by hmm.labs
 ];
 // Artist media handler: still images, animated GIFs, and video all become textures the
 // bays can wear. Oversized files are downscaled under the GPU cap so a giant upload can't
@@ -2055,10 +2072,19 @@ function stepMedia() {                                           // called from 
   for (const g of MEDIA_GIFS) { g.ctx.drawImage(g.img, 0, 0, g.canvas.width, g.canvas.height); g.tex.needsUpdate = true; }
   // bay videos run only while you're near their bay — an idle far bay costs nothing.
   // checked ~2×/s rather than per frame: the check is cheap but play()/pause() churn isn't.
-  if (++vidTick % 30 === 0) for (const m of MEDIA_VIDEOS) {
-    const near = Math.hypot(camera.position.x - m.x, camera.position.z - m.z) < 16;
-    if (near && m.v.paused) m.v.play().catch(() => {});
-    else if (!near && !m.v.paused) m.v.pause();
+  vidTick++;
+  for (const m of MEDIA_VIDEOS) {
+    // the art never freezes: keep every bay video playing no matter where you stand
+    // (a hanging piece that stops when you step back reads as broken). checked a few
+    // times a second, since a playing video won't pause itself except when backgrounded.
+    if (vidTick % 15 === 0 && m.v.paused) m.v.play().catch(() => {});
+    // sound is a LOCAL thing: you only hear a piece within a few steps of it, fading to
+    // nothing well before the middle of the room. silent until you have entered.
+    if (m.audio) {
+      const dist = Math.hypot(camera.position.x - m.x, camera.position.z - m.z);
+      if (entered && dist < 6) { m.v.muted = false; m.v.volume = Math.max(0, Math.min(1, (6 - dist) / 3.5)); }
+      else m.v.muted = true;
+    }
   }
 }
 
@@ -2315,7 +2341,7 @@ SECTIONS.forEach(sec => {
   // main piece — real hero art if delivered, else COMING SOON
   const isPlotter = !sec.collab && sec.side === -1;   // bay 02: the machine draws in the open
   const mainTex = sec.main ? realArtTex(sec.main.url, sec.main.pixel) : (isPlotter ? plotterTex() : comingSoonArt());
-  if (mainTex.isVideoTexture) MEDIA_VIDEOS.push({ v: mainTex.image, x: sec.side * LX, z: sec.z });   // near-only playback
+  if (mainTex.isVideoTexture) MEDIA_VIDEOS.push({ v: mainTex.image, x: sec.side * LX, z: sec.z, audio: !!sec.audio });   // near-only playback; audio bays speak when you approach
   const main = pieceMesh(mainTex, 2.3, 2.9, sec.frame, sec.main && sec.main.ar, !!sec.collab || isPlotter);
   main.position.set(0, 2.35, 0); grp.add(main);
   if (isPlotter) buildPlotter(grp);
@@ -2674,10 +2700,24 @@ const browrap = document.getElementById('browrap');
 let broOpen = false, broWhich = null;   // which pamphlet is up: 'guide' | 'show' | null
 // one pamphlet overlay, two pamphlets' contents: the guide's leaves and the show's leaves
 // share #brochure so every printed style applies to both — and only one can be open, ever.
+// the show leaves hold small video loops. A hidden video still burns decode, so they
+// run only while the show pamphlet is actually up: setBroMode and closeBrochure are
+// the only two paths in or out, and both pass through here. While open, a slow timer
+// re-plays anything the browser paused on its own (hidden tab, low power): without it
+// a leaf comes back from the background as a frozen frame and stays that way.
+let showVidTimer = null;
+function syncShowVideos(on) {
+  document.querySelectorAll('#showLeaves video').forEach(v => { if (on) v.play().catch(() => {}); else v.pause(); });
+  if (on && !showVidTimer) showVidTimer = setInterval(() => {
+    document.querySelectorAll('#showLeaves video').forEach(v => { if (v.paused) v.play().catch(() => {}); });
+  }, 2000);
+  else if (!on && showVidTimer) { clearInterval(showVidTimer); showVidTimer = null; }
+}
 function setBroMode(mode) {
   document.querySelector('#brochure .leaves').style.display = mode === 'guide' ? '' : 'none';   // first .leaves = the guide's
   document.getElementById('showLeaves').style.display = mode === 'show' ? '' : 'none';
   document.getElementById('broTitle').textContent = mode === 'guide' ? '4096 · GALLERY GUIDE' : 'SYSTEM OBEYED VS SYSTEM BROKEN';
+  syncShowVideos(mode === 'show');
 }
 function openBrochure(leafId) {
   if (panelOpen) closeMint();
@@ -2697,7 +2737,7 @@ function openBrochure(leafId) {
 }
 function closeBrochure() {
   broOpen = false; broWhich = null; panelOpen = false; browrap.classList.remove('on');
-  BRO_HEART.setActive(false);
+  BRO_HEART.setActive(false); syncShowVideos(false);
   if (broCanvasTimer) { clearInterval(broCanvasTimer); broCanvasTimer = null; }
   if (typeof lastPanelClose !== 'undefined') lastPanelClose = performance.now();
   if (entered) { showHud(); if (typeof tryLock === 'function') tryLock(); }
@@ -3965,6 +4005,42 @@ function stepFilm(dt) {
 }
 
 window.__cam = (px, py, pz, lx, ly, lz) => { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); };
+
+// ---- ?rec=<target>: capture mode — film one living element, hands-free ----
+// Auto-enters (no click, no wizard, no audio), hides every overlay, parks the camera in
+// front of the target, and records ~5s of the #c canvas to a downloaded webm. The canvas
+// never carries DOM overlays, so the clip is clean by construction; the 'clean' class just
+// makes the pane match what's being filmed. Without ?rec in the URL none of this runs.
+if (REC) {
+  const spots = {
+    plotter: { pos: [-12.6, 1.6, 0.3],  look: [-15.94, 2.0, 0] },
+    glitch:  { pos: [12.2, 1.6, 10],    look: [15.94, 2.0, 10] },
+    sign:    { pos: [-0.95, 1.6, 14.7], look: [-1.1, 1.5, 11.5] },
+  };
+  const spot = spots[REC] || spots.sign;
+  entered = true; enter.style.display = 'none'; revealScene();   // the real arrival path, minus click/wizard/audio/lock
+  document.body.classList.add('clean');
+  camera.position.set(...spot.pos); camera.lookAt(...spot.look);
+  if (REC === 'glitch') setInterval(() => GLITCH_CLOTHS.forEach(cl => { cl.spike = 0.4; }), 350);   // always mid-tear on film
+  window.__recNow = (secs = 5) => {
+    const cv = document.getElementById('c');
+    const mimes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    let mime = ''; for (const m of mimes) if (MediaRecorder.isTypeSupported(m)) { mime = m; break; }
+    const chunks = [];
+    const rec = new MediaRecorder(cv.captureStream(30), { mimeType: mime, videoBitsPerSecond: 12e6 });
+    window.__recDone = null;
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => { const b = new Blob(chunks, { type: mime || 'video/webm' });
+      const u = URL.createObjectURL(b); const a = document.createElement('a');
+      a.href = u; a.download = 'rec-' + REC + '.webm'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 4000);
+      window.__recDone = (b.size / 1e6).toFixed(2) + 'MB'; console.log('[rec] saved ' + window.__recDone); };
+    rec.start();
+    setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, secs * 1000);
+    return 'recording rec-' + REC + '.webm (' + secs + 's)';
+  };
+  setTimeout(() => window.__recNow(5), 1200);              // hands-free take shortly after load
+}
 
 let lastW = 0, lastH = 0;
 function applySize() {
