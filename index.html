@@ -1991,7 +1991,13 @@ const SECTIONS = [
     collab: 'NOT THE SAME', by: 'Lord',
     main: { url: 'nts-notthesame.png', ar: 1000 / 1000 },   // the revealed final piece
     sides: [{ url: 'lord-orangeman.jpg', ar: 1 }, { url: 'lord-demon.jpg', ar: 1 }] },
-  { num: '02', side: -1, z: 0, accent: '#b08432', frame: 0x2e2619 },   // empty · roped
+  { num: '02', side: -1, z: 0, accent: '#b08432', frame: 0x2e2619,   // ANDREW MITCHELL — the obeyed side's anchor
+    collab: 'SKY MEADOW', by: 'Andrew Mitchell (@4ndrew_mitchell)',
+    status: 'two to be given away · in the show',
+    skymeadow: [118, 535, 71, 98],                        // the rotation: resolved hero + its build, kept in step
+    main: { url: 'sm-118.jpg', ar: 3 / 4 },               // the resolved piece; the rotation swaps it
+    sides: [{ url: 'sm118-build.mp4', ar: 3 / 4,
+      label: { title: 'THE BUILD', sub: 'the same piece, growing' } }] },
   { num: '03', side: -1, z: -10, accent: '#7c4a2f', frame: 0x2e2619,
     collab: 'THE END OF THE WORLD', by: 'Cake Nygard',
     main: { url: 'cake-eotw.png', ar: 1 },   // end of the world #282
@@ -2355,13 +2361,17 @@ SECTIONS.forEach(sec => {
     pos: [sec.side * (LX - 3.4), 1.6, sec.z], look: [sec.side * LX, 2.35, sec.z] } });
   // two supporting pieces, flanking — hung LEVEL with each other (the ±0.08 stagger read as a mistake)
   // show bays hold ONE artwork — the 1/1. Flankers exist only on collab bays.
+  let smVideo = null;
   if (sec.collab) [-2.45, 2.45].forEach((ox, i) => {
     const sd = sec.sides && sec.sides[i];
     // a bay with fewer side works hangs NOTHING in the empty slot — a COMING SOON flanker
     // beside a revealed 1/1 would read as a missing delivery, not a placeholder
     if (!sd) return;
     const supTex = realArtTex(sd.url, sd.pixel);
-    if (supTex.isVideoTexture) MEDIA_VIDEOS.push({ v: supTex.image, x: sec.side * LX, z: sec.z });   // near-only playback
+    if (supTex.isVideoTexture) {
+      if (sec.skymeadow) smVideo = supTex.image;          // the builder: its own controller runs it, never the keeper
+      else MEDIA_VIDEOS.push({ v: supTex.image, x: sec.side * LX, z: sec.z });   // near-only playback
+    }
     const sup = pieceMesh(supTex, 1.15, 1.45, sec.frame, sd.ar, true);
     sup.position.set(ox, 2.25, 0); grp.add(sup);
     if (sd.label) {   // side works can carry their own wall label (the patron edition names itself)
@@ -2369,6 +2379,31 @@ SECTIONS.forEach(sec => {
       sp.position.set(ox, 1.1, 0.02); grp.add(sp);
     }
   });
+  // SKY MEADOW rotation: the hero holds a resolved piece while the side canvas plays that
+  // same piece's build, captured real-time from the live generator. Each build file ends
+  // holding its resolved state, so when it ends BOTH flip to the next piece together —
+  // the pair can never show two different works. The keeper below only resumes the
+  // current file after a browser pause; advancing belongs to the ended-handler alone.
+  if (sec.skymeadow && smVideo) {
+    const seq = sec.skymeadow; let smIdx = 0;
+    smVideo.loop = false;
+    const heroStills = seq.map(n => { const im = new Image(); im.src = 'sm-' + n + '.jpg'; return im; });
+    smVideo.addEventListener('ended', () => {
+      smIdx = (smIdx + 1) % seq.length;
+      smVideo.src = 'sm' + seq[smIdx] + '-build.mp4';
+      smVideo.load(); smVideo.play().catch(() => {});
+    });
+    // the hero flips only when the NEXT build actually starts playing — swapping it on
+    // 'ended' left ~1s where the hero showed the next piece over the old build while the
+    // new file loaded. 'playing' also fires on keeper resumes; re-setting the same still
+    // is a harmless no-op.
+    smVideo.addEventListener('playing', () => {
+      const im = heroStills[smIdx];
+      const swap = () => { mainTex.image = im; mainTex.needsUpdate = true; };
+      if (im.complete && im.naturalWidth) swap(); else im.onload = swap;
+    });
+    setInterval(() => { if (smVideo.paused && !smVideo.ended) smVideo.play().catch(() => {}); }, 3000);
+  }
   // numbered plate + label plaque — BELOW the framing. Collab bays show collab name + artist;
   // individual piece titles held off the wall until they're all confirmed.
   const np = numberPlate(sec.num, sec.accent); np.position.set(-1.55, 0.42, 0.02); grp.add(np);
