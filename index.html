@@ -609,12 +609,15 @@ body.clean:not(.touch) #sticks { display: none !important; }
   </div>
 </div>
 
-<!-- the guestbook's honest "not yet" — same card chrome as the mint panel -->
+<!-- the guestbook: honest "not yet" until a show window is set live in PATRON below,
+     the real signing flow when one is. Same card chrome as the mint panel either way. -->
 <div id="gbwrap">
   <div id="gbnote">
     <button class="x" id="gbx">×</button>
     <h2>THE GUESTBOOK</h2>
+    <div id="gbbody">
     <p class="lede">The guestbook opens when the show does. Come back this October, sign it in the room, and the patron edition is yours.</p>
+    </div>
   </div>
 </div>
 
@@ -2020,6 +2023,30 @@ const SECTIONS = [
     sides: [{ url: 'hmm-patron.mp4', ar: 1,
       label: { title: 'BROKEN FORM', sub: 'free patron edition' } }] },   // name confirmed by hmm.labs
 ];
+
+/* ---------- show-night config ----------
+   `live` names the bay whose window is open RIGHT NOW. It is pressed by
+   hand at 8pm and cleared at close, the same ritual as openEdition /
+   closeEdition — operator-asserted truth, never a timer pretending to know.
+   The live bay's plaque says so; a BID bar appears only when that bay's
+   auction URL is real. An empty URL shows no button: a bid button that
+   goes nowhere would be a lie. Bay 02 (Andrew) never gets an auction URL —
+   his night is a giveaway, and his plaque already says what's true. */
+const SHOW = {
+  live: null,                        // '04' | '06' | '02' | null
+  auction: { '04': '', '06': '' },   // the artists' own auction pages, when they send them
+  // Price display hook: stays null until a TRUTHFUL reader exists for
+  // wherever the auctions actually run (their contract or API). At show
+  // time set this to an async () => '1.2 ETH' style function and the bar
+  // carries it, refreshed every 30s. null or unreadable = nothing shown.
+  readPrice: null,
+};
+if (SHOW.live) {
+  const liveSec = SECTIONS.find(x => x.num === SHOW.live);
+  if (liveSec) liveSec.status = SHOW.live === '02'
+    ? 'live tonight · two to be given away'
+    : 'live tonight · the auction is open';
+}
 // Artist media handler: still images, animated GIFs, and video all become textures the
 // bays can wear. Oversized files are downscaled under the GPU cap so a giant upload can't
 // crash the scene. GIFs animate by redrawing a live (offscreen) <img> to a canvas each frame.
@@ -3480,6 +3507,7 @@ const gbwrap = document.getElementById('gbwrap');
 function openGuestbookNote() {
   if (panelOpen) return;
   panelOpen = true; gbwrap.classList.add('on');
+  gbRefresh();   // paint the card's true state on every open (hoisted, defined below)
   cross.classList.remove('on'); promptEl.classList.remove('on'); broDock.classList.remove('on'); sticksEl.classList.remove('on');
   renderer.domElement.classList.remove('walk');
   if (controls.isLocked) controls.unlock();
@@ -3491,6 +3519,184 @@ function closeGuestbookNote() {
 }
 document.getElementById('gbx').addEventListener('click', e => { e.stopPropagation(); closeGuestbookNote(); });
 gbwrap.addEventListener('click', e => { if (e.target === gbwrap) closeGuestbookNote(); });
+
+/* ---------- signing the guestbook for real ----------
+   The CONTRACT is the enforcer — window, one-per-wallet, pause all live
+   on-chain and bind every frontend equally. This card only reports state
+   and sends mint(id); it never gates anything itself, so it can never lie
+   about what the book would actually do. Until a show window is set live
+   in PATRON below, the card keeps its honest "not yet". */
+
+// REAL addresses land here on deploy day — empty strings keep the card in
+// its "not yet" state no matter what `active` says, so a half-filled config
+// can never show a signing flow that calls nothing.
+const PATRON = {
+  active: null,                                  // 'ashish' | 'hmm' | 'andrew' | null
+  editions: {
+    ashish: { contract: '', id: 1, piece: 'Dopamine Overdose', artist: 'Ashish' },
+    hmm:    { contract: '', id: 2, piece: 'Broken Form',       artist: 'hmm.labs' },
+    // the VARIANT contract (his art answers from his own contract); piece named when he confirms
+    andrew: { contract: '', id: 1, piece: '',                  artist: 'Andrew Mitchell' },
+  },
+  // per-edition share pages (their og:image is the share card) — filled when those pages ship.
+  // card = the full branded card, art = the artwork alone. Empty = one plain share to the site.
+  share: {
+    ashish: { card: '', art: '' },
+    hmm:    { card: '', art: '' },
+    andrew: { card: '', art: '' },
+  },
+};
+
+const SEL_GB_MINTEDBY = '0xd84424eb';            // mintedBy(uint256,address) — cast sig, not retyped
+const SEL_GB_EDITION  = '0x6265c314';            // edition(uint256)
+const gbBody = document.getElementById('gbbody');
+const GB_NOT_YET = gbBody.innerHTML;             // the honest default, kept verbatim
+let GB_BUSY = false, GB_SIGNED_LOCAL = false;    // LOCAL = we watched this wallet's receipt land this session
+
+function gbEdition() {
+  const k = PATRON.active;
+  const e = k && PATRON.editions[k];
+  return (e && /^0x[0-9a-fA-F]{40}$/.test(e.contract)) ? Object.assign({ key: k }, e) : null;
+}
+
+// Reads are best-effort: a failed read degrades to "unknown" and the copy
+// says so — never to a made-up answer. The contract still enforces truth.
+async function gbReadOpen(e) {
+  try {
+    const hex = await rpc('eth_call', [{ to: e.contract, data: SEL_GB_EDITION + pad32(e.id) }, 'latest']);
+    if (!hex || hex.length < 2 + 64 * 6) return null;
+    return { open:   BigInt('0x' + hex.slice(2 + 64 * 3, 2 + 64 * 4)) === 1n,
+             exists: BigInt('0x' + hex.slice(2 + 64 * 4, 2 + 64 * 5)) === 1n };
+  } catch (err) { return null; }
+}
+async function gbReadSigned(e, who) {
+  try {
+    const hex = await rpc('eth_call', [{ to: e.contract,
+      data: SEL_GB_MINTEDBY + pad32(e.id) + who.slice(2).toLowerCase().padStart(64, '0') }, 'latest']);
+    return BigInt(hex) === 1n;
+  } catch (err) { return null; }
+}
+
+const GB_BTN  = 'display:block;width:100%;background:var(--ink);color:var(--paper);border:none;cursor:pointer;' +
+                'padding:13px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase';
+const GB_BTN2 = 'display:block;width:100%;text-align:center;border:1px solid var(--rule);color:var(--ink);' +
+                'text-decoration:none;padding:12px;margin-top:8px;font-family:var(--mono);font-size:10px;' +
+                'letter-spacing:.16em;text-transform:uppercase';
+const GB_SUB  = 'font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#84847c';
+
+function gbShareHTML(e) {
+  const text = encodeURIComponent('i just minted my free patron edition at system obeyed vs system broken, presented by 4096');
+  const s = PATRON.share[e.key] || {};
+  const intent = u => 'https://x.com/intent/post?text=' + text + '&url=' + encodeURIComponent(u);
+  if (s.card && s.art) {
+    return '<a href="' + intent(s.card) + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share the card</a>' +
+           '<a href="' + intent(s.art)  + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share the artwork</a>';
+  }
+  return '<a href="' + intent('https://fourzeroninesix.xyz') + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share on X</a>';
+}
+
+async function gbRefresh() {
+  const e = gbEdition();
+  if (!e) { gbBody.innerHTML = GB_NOT_YET; return; }
+
+  const wallet = ACCOUNT ? ACCOUNT.slice(0, 6) + '…' + ACCOUNT.slice(-4) : 'not connected';
+  const head =
+    '<p class="lede">' + e.artist + (e.piece ? ' · <em>' + e.piece + '</em>' : '') +
+    ' · free patron edition. Sign while the window is open and it mints to your wallet. One per wallet, never sold.</p>' +
+    '<p style="' + GB_SUB + ';margin:0 0 14px">wallet · ' + wallet + '</p>';
+  const ether = '<p style="' + GB_SUB + ';margin:12px 0 0;letter-spacing:.08em;text-transform:none">Free — your wallet pays only gas. ' +
+    'Or mint straight from the <a href="https://etherscan.io/address/' + e.contract + '#writeContract" target="_blank" rel="noopener" ' +
+    'style="color:inherit">verified contract on Etherscan</a>.</p>';
+
+  // paint once with what we know instantly, again when the chain answers
+  let signed = GB_SIGNED_LOCAL || null, win = null;
+  const paint = () => {
+    let body;
+    if (signed === true) {
+      body = '<p class="lede" style="margin-bottom:14px">You signed the book. The edition is yours.</p>' + gbShareHTML(e);
+    } else if (win && !win.open) {
+      body = '<p style="' + GB_SUB + ';margin:0 0 10px">THE BOOK IS CLOSED RIGHT NOW</p>' +
+             '<p class="lede">Windows run 8pm to 8pm ET, one artist a night. Come back when the show is on.</p>';
+    } else {
+      body = '<button id="gbgo" style="' + GB_BTN + '"' + (GB_BUSY ? ' disabled' : '') + '>' +
+             (GB_BUSY ? 'WORKING…' : (ACCOUNT ? 'SIGN THE GUESTBOOK' : 'CONNECT WALLET')) + '</button>' +
+             (win === null ? '<p style="' + GB_SUB + ';margin:10px 0 0;letter-spacing:.08em;text-transform:none">' +
+               'Could not read the book’s state — the contract itself still decides.</p>' : '');
+    }
+    gbBody.innerHTML = head + body + ether;
+    const go = document.getElementById('gbgo');
+    if (go) go.addEventListener('click', ev => { ev.stopPropagation(); gbSign(e); });
+  };
+  paint();
+
+  // now the truth from the chain, where it answers
+  if (ACCOUNT && signed !== true) signed = await gbReadSigned(e, ACCOUNT);
+  win = await gbReadOpen(e);
+  paint();
+}
+
+async function gbSign(e) {
+  if (GB_BUSY) return;
+  if (!ACCOUNT) {
+    GB_BUSY = true; gbRefresh();
+    try { ACCOUNT = await connectWallet(); } finally { GB_BUSY = false; gbRefresh(); }
+    return;
+  }
+  if (!(await ensureChain(PROVIDER))) return;
+  GB_BUSY = true; gbRefresh();
+  try {
+    const hash = await PROVIDER.request({ method: 'eth_sendTransaction', params: [{
+      from: ACCOUNT, to: e.contract, data: SEL_MINT + pad32(e.id)   // no value: the book is free
+    }] });
+    toast('Sent. Waiting for the block.');
+    await waitForTx(hash);
+    GB_SIGNED_LOCAL = true;        // we watched the receipt land — that IS the truth
+    toast('Signed. The edition is yours.');
+  } catch (err) {
+    toast(err && err.code === 4001 ? 'Cancelled in your wallet.' : 'Signing failed. Check your wallet.');
+  }
+  GB_BUSY = false;
+  gbRefresh();
+}
+
+if (DEBUG) {   // ?debug only — lets the signing card be exercised without walking to the book
+  window.__gb = {
+    open: openGuestbookNote, refresh: gbRefresh, PATRON,
+    signedDemo() { GB_SIGNED_LOCAL = true; gbRefresh(); },
+  };
+}
+
+/* ---------- the bid bar: the live night's one action ---------- */
+// Exists only while a bay is live AND its auction URL is real; opens the
+// artist's own auction in a new tab. The gallery is the venue — the sale
+// happens on the artist's page, so the button's whole job is the door.
+function buildBidBar() {
+  const url = SHOW.live && SHOW.auction[SHOW.live];
+  if (!url) return;
+  const sec = SECTIONS.find(x => x.num === SHOW.live);
+  const bar = document.createElement('button');
+  bar.id = 'bidbar';
+  bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:' +
+    (IS_TOUCH ? '92px' : '16px') + ';z-index:40;background:var(--ink);color:var(--paper);' +
+    'border:none;cursor:pointer;padding:12px 22px;font-family:var(--mono);font-size:10px;' +
+    'letter-spacing:.18em;text-transform:uppercase;display:flex;gap:14px;align-items:center';
+  const label = document.createElement('span');
+  label.textContent = 'LOT ' + SHOW.live + ' · ' + (sec ? sec.collab : '') + ' · BID ↗';
+  bar.appendChild(label);
+  const price = document.createElement('span');
+  price.style.cssText = 'color:#c9c7c0;letter-spacing:.1em';
+  bar.appendChild(price);
+  bar.addEventListener('click', e => { e.stopPropagation(); window.open(url, '_blank', 'noopener'); });
+  document.body.appendChild(bar);
+  async function tick() {   // shows a price ONLY when a truthful reader is wired
+    if (!SHOW.readPrice) { price.textContent = ''; return; }
+    try { price.textContent = (await SHOW.readPrice()) || ''; }
+    catch (err) { price.textContent = ''; }   // unreadable = absent, never stale
+  }
+  tick(); setInterval(tick, 30000);
+}
+buildBidBar();
+if (DEBUG) window.__show = { SHOW, rebuild: buildBidBar };   // ?debug: flip the night's config + rebuild the bar
 
 // ---- crosshair interaction (kiosk) ----
 const ray = new THREE.Raycaster();
