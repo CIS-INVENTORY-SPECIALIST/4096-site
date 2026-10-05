@@ -1,0 +1,14 @@
+{
+  "name": "Broken Form",
+  "description": "The free patron edition from hmm.labs for System Obeyed vs System Broken, the first live show at the 4096 gallery. Minted only to the wallets that signed the guestbook while their window was open. One per wallet, never sold. The mint is the signature: the holders of this edition are the record of who was there.",
+  "image": "https://fourzeroninesix.xyz/gallery/hmm-brokenform-still.jpg",
+  "animation_url": "https://fourzeroninesix.xyz/gallery/hmm-patron.mp4",
+  "external_url": "https://fourzeroninesix.xyz",
+  "attributes": [
+    { "trait_type": "Gallery", "value": "4096" },
+    { "trait_type": "Show", "value": "System Obeyed vs System Broken" },
+    { "trait_type": "Artist", "value": "hmm.labs" },
+    { "trait_type": "Side", "value": "System Broken" },
+    { "trait_type": "Edition", "value": "Patron" }
+  ]
+}
