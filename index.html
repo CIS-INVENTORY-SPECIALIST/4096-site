@@ -3586,9 +3586,10 @@ const PATRON = {
     hmm:    { contract: '0xA8A9b469BE9C7FDb66766A7d020987361bbf0d02', id: 2, piece: 'Broken Form',       artist: 'hmm.labs',
               art: 'hmm-patron.mp4', still: 'hmm-brokenform-still.jpg', ar: '1 / 1',
               fromBlock: '0x18ec504', opens: 'opens Thu Oct 8 · 8pm ET', opensAt: Date.parse('2026-10-09T00:00:00Z') },
-    // the VARIANT contract (his art answers from his own contract); art files land when he sends them
+    // the VARIANT contract. Sunset is a still — the exact bytes pulled from his on-chain
+    // Sunsets contract (0x81f7…D33d) and mirrored at /patron/ (absolute: base points at /gallery/).
     andrew: { contract: '', id: 1, piece: 'Sunset',            artist: 'Andrew Mitchell',
-              art: '', still: '', ar: '',
+              art: '/patron/sunset.jpg', still: '/patron/sunset.jpg', ar: '1200 / 900',
               fromBlock: '', opens: 'opens Fri Oct 9 · 8pm ET', opensAt: Date.parse('2026-10-10T00:00:00Z') },
   },
   // per-edition share pages (their og:image is the share card) — filled when those pages ship.
@@ -3625,8 +3626,11 @@ const gbEsc = s => String(s).replace(/[&<>"']/g,
 
 function gbArtHTML(e) {
   if (!e.art) return '';
-  return '<video class="gb-art"' + (e.ar ? ' style="aspect-ratio:' + e.ar + '"' : '') +
-         ' src="' + e.art + '" poster="' + e.still + '" loop muted playsinline autoplay></video>';
+  const style = e.ar ? ' style="aspect-ratio:' + e.ar + '"' : '';
+  if (/\.(jpe?g|png)$/i.test(e.art)) {      // a still piece (Sunset) hangs as an image, same frame
+    return '<img class="gb-art"' + style + ' src="' + e.art + '" alt="">';
+  }
+  return '<video class="gb-art"' + style + ' src="' + e.art + '" poster="' + e.still + '" loop muted playsinline autoplay></video>';
 }
 
 /* ---- the countdown: counts to the ANNOUNCED schedule, never to the door ----
@@ -3663,7 +3667,7 @@ function gbWhenHTML(e, win) {
 // fires again at canplay; playing an already-playing video is a no-op.
 function gbArtPlay() {
   const v = gbBody.querySelector('.gb-art');
-  if (!v) return;
+  if (!v || v.tagName !== 'VIDEO') return;    // a still needs no pressing play
   v.muted = true;
   const go = () => v.play().catch(() => {});
   go();
