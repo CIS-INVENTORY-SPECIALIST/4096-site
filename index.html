@@ -260,6 +260,25 @@
   #mint .mintrow .cta{flex:1;margin-top:0;}
   #mint .cta:disabled{opacity:.45;cursor:default;}
   #mint .cta:disabled:hover{background:var(--ink);color:var(--paper);}
+  /* guestbook card: the live edition's art + the signers page. Signer names wear the
+     show sign's channel-split shadow (same values as #showDock .sd-glitch) — the book
+     writes each signature in the piece's own hand. gb-art is height-capped and the
+     list scrolls so the card itself never outgrows a phone screen; the max-height on
+     #gbnote is a safety net for short landscape viewports, not the design. */
+  #gbnote{max-height:92vh;overflow-y:auto;}
+  #gbnote .gb-art{display:block;height:min(32vh,280px);width:auto;max-width:100%;
+    object-fit:contain;margin:0 auto 16px;}   /* no mat: the piece sits on the paper at its own shape */
+  #gbnote .gb-page{margin-top:18px;border-top:1px solid var(--rule);padding-top:12px;}
+  #gbnote .gb-count{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:#84847c;margin:0 0 8px;line-height:1.6;}
+  #gbnote .gb-list{list-style:none;margin:0;padding:0;max-height:150px;overflow-y:auto;}
+  #gbnote .gb-list li{display:flex;gap:10px;align-items:baseline;padding:4px 2px;
+    font-family:var(--mono);font-size:11.5px;}
+  #gbnote .gb-ord{color:#b5b3aa;font-size:9px;min-width:2.2em;text-align:right;
+    font-variant-numeric:tabular-nums;}
+  #gbnote .gb-name{color:var(--ink);letter-spacing:.04em;overflow-wrap:anywhere;
+    text-shadow:-1px 0 rgba(200,64,42,.7),1px 0 rgba(47,99,214,.7);}
+  #gbnote .gb-you{background:rgba(200,64,42,.07);outline:1px solid var(--rule);}
   /* toast — ported from the site so wallet/mint outcomes are reported, not silent */
   .toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%) translateY(8px);z-index:40;
     background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;letter-spacing:.06em;
@@ -3526,12 +3545,14 @@ function openGuestbookNote() {
   if (panelOpen) return;
   panelOpen = true; gbwrap.classList.add('on');
   gbRefresh();   // paint the card's true state on every open (hoisted, defined below)
+  if (!GB_TICK_IV) GB_TICK_IV = setInterval(gbTick, 1000);   // the countdown lives only while the book is open
   cross.classList.remove('on'); promptEl.classList.remove('on'); broDock.classList.remove('on'); sticksEl.classList.remove('on');
   renderer.domElement.classList.remove('walk');
   if (controls.isLocked) controls.unlock();
 }
 function closeGuestbookNote() {
   panelOpen = false; gbwrap.classList.remove('on'); lastPanelClose = performance.now();
+  if (GB_TICK_IV) { clearInterval(GB_TICK_IV); GB_TICK_IV = null; }
   if (entered) { showHud(); tryLock(); }
   else enter.style.display = 'flex';
 }
@@ -3549,12 +3570,26 @@ gbwrap.addEventListener('click', e => { if (e.target === gbwrap) closeGuestbookN
 // its "not yet" state no matter what `active` says, so a half-filled config
 // can never show a signing flow that calls nothing.
 const PATRON = {
-  active: null,                                  // 'ashish' | 'hmm' | 'andrew' | null
+  active: 'ashish',                              // 'ashish' | 'hmm' | 'andrew' | null
+  // art/still are the LIGHT bay files (base href already points at /gallery/); the
+  // full-res masters live behind the metadata, not this card. fromBlock = that
+  // edition contract's deploy block (hex string), filled on deploy day — empty
+  // means 'earliest', which also works, just a wider scan.
+  // opensAt = the ANNOUNCED 8pm-ET open as an absolute instant (8pm EDT = 00:00 UTC
+  // next day); each window closes 24h later. The countdown counts to the schedule —
+  // only the contract ever says the door is actually open. ar = the piece's aspect,
+  // so the card holds its shape before the video's metadata arrives.
   editions: {
-    ashish: { contract: '', id: 1, piece: 'Dopamine Overdose', artist: 'Ashish' },
-    hmm:    { contract: '', id: 2, piece: 'Broken Form',       artist: 'hmm.labs' },
-    // the VARIANT contract (his art answers from his own contract); piece named when he confirms
-    andrew: { contract: '', id: 1, piece: '',                  artist: 'Andrew Mitchell' },
+    ashish: { contract: '0xA8A9b469BE9C7FDb66766A7d020987361bbf0d02', id: 1, piece: 'Dopamine Overdose', artist: 'Ashish',
+              art: 'ashish-dopamine.mp4', still: 'ashish-dopamine-still.jpg', ar: '640 / 800',
+              fromBlock: '0x18ec504', opens: 'opens Wed Oct 7 · 8pm ET', opensAt: Date.parse('2026-10-08T00:00:00Z') },
+    hmm:    { contract: '0xA8A9b469BE9C7FDb66766A7d020987361bbf0d02', id: 2, piece: 'Broken Form',       artist: 'hmm.labs',
+              art: 'hmm-patron.mp4', still: 'hmm-brokenform-still.jpg', ar: '1 / 1',
+              fromBlock: '0x18ec504', opens: 'opens Thu Oct 8 · 8pm ET', opensAt: Date.parse('2026-10-09T00:00:00Z') },
+    // the VARIANT contract (his art answers from his own contract); art files land when he sends them
+    andrew: { contract: '', id: 1, piece: 'Sunset',            artist: 'Andrew Mitchell',
+              art: '', still: '', ar: '',
+              fromBlock: '', opens: 'opens Fri Oct 9 · 8pm ET', opensAt: Date.parse('2026-10-10T00:00:00Z') },
   },
   // per-edition share pages (their og:image is the share card) — filled when those pages ship.
   // card = the full branded card, art = the artwork alone. Empty = one plain share to the site.
@@ -3577,6 +3612,64 @@ function gbEdition() {
   return (e && /^0x[0-9a-fA-F]{40}$/.test(e.contract)) ? Object.assign({ key: k }, e) : null;
 }
 
+// the edition named by `active` even before its contract is real — drives the
+// pre-open preview card; null only when no artist is set at all.
+function gbPreview() {
+  const k = PATRON.active;
+  return (k && PATRON.editions[k]) ? Object.assign({ key: k }, PATRON.editions[k]) : null;
+}
+
+// ENS names are strings other people control — they never reach innerHTML raw.
+const gbEsc = s => String(s).replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function gbArtHTML(e) {
+  if (!e.art) return '';
+  return '<video class="gb-art"' + (e.ar ? ' style="aspect-ratio:' + e.ar + '"' : '') +
+         ' src="' + e.art + '" poster="' + e.still + '" loop muted playsinline autoplay></video>';
+}
+
+/* ---- the countdown: counts to the ANNOUNCED schedule, never to the door ----
+   The operator presses open/close by hand at 8pm and the contract is the only
+   truth about the door. So: before the announced open it counts down to it;
+   while the chain CONFIRMS the window open it counts to the announced close;
+   anywhere the schedule can't speak truthfully it says nothing at all. */
+function gbFmtLeft(ms) {
+  if (ms <= 0) return '';
+  const s = Math.floor(ms / 1000), d = Math.floor(s / 86400),
+        h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  return d > 0 ? d + 'd ' + h + 'h ' + String(m).padStart(2, '0') + 'm'
+       : h > 0 ? h + 'h ' + String(m).padStart(2, '0') + 'm'
+       : m + 'm ' + String(s % 60).padStart(2, '0') + 's';
+}
+function gbTick() {
+  for (const el of gbBody.querySelectorAll('.gbtick')) {
+    const left = gbFmtLeft(+el.dataset.t - Date.now());
+    el.textContent = left ? ' · in ' + left : '';
+  }
+}
+let GB_TICK_IV = null;
+function gbWhenHTML(e, win) {
+  const now = Date.now(), closeAt = e.opensAt + 86400000;
+  let label, t;
+  if (win && win.open) { if (now >= closeAt) return ''; label = 'closes 8pm ET'; t = closeAt; }
+  else if (now < e.opensAt) { label = e.opens; t = e.opensAt; }
+  else return '';
+  return '<p style="' + GB_SUB + ';margin:0 0 10px">' + label + '<span class="gbtick" data-t="' + t + '"></span></p>';
+}
+// Safari can drop the muted attribute when the video arrives via innerHTML, and an
+// unmuted video never autoplays — set the property and press play by hand. The
+// immediate play() can race the load and quietly lose (seen on first open), so it
+// fires again at canplay; playing an already-playing video is a no-op.
+function gbArtPlay() {
+  const v = gbBody.querySelector('.gb-art');
+  if (!v) return;
+  v.muted = true;
+  const go = () => v.play().catch(() => {});
+  go();
+  v.addEventListener('canplay', go, { once: true });
+}
+
 // Reads are best-effort: a failed read degrades to "unknown" and the copy
 // says so — never to a made-up answer. The contract still enforces truth.
 async function gbReadOpen(e) {
@@ -3593,6 +3686,67 @@ async function gbReadSigned(e, who) {
       data: SEL_GB_MINTEDBY + pad32(e.id) + who.slice(2).toLowerCase().padStart(64, '0') }, 'latest']);
     return BigInt(hex) === 1n;
   } catch (err) { return null; }
+}
+
+/* ---- the signers page: the guest book read straight off the chain ----
+   PatronMinted(uint256 indexed id, address indexed wallet) is the feed — log
+   order IS sign order, so the list and each signer's ordinal are facts, not
+   bookkeeping. null = the read failed (say so), [] = genuinely nobody yet. */
+const GB_TOPIC_MINTED = '0xbf16b5ea202608eb57ab33769eeb4c715763be6f77eda03eb9714d0e411512ca'; // cast keccak "PatronMinted(uint256,address)"
+async function gbReadSigners(e) {
+  try {
+    const logs = await rpc('eth_getLogs', [{ address: e.contract,
+      topics: [GB_TOPIC_MINTED, '0x' + pad32(e.id)],
+      fromBlock: e.fromBlock || 'earliest', toBlock: 'latest' }]);
+    if (!Array.isArray(logs)) return null;
+    return logs.map(l => '0x' + l.topics[2].slice(26).toLowerCase());
+  } catch (err) { return null; }
+}
+
+// ENS, best-effort: one batched call to the ENS team's ReverseRecords helper,
+// which only returns names whose forward resolution matches the wallet — so a
+// name shown here is verified on-chain, never guessed. No name = short address.
+const GB_ENS_REVERSE = '0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C';
+const SEL_GB_GETNAMES = '0xcbf8b66c';            // getNames(address[]) — cast sig, not retyped
+const GB_ENS = new Map();                        // addr → name ('' = looked up, none set)
+async function gbResolveNames(addrs) {
+  const todo = [...new Set(addrs)].filter(a => !GB_ENS.has(a));
+  if (!todo.length) return;
+  try {
+    let data = SEL_GB_GETNAMES + pad32(32) + pad32(todo.length);
+    for (const a of todo) data += a.slice(2).padStart(64, '0');
+    const hex = await rpc('eth_call', [{ to: GB_ENS_REVERSE, data }, 'latest']);
+    const buf = hex.slice(2), word = i => buf.slice(i * 64, i * 64 + 64);
+    const base = Number(BigInt('0x' + word(0))) / 32;          // the array's length word
+    const n = Math.min(Number(BigInt('0x' + word(base))), todo.length);
+    for (let i = 0; i < n; i++) {
+      const off = base + 1 + Number(BigInt('0x' + word(base + 1 + i))) / 32;
+      const len = Number(BigInt('0x' + word(off)));
+      const raw = buf.slice((off + 1) * 64, (off + 1) * 64 + len * 2);
+      let name = '';
+      try { name = decodeURIComponent(raw.replace(/../g, '%$&')); } catch (err) {}
+      GB_ENS.set(todo[i], name);
+    }
+  } catch (err) { /* unresolved stays a short address — never a guess */ }
+}
+
+function gbSignersHTML(signers, win, meOverride) {
+  if (signers === null) {
+    return '<div class="gb-page"><p class="gb-count">Could not read the signatures right now — the book on the contract still holds them</p></div>';
+  }
+  if (!signers.length) {
+    return '<div class="gb-page"><p class="gb-count">' +
+      (win && win.open ? 'The book is open — no signatures yet' : 'Signatures appear here once the show is live') +
+      '</p></div>';
+  }
+  const me = (meOverride || ACCOUNT || '').toLowerCase();
+  const rows = signers.map((a, i) => {
+    const name = GB_ENS.get(a) || (a.slice(0, 6) + '…' + a.slice(-4));
+    return '<li' + (a === me ? ' class="gb-you"' : '') + '><span class="gb-ord">' + (i + 1) + '</span>' +
+           '<span class="gb-name">' + gbEsc(name) + '</span></li>';
+  }).join('');
+  return '<div class="gb-page"><p class="gb-count">' + signers.length + ' signed</p>' +
+         '<ul class="gb-list">' + rows + '</ul></div>';
 }
 
 const GB_BTN  = 'display:block;width:100%;background:var(--ink);color:var(--paper);border:none;cursor:pointer;' +
@@ -3613,9 +3767,28 @@ function gbShareHTML(e) {
   return '<a href="' + intent('https://fourzeroninesix.xyz') + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share on X</a>';
 }
 
+let GB_RUN = 0;                                  // stale async paints lose: only the newest refresh touches the card
 async function gbRefresh() {
+  const run = ++GB_RUN;
   const e = gbEdition();
-  if (!e) { gbBody.innerHTML = GB_NOT_YET; return; }
+  if (!e) {
+    const p = gbPreview();
+    if (!p) { gbBody.innerHTML = GB_NOT_YET; return; }
+    // pre-open: the piece and the true dates — never a button that would call nothing
+    gbBody.innerHTML = gbArtHTML(p) +
+      '<p class="lede" style="margin-bottom:12px">' + p.artist + (p.piece ? ' · <em>' + p.piece + '</em>' : '') +
+      ' · free patron edition. Sign while the window is open and it mints to your wallet. One per wallet, never sold.</p>' +
+      gbWhenHTML(p, null) +
+      '<p style="' + GB_SUB + ';margin:0;letter-spacing:.08em;text-transform:none">The book opens when the show does — come back and sign it in the room.</p>' +
+      gbSignersHTML([], null);
+    gbArtPlay(); gbTick();
+    return;
+  }
+
+  // the art sits above a #gbdyn the repaints write into, so state changes never restart the loop
+  gbBody.innerHTML = gbArtHTML(e) + '<div id="gbdyn"></div>';
+  gbArtPlay();
+  const dyn = document.getElementById('gbdyn');
 
   const wallet = ACCOUNT ? ACCOUNT.slice(0, 6) + '…' + ACCOUNT.slice(-4) : 'not connected';
   const head =
@@ -3626,31 +3799,43 @@ async function gbRefresh() {
     'Or mint straight from the <a href="https://etherscan.io/address/' + e.contract + '#writeContract" target="_blank" rel="noopener" ' +
     'style="color:inherit">verified contract on Etherscan</a>.</p>';
 
-  // paint once with what we know instantly, again when the chain answers
-  let signed = GB_SIGNED_LOCAL || null, win = null;
+  // paint once with what we know instantly, again as each chain answer lands
+  let signed = GB_SIGNED_LOCAL || null, win = null, signers;   // signers undefined = not asked yet
   const paint = () => {
+    if (run !== GB_RUN || !dyn.isConnected) return;
     let body;
     if (signed === true) {
-      body = '<p class="lede" style="margin-bottom:14px">You signed the book. The edition is yours.</p>' + gbShareHTML(e);
+      const k = Array.isArray(signers) ? signers.indexOf((ACCOUNT || '').toLowerCase()) : -1;
+      body = '<p class="lede" style="margin-bottom:14px">You signed the book. The edition is yours.' +
+             (k >= 0 ? ' You are signer #' + (k + 1) + '.' : '') + '</p>' + gbShareHTML(e);
     } else if (win && !win.open) {
-      body = '<p style="' + GB_SUB + ';margin:0 0 10px">THE BOOK IS CLOSED RIGHT NOW</p>' +
-             '<p class="lede">Windows run 8pm to 8pm ET, one artist a night. Come back when the show is on.</p>';
+      // before the announced open it reads as anticipation, not a closed door;
+      // only once that moment has passed does "closed right now" tell the truth
+      body = (Date.now() < e.opensAt)
+        ? '<p class="lede">The book opens when the show does. Come back at 8pm ET and sign it in the room.</p>'
+        : '<p style="' + GB_SUB + ';margin:0 0 10px">THE BOOK IS CLOSED RIGHT NOW</p>' +
+          '<p class="lede">Windows run 8pm to 8pm ET, one artist a night. Come back when the show is on.</p>';
     } else {
       body = '<button id="gbgo" style="' + GB_BTN + '"' + (GB_BUSY ? ' disabled' : '') + '>' +
              (GB_BUSY ? 'WORKING…' : (ACCOUNT ? 'SIGN THE GUESTBOOK' : 'CONNECT WALLET')) + '</button>' +
              (win === null ? '<p style="' + GB_SUB + ';margin:10px 0 0;letter-spacing:.08em;text-transform:none">' +
                'Could not read the book’s state — the contract itself still decides.</p>' : '');
     }
-    gbBody.innerHTML = head + body + ether;
+    dyn.innerHTML = head + gbWhenHTML(e, win) + body + ether + (signers === undefined ? '' : gbSignersHTML(signers, win));
+    gbTick();
     const go = document.getElementById('gbgo');
     if (go) go.addEventListener('click', ev => { ev.stopPropagation(); gbSign(e); });
   };
   paint();
 
-  // now the truth from the chain, where it answers
+  // now the truth from the chain, where it answers — the signers fetched alongside
+  const signersP = gbReadSigners(e);
   if (ACCOUNT && signed !== true) signed = await gbReadSigned(e, ACCOUNT);
   win = await gbReadOpen(e);
   paint();
+  signers = await signersP;
+  paint();
+  if (Array.isArray(signers) && signers.length) { await gbResolveNames(signers); paint(); }
 }
 
 async function gbSign(e) {
@@ -3681,6 +3866,15 @@ if (DEBUG) {   // ?debug only — lets the signing card be exercised without wal
   window.__gb = {
     open: openGuestbookNote, refresh: gbRefresh, PATRON,
     signedDemo() { GB_SIGNED_LOCAL = true; gbRefresh(); },
+    // layout check only: fake addresses + neutral demo names, appended to whatever
+    // card is showing. Behind ?debug, never reachable in production.
+    signersDemo(n = 12) {
+      const fake = Array.from({ length: n }, (_, i) => '0x' + (i + 1).toString(16).padStart(40, '0'));
+      GB_ENS.set(fake[0], 'collector.eth'); GB_ENS.set(fake[3], 'somebody.eth');
+      GB_ENS.set(fake[6], 'averylongdemonamethatwraps.eth');
+      const old = gbBody.querySelector('.gb-page'); if (old) old.remove();
+      gbBody.insertAdjacentHTML('beforeend', gbSignersHTML(fake, { open: true }, fake[2]));
+    },
   };
 }
 
