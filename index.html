@@ -3786,12 +3786,16 @@ function gbShareHTML(e) {
     (e.handle || 'the artist') + ', now live at the 4096 gallery. free patron edition from the first live show. minting now');
   const s = PATRON.share[e.key] || {};
   const intent = u => 'https://x.com/intent/post?text=' + text + '&url=' + encodeURIComponent(u);
+  // In a phone's wallet browser target="_blank" punts the intent to a signed-out
+  // Safari; a same-frame tap lets iOS hand x.com to the installed X app instead.
+  // Desktop keeps the new tab so the room is never navigated away.
+  const tgt = IS_TOUCH ? '' : ' target="_blank" rel="noopener"';
   if (s.card && s.art) {
-    return '<a href="' + intent(s.card) + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share the card</a>' +
-           '<a href="' + intent(s.art)  + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share the artwork</a>';
+    return '<a href="' + intent(s.card) + '"' + tgt + ' style="' + GB_BTN2 + '">Share the card</a>' +
+           '<a href="' + intent(s.art)  + '"' + tgt + ' style="' + GB_BTN2 + '">Share the artwork</a>';
   }
   // one card set = one button that posts it; nothing set = the plain site share
-  return '<a href="' + intent(s.card || s.art || 'https://fourzeroninesix.xyz') + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share on X</a>';
+  return '<a href="' + intent(s.card || s.art || 'https://fourzeroninesix.xyz') + '"' + tgt + ' style="' + GB_BTN2 + '">Share on X</a>';
 }
 
 let GB_RUN = 0;                                  // stale async paints lose: only the newest refresh touches the card
