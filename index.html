@@ -2070,8 +2070,12 @@ const SECTIONS = [
    goes nowhere would be a lie. Bay 02 (Andrew) never gets an auction URL —
    his night is a giveaway, and his plaque already says what's true. */
 const SHOW = {
-  live: null,                        // '04' | '06' | '02' | null
-  auction: { '04': '', '06': '' },   // the artists' own auction pages, when they send them
+  live: '04',                        // '04' | '06' | '02' | null
+  // the live night's 8pm-ET door as an absolute instant — the plaque and the BID bar
+  // read the clock so one deploy covers before and after doors, no showtime push.
+  // Flip per night: Thu = '06' + 2026-10-09, Fri = '02' + 2026-10-10.
+  doors: Date.parse('2026-10-08T00:00:00Z'),
+  auction: { '04': 'https://www.transient.xyz/nfts/ethereum/0x14a86a11151977ecf7f87618972d650fffaa8c70/8', '06': '' },   // the artists' own auction pages, when they send them
   // Price display hook: stays null until a TRUTHFUL reader exists for
   // wherever the auctions actually run (their contract or API). At show
   // time set this to an async () => '1.2 ETH' style function and the bar
@@ -2080,9 +2084,13 @@ const SHOW = {
 };
 if (SHOW.live) {
   const liveSec = SECTIONS.find(x => x.num === SHOW.live);
-  if (liveSec) liveSec.status = SHOW.live === '02'
-    ? 'live tonight · two to be given away'
-    : 'live tonight · the auction is open';
+  // before the doors the plaque promises only what is true; the open-auction line
+  // waits for the hour itself (baked at page load — a reload past 8pm reads right)
+  if (liveSec) liveSec.status = Date.now() < SHOW.doors
+    ? 'live tonight · doors 8pm et'
+    : SHOW.live === '02'
+      ? 'live tonight · two to be given away'
+      : 'live tonight · the auction is open';
 }
 // Artist media handler: still images, animated GIFs, and video all become textures the
 // bays can wear. Oversized files are downscaled under the GPU cap so a giant upload can't
@@ -3887,6 +3895,8 @@ if (DEBUG) {   // ?debug only — lets the signing card be exercised without wal
 // artist's own auction in a new tab. The gallery is the venue — the sale
 // happens on the artist's page, so the button's whole job is the door.
 function buildBidBar() {
+  if (document.getElementById('bidbar')) return;   // already standing
+  if (Date.now() < SHOW.doors) return;   // the BID door exists only once the doors do
   const url = SHOW.live && SHOW.auction[SHOW.live];
   if (!url) return;
   const sec = SECTIONS.find(x => x.num === SHOW.live);
@@ -3912,6 +3922,8 @@ function buildBidBar() {
   tick(); setInterval(tick, 30000);
 }
 buildBidBar();
+// a room held open through 8pm grows its BID bar the moment the doors do
+if (Date.now() < SHOW.doors) setTimeout(buildBidBar, SHOW.doors - Date.now() + 2000);
 if (DEBUG) window.__show = { SHOW, rebuild: buildBidBar };   // ?debug: flip the night's config + rebuild the bar
 
 // ---- crosshair interaction (kiosk) ----
