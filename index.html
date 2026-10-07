@@ -3602,9 +3602,11 @@ const PATRON = {
   // per-edition share pages (their og:image is the share card) — filled when those pages ship.
   // card = the full branded card, art = the artwork alone. Empty = one plain share to the site.
   share: {
-    ashish: { card: '', art: '' },
-    hmm:    { card: '', art: '' },
-    andrew: { card: '', art: '' },
+    // each card page's link-preview IS that piece's share graphic — so a minter's
+    // one-tap post carries the artist's own card, and clicking it enters the gallery
+    ashish: { card: 'https://fourzeroninesix.xyz/share/dopamine.html', art: '' },
+    hmm:    { card: 'https://fourzeroninesix.xyz/share/brokenform.html', art: '' },
+    andrew: { card: '', art: '' },   // his card renders once Sunset's is made
   },
 };
 
@@ -3775,7 +3777,8 @@ function gbShareHTML(e) {
     return '<a href="' + intent(s.card) + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share the card</a>' +
            '<a href="' + intent(s.art)  + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share the artwork</a>';
   }
-  return '<a href="' + intent('https://fourzeroninesix.xyz') + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share on X</a>';
+  // one card set = one button that posts it; nothing set = the plain site share
+  return '<a href="' + intent(s.card || s.art || 'https://fourzeroninesix.xyz') + '" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Share on X</a>';
 }
 
 let GB_RUN = 0;                                  // stale async paints lose: only the newest refresh touches the card
