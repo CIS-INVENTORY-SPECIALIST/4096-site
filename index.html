@@ -542,6 +542,7 @@ level  255  202  153  110  71   38   13   0</pre>
       <div class="leaf">
         <h4>THE BROKEN SIDE</h4>
         <h3>Ashish</h3>
+        <p class="mono" style="margin:-4px 0 12px;font-size:11px;letter-spacing:.12em"><a href="https://x.com/ashishmode" target="_blank" rel="noopener" style="color:#84847c">@ashishmode</a></p>
         <figure class="paste r1"><video src="ashish-devour.mp4" poster="ashish-devour-still.jpg" aria-label="To Live is To Devour Others, Ashish" loop muted playsinline preload="none"></video>
           <figcaption class="cap">TO LIVE IS TO DEVOUR OTHERS · 1/1</figcaption></figure>
         <p>Ashish is a glitch artist who works figuratively. For this show he moved into a
@@ -558,6 +559,7 @@ level  255  202  153  110  71   38   13   0</pre>
       <div class="leaf">
         <h4>THE BROKEN SIDE</h4>
         <h3>hmm.labs</h3>
+        <p class="mono" style="margin:-4px 0 12px;font-size:11px;letter-spacing:.12em"><a href="https://x.com/00bzy" target="_blank" rel="noopener" style="color:#84847c">@00bzy</a></p>
         <figure class="paste r1"><video src="hmm-heviilance-bro.mp4" poster="hmm-heviilance-still.jpg" aria-label="Heviilancẽ, hmm.labs" loop muted playsinline preload="none"></video>
           <figcaption class="cap">HEVIILANCẼ · 1/1</figcaption></figure>
         <p>hmm.labs is a glitch artist. They work in stills and gifs like a lot of the space,
@@ -575,6 +577,7 @@ level  255  202  153  110  71   38   13   0</pre>
       <div class="leaf">
         <h4>THE OBEYED SIDE</h4>
         <h3>Andrew Mitchell</h3>
+        <p class="mono" style="margin:-4px 0 12px;font-size:11px;letter-spacing:.12em"><a href="https://x.com/4ndrew_mitchell" target="_blank" rel="noopener" style="color:#84847c">@4ndrew_mitchell</a></p>
         <!-- ANDREW WRITE-UP, pending his tweaks: when he sends edits, swap the <p> blocks below verbatim -->
         <figure class="paste r1"><img src="sm-118.jpg" alt="Sky Meadow 118, Andrew Mitchell" loading="lazy">
           <figcaption class="cap">SKY MEADOW 118 · ONE OF TWO IN THE RAFFLE</figcaption></figure>
@@ -3272,6 +3275,7 @@ function cursorLook(dt) {
 }
 
 const keys = {};
+let openAuction = null;   // set by buildBidBar once the live auction's door exists; B key + bar both call it
 addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'Escape' && glide) { glide = null; lastPanelClose = performance.now(); }   // Esc exits a glide, never the room
@@ -3291,6 +3295,7 @@ addEventListener('keydown', e => {
   }
   if (e.code === 'KeyV' && entered && !panelOpen)        // V: clean view — hide every overlay, art only
     document.body.classList.toggle('clean');
+  if (e.code === 'KeyB' && entered && !panelOpen && openAuction) openAuction();   // B: open the live auction (DOM bar is unreachable under pointer-lock)
 });
 addEventListener('keyup', e => keys[e.code] = false);
 
@@ -3915,12 +3920,22 @@ function buildBidBar() {
     'border:none;cursor:pointer;padding:12px 22px;font-family:var(--mono);font-size:10px;' +
     'letter-spacing:.18em;text-transform:uppercase;display:flex;gap:14px;align-items:center';
   const label = document.createElement('span');
+  // while walking, the mouse is pointer-locked and can't reach a DOM button, so
+  // desktop opens the auction with the B key (the room's own key-to-act pattern);
+  // touch has no lock, so a tap works and needs no hint.
   label.textContent = 'LOT ' + SHOW.live + ' · ' + (sec ? sec.collab : '') + ' · BID ↗';
   bar.appendChild(label);
+  if (!IS_TOUCH) {
+    const chip = document.createElement('span');
+    chip.textContent = 'B';
+    chip.style.cssText = 'border:1px solid rgba(255,255,255,.4);border-radius:3px;padding:1px 6px;font-size:9px;color:#c9c7c0';
+    bar.appendChild(chip);
+  }
   const price = document.createElement('span');
   price.style.cssText = 'color:#c9c7c0;letter-spacing:.1em';
   bar.appendChild(price);
-  bar.addEventListener('click', e => { e.stopPropagation(); window.open(url, '_blank', 'noopener'); });
+  openAuction = () => window.open(url, '_blank', 'noopener');
+  bar.addEventListener('click', e => { e.stopPropagation(); openAuction(); });
   document.body.appendChild(bar);
   async function tick() {   // shows a price ONLY when a truthful reader is wired
     if (!SHOW.readPrice) { price.textContent = ''; return; }
