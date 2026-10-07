@@ -3756,7 +3756,7 @@ function gbSignersHTML(signers, win, meOverride) {
   }
   if (!signers.length) {
     return '<div class="gb-page"><p class="gb-count">' +
-      (win && win.open ? 'The book is open — no signatures yet' : 'Signatures appear here once the show is live') +
+      (win && win.open ? 'The book is open · no signatures yet' : 'Signatures appear here once the show is live') +
       '</p></div>';
   }
   const me = (meOverride || ACCOUNT || '').toLowerCase();
@@ -3775,6 +3775,9 @@ const GB_BTN2 = 'display:block;width:100%;text-align:center;border:1px solid var
                 'text-decoration:none;padding:12px;margin-top:8px;font-family:var(--mono);font-size:10px;' +
                 'letter-spacing:.16em;text-transform:uppercase';
 const GB_SUB  = 'font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#84847c';
+// the trusted second door is a quiet line, not a second button: GB_BTN2 is the
+// share buttons' box and borrowing it here made two equal boxes stack up.
+const GB_QUIET = GB_SUB + ';display:block;text-align:center;text-decoration:underline;text-underline-offset:3px;margin-top:12px';
 
 function gbShareHTML(e) {
   // the minter's own post: names the piece, tags the artist (their audience sees every
@@ -3844,9 +3847,9 @@ async function gbRefresh() {
               (GB_BUSY ? 'WORKING…' : (ACCOUNT ? 'SIGN THE GUESTBOOK' : 'CONNECT WALLET')) + '</button>' +
               // a trusted alt for the wallet-wary: call mint() on the open-source contract,
               // connecting only to etherscan, never this site
-              '<a href="https://etherscan.io/address/' + e.contract + '#writeContract" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Rather not connect here? Mint on Etherscan ↗</a>' +
+              '<a href="https://etherscan.io/address/' + e.contract + '#writeContract" target="_blank" rel="noopener" style="' + GB_QUIET + '">or mint on Etherscan ↗</a>' +
               '<p style="' + GB_SUB + ';margin:10px 0 0;letter-spacing:.08em;text-transform:none">' +
-              'Free, you only pay gas. The mint asks for no approvals — it can\'t touch anything else in your wallet.' +
+              'Free, you only pay gas. No approvals, it can\'t touch anything else in your wallet.' +
               (win === null ? ' The contract itself decides.' : '') + '</p>';
     }
     dyn.innerHTML = html + (signers === undefined ? '' : gbSignersHTML(signers, win));
