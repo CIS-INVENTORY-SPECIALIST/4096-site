@@ -3839,9 +3839,11 @@ async function gbRefresh() {
               gbWhenHTML(e, win) +
               '<button id="gbgo" style="' + GB_BTN + '"' + (GB_BUSY ? ' disabled' : '') + '>' +
               (GB_BUSY ? 'WORKING…' : (ACCOUNT ? 'SIGN THE GUESTBOOK' : 'CONNECT WALLET')) + '</button>' +
+              // a trusted alt for the wallet-wary: call mint() on the open-source contract,
+              // connecting only to etherscan, never this site
+              '<a href="https://etherscan.io/address/' + e.contract + '#writeContract" target="_blank" rel="noopener" style="' + GB_BTN2 + '">Rather not connect here? Mint on Etherscan ↗</a>' +
               '<p style="' + GB_SUB + ';margin:10px 0 0;letter-spacing:.08em;text-transform:none">' +
-              'Free, your wallet just covers gas. Or mint from the <a href="https://etherscan.io/address/' + e.contract +
-              '#writeContract" target="_blank" rel="noopener" style="color:inherit">verified contract on Etherscan</a>.' +
+              'Free, you only pay gas. The mint asks for no approvals — it can\'t touch anything else in your wallet.' +
               (win === null ? ' The contract itself decides.' : '') + '</p>';
     }
     dyn.innerHTML = html + (signers === undefined ? '' : gbSignersHTML(signers, win));
