@@ -3615,6 +3615,7 @@ const SEL_GB_EDITION  = '0x6265c314';            // edition(uint256)
 const gbBody = document.getElementById('gbbody');
 const GB_NOT_YET = gbBody.innerHTML;             // the honest default, kept verbatim
 let GB_BUSY = false, GB_SIGNED_LOCAL = false;    // LOCAL = we watched this wallet's receipt land this session
+let GB_FORCE_OPEN = false;                        // ?debug only: lets the open/sign screens be previewed before 8pm
 
 function gbEdition() {
   const k = PATRON.active;
@@ -3686,6 +3687,7 @@ function gbArtPlay() {
 // Reads are best-effort: a failed read degrades to "unknown" and the copy
 // says so — never to a made-up answer. The contract still enforces truth.
 async function gbReadOpen(e) {
+  if (GB_FORCE_OPEN) return { open: true, exists: true };   // ?debug preview only
   try {
     const hex = await rpc('eth_call', [{ to: e.contract, data: SEL_GB_EDITION + pad32(e.id) }, 'latest']);
     if (!hex || hex.length < 2 + 64 * 6) return null;
@@ -3790,10 +3792,9 @@ async function gbRefresh() {
     if (!p) { gbBody.innerHTML = GB_NOT_YET; return; }
     // pre-open: the piece and the true dates — never a button that would call nothing
     gbBody.innerHTML = gbArtHTML(p) +
-      '<p class="lede" style="margin-bottom:12px">' + p.artist + (p.piece ? ' · <em>' + p.piece + '</em>' : '') +
-      ' · free patron edition. Sign while the window is open and it mints to your wallet. One per wallet, never sold.</p>' +
+      '<p class="lede" style="margin-bottom:12px">' + p.artist + (p.piece ? ' · <em>' + p.piece + '</em>' : '') + ' · free patron edition</p>' +
       gbWhenHTML(p, null) +
-      '<p style="' + GB_SUB + ';margin:0;letter-spacing:.08em;text-transform:none">The book opens when the show does — come back and sign it in the room.</p>' +
+      '<p style="' + GB_SUB + ';margin:0;letter-spacing:.08em;text-transform:none">Sign the book while the window is open and it mints to you. Free, one per wallet.</p>' +
       gbSignersHTML([], null);
     gbArtPlay(); gbTick();
     return;
@@ -3804,38 +3805,41 @@ async function gbRefresh() {
   gbArtPlay();
   const dyn = document.getElementById('gbdyn');
 
-  const wallet = ACCOUNT ? ACCOUNT.slice(0, 6) + '…' + ACCOUNT.slice(-4) : 'not connected';
-  const head =
-    '<p class="lede">' + e.artist + (e.piece ? ' · <em>' + e.piece + '</em>' : '') +
-    ' · free patron edition. Sign while the window is open and it mints to your wallet. One per wallet, never sold.</p>' +
-    '<p style="' + GB_SUB + ';margin:0 0 14px">wallet · ' + wallet + '</p>';
-  const ether = '<p style="' + GB_SUB + ';margin:12px 0 0;letter-spacing:.08em;text-transform:none">Free — your wallet pays only gas. ' +
-    'Or mint straight from the <a href="https://etherscan.io/address/' + e.contract + '#writeContract" target="_blank" rel="noopener" ' +
-    'style="color:inherit">verified contract on Etherscan</a>.</p>';
+  // the name line is the one constant; everything else is shown only when it's true
+  const nameLine = '<p class="lede" style="margin:0 0 12px">' + e.artist +
+    (e.piece ? ' · <em>' + e.piece + '</em>' : '') + ' · free patron edition</p>';
+  const sub = (txt, mb) => '<p style="' + GB_SUB + ';margin:0 0 ' + (mb || 0) + 'px;letter-spacing:.08em;text-transform:none">' + txt + '</p>';
 
-  // paint once with what we know instantly, again as each chain answer lands
   let signed = GB_SIGNED_LOCAL || null, win = null, signers;   // signers undefined = not asked yet
   const paint = () => {
     if (run !== GB_RUN || !dyn.isConnected) return;
-    let body;
+    const preOpen = win && !win.open && Date.now() < e.opensAt;
+    const wallet = ACCOUNT ? ACCOUNT.slice(0, 6) + '…' + ACCOUNT.slice(-4) : 'not connected';
+    let html = nameLine;
+
     if (signed === true) {
       const k = Array.isArray(signers) ? signers.indexOf((ACCOUNT || '').toLowerCase()) : -1;
-      body = '<p class="lede" style="margin-bottom:14px">You signed the book. The edition is yours.' +
-             (k >= 0 ? ' You are signer #' + (k + 1) + '.' : '') + '</p>' + gbShareHTML(e);
+      html += '<p class="lede" style="margin:0 0 14px">You signed the book' +
+              (k >= 0 ? ", you're signer #" + (k + 1) : '') + '.</p>' + gbShareHTML(e);
+    } else if (preOpen) {
+      // before 8pm: the countdown is the message, plus the one true instruction
+      html += gbWhenHTML(e, win) + sub('Sign the book while the window is open and it mints to you. Free, one per wallet.');
     } else if (win && !win.open) {
-      // before the announced open it reads as anticipation, not a closed door;
-      // only once that moment has passed does "closed right now" tell the truth
-      body = (Date.now() < e.opensAt)
-        ? '<p class="lede">The book opens when the show does. Come back at 8pm ET and sign it in the room.</p>'
-        : '<p style="' + GB_SUB + ';margin:0 0 10px">THE BOOK IS CLOSED RIGHT NOW</p>' +
-          '<p class="lede">Windows run 8pm to 8pm ET, one artist a night. Come back when the show is on.</p>';
+      // the window has been and gone (between nights, or after the run)
+      html += '<p style="' + GB_SUB + ';margin:0 0 10px">THE BOOK IS CLOSED RIGHT NOW</p>' +
+              '<p class="lede" style="margin:0">Windows run 8pm to 8pm ET, one artist a night. Come back when the show is on.</p>';
     } else {
-      body = '<button id="gbgo" style="' + GB_BTN + '"' + (GB_BUSY ? ' disabled' : '') + '>' +
-             (GB_BUSY ? 'WORKING…' : (ACCOUNT ? 'SIGN THE GUESTBOOK' : 'CONNECT WALLET')) + '</button>' +
-             (win === null ? '<p style="' + GB_SUB + ';margin:10px 0 0;letter-spacing:.08em;text-transform:none">' +
-               'Could not read the book’s state — the contract itself still decides.</p>' : '');
+      // open (or state unknown): the real signing flow
+      html += '<p style="' + GB_SUB + ';margin:0 0 12px">wallet · ' + wallet + '</p>' +
+              gbWhenHTML(e, win) +
+              '<button id="gbgo" style="' + GB_BTN + '"' + (GB_BUSY ? ' disabled' : '') + '>' +
+              (GB_BUSY ? 'WORKING…' : (ACCOUNT ? 'SIGN THE GUESTBOOK' : 'CONNECT WALLET')) + '</button>' +
+              '<p style="' + GB_SUB + ';margin:10px 0 0;letter-spacing:.08em;text-transform:none">' +
+              'Free, your wallet just covers gas. Or mint from the <a href="https://etherscan.io/address/' + e.contract +
+              '#writeContract" target="_blank" rel="noopener" style="color:inherit">verified contract on Etherscan</a>.' +
+              (win === null ? ' The contract itself decides.' : '') + '</p>';
     }
-    dyn.innerHTML = head + gbWhenHTML(e, win) + body + ether + (signers === undefined ? '' : gbSignersHTML(signers, win));
+    dyn.innerHTML = html + (signers === undefined ? '' : gbSignersHTML(signers, win));
     gbTick();
     const go = document.getElementById('gbgo');
     if (go) go.addEventListener('click', ev => { ev.stopPropagation(); gbSign(e); });
@@ -3879,6 +3883,8 @@ async function gbSign(e) {
 if (DEBUG) {   // ?debug only — lets the signing card be exercised without walking to the book
   window.__gb = {
     open: openGuestbookNote, refresh: gbRefresh, PATRON,
+    openDemo() { GB_FORCE_OPEN = true; GB_SIGNED_LOCAL = false; gbRefresh(); },   // preview the live sign screen
+    reset() { GB_FORCE_OPEN = false; GB_SIGNED_LOCAL = false; gbRefresh(); },
     signedDemo() { GB_SIGNED_LOCAL = true; gbRefresh(); },
     // layout check only: fake addresses + neutral demo names, appended to whatever
     // card is showing. Behind ?debug, never reachable in production.
