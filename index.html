@@ -3592,15 +3592,15 @@ const PATRON = {
   // only the contract ever says the door is actually open. ar = the piece's aspect,
   // so the card holds its shape before the video's metadata arrives.
   editions: {
-    ashish: { contract: '0xA8A9b469BE9C7FDb66766A7d020987361bbf0d02', id: 1, piece: 'Dopamine Overdose', artist: 'Ashish',
+    ashish: { contract: '0xA8A9b469BE9C7FDb66766A7d020987361bbf0d02', id: 1, piece: 'Dopamine Overdose', artist: 'Ashish', handle: '@ashishmode',
               art: 'ashish-dopamine.mp4', still: 'ashish-dopamine-still.jpg', ar: '640 / 800',
               fromBlock: '0x18ec504', opens: 'opens Wed Oct 7 · 8pm ET', opensAt: Date.parse('2026-10-08T00:00:00Z') },
-    hmm:    { contract: '0xA8A9b469BE9C7FDb66766A7d020987361bbf0d02', id: 2, piece: 'Broken Form',       artist: 'hmm.labs',
+    hmm:    { contract: '0xA8A9b469BE9C7FDb66766A7d020987361bbf0d02', id: 2, piece: 'Broken Form',       artist: 'hmm.labs', handle: '@00bzy',
               art: 'hmm-patron.mp4', still: 'hmm-brokenform-still.jpg', ar: '1 / 1',
               fromBlock: '0x18ec504', opens: 'opens Thu Oct 8 · 8pm ET', opensAt: Date.parse('2026-10-09T00:00:00Z') },
     // the VARIANT contract. Sunset is a still — the exact bytes pulled from his on-chain
     // Sunsets contract (0x81f7…D33d) and mirrored at /patron/ (absolute: base points at /gallery/).
-    andrew: { contract: '', id: 1, piece: 'Sunset',            artist: 'Andrew Mitchell',
+    andrew: { contract: '', id: 1, piece: 'Sunset',            artist: 'Andrew Mitchell', handle: '@4ndrew_mitchell',
               art: '/patron/sunset.jpg', still: '/patron/sunset.jpg', ar: '1200 / 900',
               fromBlock: '', opens: 'opens Fri Oct 9 · 8pm ET', opensAt: Date.parse('2026-10-10T00:00:00Z') },
   },
@@ -3777,7 +3777,10 @@ const GB_BTN2 = 'display:block;width:100%;text-align:center;border:1px solid var
 const GB_SUB  = 'font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#84847c';
 
 function gbShareHTML(e) {
-  const text = encodeURIComponent('i just minted my free patron edition at system obeyed vs system broken, presented by 4096');
+  // the minter's own post: names the piece, tags the artist (their audience sees every
+  // mint), link collapses into that edition's share card. lowercase = a collector's voice.
+  const text = encodeURIComponent('just minted "' + (e.piece || '').toLowerCase() + '" by ' +
+    (e.handle || 'the artist') + ', now live at the 4096 gallery. free patron edition from the first live show. minting now');
   const s = PATRON.share[e.key] || {};
   const intent = u => 'https://x.com/intent/post?text=' + text + '&url=' + encodeURIComponent(u);
   if (s.card && s.art) {
