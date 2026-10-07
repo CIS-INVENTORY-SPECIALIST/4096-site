@@ -3958,7 +3958,8 @@ function buildBidStand() {
   const sec = SECTIONS.find(x => x.num === SHOW.live);
   if (!sec) return;
   const g = new THREE.Group();
-  g.position.set(sec.side * (LX - 1.4), 0, sec.z + 1.15);   // by the wall, just off the piece's side
+  const inward = sec.z > 0 ? -1.15 : 1.15;                  // offset toward room centre, never into an end wall (works for all three bays)
+  g.position.set(sec.side * (LX - 1.4), 0, sec.z + inward);  // by the wall, just off the piece's side
   g.rotation.y = sec.side === -1 ? Math.PI / 2 : -Math.PI / 2;
   const postMat = new THREE.MeshStandardMaterial({ color: 0x23211d, roughness: 0.85 });
   const post = new THREE.Mesh(new THREE.BoxGeometry(0.055, 1.0, 0.055), postMat);
