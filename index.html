@@ -3944,15 +3944,51 @@ function buildBidBar() {
   }
   tick(); setInterval(tick, 30000);
 }
-buildBidBar();
-// a room held open through 8pm grows its BID bar the moment the doors do
-if (Date.now() < SHOW.doors) setTimeout(buildBidBar, SHOW.doors - Date.now() + 2000);
-if (DEBUG) window.__show = { SHOW, rebuild: buildBidBar };   // ?debug: flip the night's config + rebuild the bar
+// a paper lot-marker on a stand, in front of the LIVE piece only — look at it and
+// click or press E to bid (a DOM button can't be reached under pointer-lock, a 3D
+// object the crosshair activates can). Same honesty gate as the bar: only once the
+// auction's door is actually open, only at the live bay, nowhere else.
+const interactives = [kScreen, vGlass, vBody, heartArt, ...BENCH_SEATS, guestbookHit].filter(Boolean);   // anything the crosshair can activate (the live lot's bid marker is pushed on at 8pm)
+let bidStand = null;
+function buildBidStand() {
+  if (bidStand) return;
+  if (Date.now() < SHOW.doors) return;
+  const url = SHOW.live && SHOW.auction[SHOW.live];
+  if (!url) return;
+  const sec = SECTIONS.find(x => x.num === SHOW.live);
+  if (!sec) return;
+  const g = new THREE.Group();
+  g.position.set(sec.side * (LX - 1.4), 0, sec.z + 1.15);   // by the wall, just off the piece's side
+  g.rotation.y = sec.side === -1 ? Math.PI / 2 : -Math.PI / 2;
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x23211d, roughness: 0.85 });
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.055, 1.0, 0.055), postMat);
+  post.position.y = 0.5; g.add(post);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.045, 24), postMat);
+  base.position.y = 0.022; g.add(base);
+  const card = plaque('PLACE A BID', 'LOT ' + sec.num + ' · ' + sec.collab, 0.78, sec.accent || '#a02f1c', false, 'click or press E');
+  card.position.set(0, 1.16, 0.03);
+  card.rotation.x = -0.3;                 // tilt back toward a standing viewer
+  card.userData.interactive = 'bid';
+  g.add(card);
+  scene.add(g);
+  bidStand = g;
+  interactives.push(card);
+}
+
+buildBidBar(); buildBidStand();
+// a room held open through 8pm grows its BID bar and lot stand the moment the doors do
+if (Date.now() < SHOW.doors) setTimeout(() => { buildBidBar(); buildBidStand(); }, SHOW.doors - Date.now() + 2000);
+if (DEBUG) window.__show = { SHOW, rebuild: () => { buildBidBar(); buildBidStand(); },
+  // ?debug: force doors, build, and fly the camera to look at the live lot's stand
+  goBid() { SHOW.doors = 0; buildBidBar(); buildBidStand(); const sec = SECTIONS.find(x => x.num === SHOW.live);
+    if (!sec) return 'no live bay';
+    const sp = bidStand ? bidStand.position : null;
+    if (sp) { camera.position.set(sp.x - sec.side * 3.0, 1.45, sp.z + 0.1); camera.lookAt(sp.x, 1.0, sp.z); }
+    return { standActual: sp ? [sp.x.toFixed(1), sp.y.toFixed(1), sp.z.toFixed(1)] : 'not built' }; } };
 
 // ---- crosshair interaction (kiosk) ----
 const ray = new THREE.Raycaster();
 const centre = new THREE.Vector2(0, 0);
-const interactives = [kScreen, vGlass, vBody, heartArt, ...BENCH_SEATS, guestbookHit].filter(Boolean);   // anything the crosshair can activate
 let hotTarget = null, rayTimer = 0;
 function checkHover() {
   ray.setFromCamera(centre, camera);
@@ -4033,6 +4069,7 @@ function activateHot() {
     startGlide({ pos: hotTarget.userData.sit.pos, look: hotTarget.userData.sit.look });
   }
   else if (hotTarget.userData.interactive === 'guestbook') openGuestbookNote();   // honest "not yet" card
+  else if (hotTarget.userData.interactive === 'bid') { if (openAuction) openAuction(); }   // the live lot's own marker
   else openMint();
 }
 // ---- click-to-glide: tween the camera to a piece's viewing spot ----
