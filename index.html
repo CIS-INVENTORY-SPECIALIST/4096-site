@@ -4622,8 +4622,8 @@ function animate() {
   fit();
   governor();
   const dt = Math.min(clock.getDelta(), 0.05);
-  if (!panelOpen && (entered || SHOOT) && !glide && !TOURING) step(dt);   // a glide owns the camera; so does a ?tour
-  if (!glide && !TOURING) cursorLook(dt);
+  if (!panelOpen && (entered || SHOOT) && !glide) step(dt);   // a glide owns the camera
+  if (!glide) cursorLook(dt);
   stepGlide(dt);
   // (the 3s idle time-watchdog is GONE: a still mouse produces zero events and zero
   // rotation, which it read as a dead lock — THE false drop that freed the cursor
@@ -4669,49 +4669,9 @@ if (PERF) {
     document.getElementById('pv-fps').textContent = (fpsShown | 0) + ' fps · q' + QUALITY;
   }, 500);
 }
-let TOURING = false;
 animate();
 
 addEventListener('resize', fit);
-
-// ---- ?tour : a hands-off cinematic glide, for recording a walk-through -------
-// Query-gated and flag-guarded: a visitor who never types ?tour runs none of
-// this and TOURING stays false, so the live room and the mint are untouched.
-// It reuses the room's own startGlide easing — door, to the live 1/1 and its
-// BID stand, then up to the guestbook as the card rises on the signatures.
-if (location.search.includes('tour')) {
-  const hold  = ms => new Promise(r => setTimeout(r, ms));
-  const flown = () => new Promise(r => { (function w(){ glide ? setTimeout(w, 40) : r(); })(); });
-  const fly   = v  => { startGlide(v); return flown(); };
-
-  async function runTour() {
-    const sp  = (bidStand && bidStand.position) ? bidStand.position : { x: 6.2, y: 0, z: -8.85 };
-    const sec = SECTIONS.find(x => x.num === SHOW.live) || { side: 1 };
-    const s   = sec.side || 1;
-    camera.position.set(0, 1.6, 15); camera.lookAt(0, 1.5, -2);               // the door, down the long axis
-    await hold(1100);
-    await fly({ pos: [sp.x * 0.45, 1.62, 6.5],      look: [sp.x, 1.35, sp.z] });   // walk in, turning to the live bay
-    await fly({ pos: [sp.x - s * 3.1, 1.5, sp.z + 0.1], look: [sp.x, 1.05, sp.z] });   // on the 1/1 and the PLACE A BID stand
-    await hold(2000);
-    await fly({ pos: [sp.x * 0.42, 1.62, 4.5],      look: [3.4, 1.35, 14.4] });   // turn back toward the entry
-    await fly({ pos: [1.3, 1.6, 11.6],              look: [3.4, 1.15, 14.4] });   // up to the guestbook desk
-    await hold(600);
-    openGuestbookNote();                                                      // the card rises: the signatures
-    await hold(3000);
-  }
-
-  const boot = () => {
-    TOURING = true;
-    entered = true;
-    const el = document.getElementById('enter'); if (el) el.style.display = 'none';
-    document.body.classList.add('clean');            // hide the HUD chrome, same as film mode
-    revealScene();                                   // fade the room up
-    SHOW.doors = 0; buildBidBar(); buildBidStand();  // the bid hotspots must exist to fly to
-    runTour();
-  };
-  const waitReady = () => sceneReady ? boot() : setTimeout(waitReady, 150);
-  setTimeout(waitReady, 400);
-}
 </script>
 </body>
 </html>
