@@ -226,10 +226,10 @@
   /* mint panel */
   /* mint panel: the site's paper-and-ink editorial language — serif prose, mono data, hairline rules */
   /* #gbwrap/#gbnote share the mint panel's chrome exactly — one card language, no drift */
-  #mintwrap,#gbwrap{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
+  #mintwrap,#gbwrap,#gvwrap{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;
     background:rgba(27,27,25,.5);backdrop-filter:blur(3px);}
-  #mintwrap.on,#gbwrap.on{display:flex;}
-  #mint,#gbnote{width:min(400px,92vw);background:var(--paper);border:1px solid var(--rule);
+  #mintwrap.on,#gbwrap.on,#gvwrap.on{display:flex;}
+  #mint,#gbnote,#gvnote{width:min(400px,92vw);background:var(--paper);border:1px solid var(--rule);
     padding:30px 32px 26px;box-shadow:0 24px 70px rgba(27,27,25,.4);position:relative;color:var(--ink);}
   #mint h2,#gbnote h2{margin:0 0 12px;font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.34em;}
   #mint .lede,#gbnote .lede{margin:0 0 22px;font-family:var(--serif);font-style:italic;font-size:13.5px;color:#4c4c46;
@@ -657,6 +657,14 @@ body.clean:not(.touch) #sticks { display: none !important; }
     <div id="gbbody">
     <p class="lede">The guestbook opens when the show does. Come back this October, sign it in the room, and the patron edition is yours.</p>
     </div>
+  </div>
+</div>
+
+<div id="gvwrap">
+  <div id="gvnote">
+    <button class="x" id="gvx">×</button>
+    <h2>NOT AN AUCTION</h2>
+    <div id="gvbody"></div>
   </div>
 </div>
 
@@ -2036,6 +2044,7 @@ const SECTIONS = [
   { num: '02', side: -1, z: 0, accent: '#b08432', frame: 0x2e2619,   // ANDREW MITCHELL — the obeyed side's anchor
     collab: 'SKY MEADOW', by: 'Andrew Mitchell (@4ndrew_mitchell)',
     status: 'two to be given away · in the show',
+    giveaway: true,
     skymeadow: [118, 535, 71, 98],                        // the rotation: resolved hero + its build, kept in step
     main: { url: 'sm-118.jpg', ar: 3 / 4 },               // the resolved piece; the rotation swaps it
     sides: [{ url: 'sm118-build.mp4', ar: 3 / 4,
@@ -3571,6 +3580,35 @@ function closeGuestbookNote() {
 document.getElementById('gbx').addEventListener('click', e => { e.stopPropagation(); closeGuestbookNote(); });
 gbwrap.addEventListener('click', e => { if (e.target === gbwrap) closeGuestbookNote(); });
 
+// ---- giveaway panel ----
+// A giveaway night (Andrew) has no auction. The lot stand opens THIS instead of a
+// bid page: it says what's true, shows the pieces, and hands you to the guestbook.
+const gvwrap = document.getElementById('gvwrap');
+const gvbody = document.getElementById('gvbody');
+function openGiveaway() {
+  if (panelOpen) return;
+  panelOpen = true; gvwrap.classList.add('on');
+  gvbody.innerHTML =
+    '<p class="lede" style="margin:0 0 14px">Andrew Mitchell is giving two Sky Meadows away to the people who sign the guestbook. Show up, sign, and you\'re in the draw.</p>' +
+    '<div style="display:flex;gap:4%;margin:0 0 18px">' +
+    '<img src="sm-118.jpg" alt="" style="width:48%;aspect-ratio:3/4;object-fit:cover;border:1px solid var(--rule)">' +
+    '<img src="sm-535.jpg" alt="" style="width:48%;aspect-ratio:3/4;object-fit:cover;border:1px solid var(--rule)">' +
+    '</div>' +
+    '<button id="gvgo" style="' + GB_BTN + '">Sign the Guestbook</button>';
+  const go = document.getElementById('gvgo');
+  if (go) go.addEventListener('click', ev => { ev.stopPropagation(); gvwrap.classList.remove('on'); panelOpen = false; openGuestbookNote(); });
+  cross.classList.remove('on'); promptEl.classList.remove('on'); broDock.classList.remove('on'); sticksEl.classList.remove('on');
+  renderer.domElement.classList.remove('walk');
+  if (controls.isLocked) controls.unlock();
+}
+function closeGiveaway() {
+  panelOpen = false; gvwrap.classList.remove('on'); lastPanelClose = performance.now();
+  if (entered) { showHud(); tryLock(); }
+  else enter.style.display = 'flex';
+}
+document.getElementById('gvx').addEventListener('click', e => { e.stopPropagation(); closeGiveaway(); });
+gvwrap.addEventListener('click', e => { if (e.target === gvwrap) closeGiveaway(); });
+
 /* ---------- signing the guestbook for real ----------
    The CONTRACT is the enforcer — window, one-per-wallet, pause all live
    on-chain and bind every frontend equally. This card only reports state
@@ -3601,6 +3639,7 @@ const PATRON = {
     // the VARIANT contract. Sunset is a still — the exact bytes pulled from his on-chain
     // Sunsets contract (0x81f7…D33d) and mirrored at /patron/ (absolute: base points at /gallery/).
     andrew: { contract: '0xBCa3c582D2B9Fd66a3952427c9F65C036Ca3b87a', id: 1, piece: 'Sunset',            artist: 'Andrew Mitchell', handle: '@4ndrew_mitchell',
+              note: "Sign the book and Sunset is yours, free. You're also in the draw for one of two Sky Meadows.",
               art: '/patron/sunset.jpg', still: '/patron/sunset.jpg', ar: '1200 / 900',
               fromBlock: '0x18f1ad9', opens: 'opens Fri Oct 9 · 8pm ET', opensAt: Date.parse('2026-10-10T00:00:00Z') },
   },
@@ -3838,7 +3877,7 @@ async function gbRefresh() {
               (k >= 0 ? ", you're signer #" + (k + 1) : '') + '.</p>' + gbShareHTML(e);
     } else if (preOpen) {
       // before 8pm: the countdown is the message, plus the one true instruction
-      html += gbWhenHTML(e, win) + sub('Sign the book while the window is open and it mints to you. Free, one per wallet.');
+      html += gbWhenHTML(e, win) + sub(e.note || 'Sign the book while the window is open and it mints to you. Free, one per wallet.');
     } else if (win && !win.open) {
       // the window has been and gone (between nights, or after the run)
       html += '<p style="' + GB_SUB + ';margin:0 0 10px">THE BOOK IS CLOSED RIGHT NOW</p>' +
@@ -3847,6 +3886,7 @@ async function gbRefresh() {
       // open (or state unknown): the real signing flow
       html += '<p style="' + GB_SUB + ';margin:0 0 12px">wallet · ' + wallet + '</p>' +
               gbWhenHTML(e, win) +
+              (e.note ? sub(e.note, 12) : '') +
               '<button id="gbgo" style="' + GB_BTN + '"' + (GB_BUSY ? ' disabled' : '') + '>' +
               (GB_BUSY ? 'WORKING…' : (ACCOUNT ? 'SIGN THE GUESTBOOK' : 'CONNECT WALLET')) + '</button>' +
               // a trusted alt for the wallet-wary: call mint() on the open-source contract,
@@ -3922,9 +3962,10 @@ if (DEBUG) {   // ?debug only — lets the signing card be exercised without wal
 function buildBidBar() {
   if (document.getElementById('bidbar')) return;   // already standing
   if (Date.now() < SHOW.doors) return;   // the BID door exists only once the doors do
-  const url = SHOW.live && SHOW.auction[SHOW.live];
-  if (!url) return;
   const sec = SECTIONS.find(x => x.num === SHOW.live);
+  const url = SHOW.live && SHOW.auction[SHOW.live];
+  const giveaway = sec && sec.giveaway;
+  if (!url && !giveaway) return;
   const bar = document.createElement('button');
   bar.id = 'bidbar';
   bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:' +
@@ -3935,7 +3976,7 @@ function buildBidBar() {
   // while walking, the mouse is pointer-locked and can't reach a DOM button, so
   // desktop opens the auction with the B key (the room's own key-to-act pattern);
   // touch has no lock, so a tap works and needs no hint.
-  label.textContent = 'LOT ' + SHOW.live + ' · ' + (sec ? sec.collab : '') + ' · BID ↗';
+  label.textContent = 'LOT ' + SHOW.live + ' · ' + (sec ? sec.collab : '') + (giveaway ? ' · GIVEAWAY ↗' : ' · BID ↗');
   bar.appendChild(label);
   if (!IS_TOUCH) {
     const chip = document.createElement('span');
@@ -3946,7 +3987,7 @@ function buildBidBar() {
   const price = document.createElement('span');
   price.style.cssText = 'color:#c9c7c0;letter-spacing:.1em';
   bar.appendChild(price);
-  openAuction = () => window.open(url, '_blank', 'noopener');
+  openAuction = giveaway ? openGiveaway : () => window.open(url, '_blank', 'noopener');
   bar.addEventListener('click', e => { e.stopPropagation(); openAuction(); });
   document.body.appendChild(bar);
   async function tick() {   // shows a price ONLY when a truthful reader is wired
@@ -3965,10 +4006,11 @@ let bidStand = null;
 function buildBidStand() {
   if (bidStand) return;
   if (Date.now() < SHOW.doors) return;
-  const url = SHOW.live && SHOW.auction[SHOW.live];
-  if (!url) return;
   const sec = SECTIONS.find(x => x.num === SHOW.live);
   if (!sec) return;
+  const url = SHOW.live && SHOW.auction[SHOW.live];
+  const giveaway = !!sec.giveaway;
+  if (!url && !giveaway) return;   // auction nights need a url; a giveaway night (Andrew) stands anyway
   const g = new THREE.Group();
   const inward = sec.z > 0 ? -1.15 : 1.15;                  // offset toward room centre, never into an end wall (works for all three bays)
   g.position.set(sec.side * (LX - 1.4), 0, sec.z + inward);  // by the wall, just off the piece's side
@@ -3978,7 +4020,7 @@ function buildBidStand() {
   post.position.y = 0.5; g.add(post);
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.045, 24), postMat);
   base.position.y = 0.022; g.add(base);
-  const card = plaque('PLACE A BID', 'LOT ' + sec.num + ' · ' + sec.collab, 0.78, sec.accent || '#a02f1c', false, 'click or press E');
+  const card = plaque(giveaway ? 'GIVEAWAY' : 'PLACE A BID', 'LOT ' + sec.num + ' · ' + sec.collab, 0.78, sec.accent || '#a02f1c', false, 'click or press E');
   card.position.set(0, 1.16, 0.03);
   card.rotation.x = -0.3;                 // tilt back toward a standing viewer
   card.userData.interactive = 'bid';
