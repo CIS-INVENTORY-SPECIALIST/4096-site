@@ -2100,7 +2100,7 @@ if (SHOW.live) {
   if (liveSec) liveSec.status = Date.now() < SHOW.doors
     ? 'live tonight · doors 8pm et'
     : SHOW.live === '02'
-      ? 'live tonight · two to be given away'
+      ? 'live through mon 8pm et · two to be given away'
       : 'live tonight · the auction is open';
 }
 // Artist media handler: still images, animated GIFs, and video all become textures the
@@ -3641,7 +3641,8 @@ const PATRON = {
     andrew: { contract: '0xBCa3c582D2B9Fd66a3952427c9F65C036Ca3b87a', id: 1, piece: 'Sunset',            artist: 'Andrew Mitchell', handle: '@4ndrew_mitchell',
               note: "Sign the book and Sunset is yours, free. You're also in the draw for one of two Sky Meadows.",
               art: '/patron/sunset.jpg', still: '/patron/sunset.jpg', ar: '1200 / 900',
-              fromBlock: '0x18f1ad9', opens: 'opens Fri Oct 9 · 8pm ET', opensAt: Date.parse('2026-10-10T00:00:00Z') },
+              fromBlock: '0x18f1ad9', opens: 'opens Fri Oct 9 · 8pm ET', opensAt: Date.parse('2026-10-10T00:00:00Z'),
+              windowH: 72, closes: 'closes Mon Oct 12 · 8pm ET' },
   },
   // per-edition share pages (their og:image is the share card) — filled when those pages ship.
   // card = the full branded card, art = the artwork alone. Empty = one plain share to the site.
@@ -3708,9 +3709,10 @@ function gbTick() {
 }
 let GB_TICK_IV = null;
 function gbWhenHTML(e, win) {
-  const now = Date.now(), closeAt = e.opensAt + 86400000;
+  // windowH: a night can run longer than 24h (Andrew's ran 72 by his ask)
+  const now = Date.now(), closeAt = e.opensAt + (e.windowH || 24) * 3600000;
   let label, t;
-  if (win && win.open) { if (now >= closeAt) return ''; label = 'closes 8pm ET'; t = closeAt; }
+  if (win && win.open) { if (now >= closeAt) return ''; label = e.closes || 'closes 8pm ET'; t = closeAt; }
   else if (now < e.opensAt) { label = e.opens; t = e.opensAt; }
   else return '';
   return '<p style="' + GB_SUB + ';margin:0 0 10px">' + label + '<span class="gbtick" data-t="' + t + '"></span></p>';
