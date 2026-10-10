@@ -2081,11 +2081,11 @@ const SECTIONS = [
    goes nowhere would be a lie. Bay 02 (Andrew) never gets an auction URL —
    his night is a giveaway, and his plaque already says what's true. */
 const SHOW = {
-  live: '06',                        // '04' | '06' | '02' | null
+  live: '02',                        // '04' | '06' | '02' | null
   // the live night's 8pm-ET door as an absolute instant — the plaque and the BID bar
   // read the clock so one deploy covers before and after doors, no showtime push.
   // Flip per night: Thu = '06' + 2026-10-09, Fri = '02' + 2026-10-10.
-  doors: Date.parse('2026-10-09T00:00:00Z'),
+  doors: Date.parse('2026-10-10T00:00:00Z'),
   auction: { '04': 'https://www.transient.xyz/nfts/ethereum/0x14a86a11151977ecf7f87618972d650fffaa8c70/8', '06': 'https://www.transient.xyz/nfts/ethereum/0x9dd8ae4960d531a6d13dc1c14d70c06b4c2e28f9/8' },   // the artists' own auction pages, when they send them
   // Price display hook: stays null until a TRUTHFUL reader exists for
   // wherever the auctions actually run (their contract or API). At show
@@ -3620,7 +3620,7 @@ gvwrap.addEventListener('click', e => { if (e.target === gvwrap) closeGiveaway()
 // its "not yet" state no matter what `active` says, so a half-filled config
 // can never show a signing flow that calls nothing.
 const PATRON = {
-  active: 'hmm',                              // 'ashish' | 'hmm' | 'andrew' | null
+  active: 'andrew',                              // 'ashish' | 'hmm' | 'andrew' | null
   // art/still are the LIGHT bay files (base href already points at /gallery/); the
   // full-res masters live behind the metadata, not this card. fromBlock = that
   // edition contract's deploy block (hex string), filled on deploy day — empty
