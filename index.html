@@ -2079,13 +2079,18 @@ const SECTIONS = [
    The live bay's plaque says so; a BID bar appears only when that bay's
    auction URL is real. An empty URL shows no button: a bid button that
    goes nowhere would be a lie. Bay 02 (Andrew) never gets an auction URL —
-   his night is a giveaway, and his plaque already says what's true. */
+   his night is a giveaway, and his plaque already says what's true.
+   The one exception is the run's last close (`ends`), which lands at an
+   hour no one can push, so the clock clears `live` there. */
 const SHOW = {
   live: '02',                        // '04' | '06' | '02' | null
   // the live night's 8pm-ET door as an absolute instant — the plaque and the BID bar
   // read the clock so one deploy covers before and after doors, no showtime push.
   // Flip per night: Thu = '06' + 2026-10-09, Fri = '02' + 2026-10-10.
   doors: Date.parse('2026-10-10T00:00:00Z'),
+  // the run's last close (Mon Oct 12 8pm ET). It falls when no one can push, so the
+  // clock ends the show here; the guestbook card still asks the contract.
+  ends: Date.parse('2026-10-13T00:00:00Z'),
   auction: { '04': 'https://www.transient.xyz/nfts/ethereum/0x14a86a11151977ecf7f87618972d650fffaa8c70/8', '06': 'https://www.transient.xyz/nfts/ethereum/0x9dd8ae4960d531a6d13dc1c14d70c06b4c2e28f9/8' },   // the artists' own auction pages, when they send them
   // Price display hook: stays null until a TRUTHFUL reader exists for
   // wherever the auctions actually run (their contract or API). At show
@@ -2093,6 +2098,15 @@ const SHOW = {
   // carries it, refreshed every 30s. null or unreadable = nothing shown.
   readPrice: null,
 };
+// past the last close: no live bay, so the giveaway bar and stand come down, and
+// Andrew's plaque says what stays true before and after his draw. Baked at page
+// load like the doors — a reload past 8pm reads right.
+const SHOW_OVER = Date.now() >= SHOW.ends;
+if (SHOW_OVER) {
+  SHOW.live = null;
+  const sm = SECTIONS.find(x => x.num === '02');
+  if (sm) sm.status = 'the book has closed · two signers win a sky meadow';
+}
 if (SHOW.live) {
   const liveSec = SECTIONS.find(x => x.num === SHOW.live);
   // before the doors the plaque promises only what is true; the open-auction line
@@ -3882,8 +3896,11 @@ async function gbRefresh() {
       html += gbWhenHTML(e, win) + sub(e.note || 'Sign the book while the window is open and it mints to you. Free, one per wallet.');
     } else if (win && !win.open) {
       // the window has been and gone (between nights, or after the run)
-      html += '<p style="' + GB_SUB + ';margin:0 0 10px">THE BOOK IS CLOSED RIGHT NOW</p>' +
-              '<p class="lede" style="margin:0">Windows run 8pm to 8pm ET, one artist a night. Come back when the show is on.</p>';
+      html += SHOW_OVER
+        ? '<p style="' + GB_SUB + ';margin:0 0 10px">THE BOOK IS CLOSED</p>' +
+          '<p class="lede" style="margin:0">The show has ended. Thank you to everyone who signed.</p>'
+        : '<p style="' + GB_SUB + ';margin:0 0 10px">THE BOOK IS CLOSED RIGHT NOW</p>' +
+          '<p class="lede" style="margin:0">Windows run 8pm to 8pm ET, one artist a night. Come back when the show is on.</p>';
     } else {
       // open (or state unknown): the real signing flow
       html += '<p style="' + GB_SUB + ';margin:0 0 12px">wallet · ' + wallet + '</p>' +

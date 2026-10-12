@@ -1,0 +1,60 @@
+# The Sunset guestbook — every wallet that signed Andrew Mitchell's book before it closed.
+#
+# Andrew draws the two Sky Meadow winners himself, from this book. This file only
+# reads it, so anyone can check who signed and that their wallet is in it.
+#   Signers = every PatronMinted(id=1) wallet on the Andrew contract, in mint order,
+#   one per wallet (the contract enforces it), counted only if mined BEFORE the first
+#   block at or after 2026-10-13 00:00:00 UTC (Mon Oct 12 8pm ET, the window close).
+#
+# Run:  python3 sunset-guestbook.py          (any Ethereum mainnet RPC works: RPC=<url> python3 ...)
+import json, time, subprocess, os
+
+CA        = '0xBCa3c582D2B9Fd66a3952427c9F65C036Ca3b87a'
+TOPIC     = '0xbf16b5ea202608eb57ab33769eeb4c715763be6f77eda03eb9714d0e411512ca'  # PatronMinted(uint256,address)
+ID_TOPIC  = '0x' + '1'.zfill(64)
+FROM_BLOCK = '0x18f1ad9'       # the contract's deploy block
+CLOSE_TS  = 1791849600         # 2026-10-13T00:00:00Z == Mon Oct 12 8pm ET
+# a free public node that answers log queries; publicnode refuses them
+RPC       = os.environ.get('RPC') or 'https://eth.drpc.org'
+
+def rpc(method, params):
+    body = json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params})
+    out = json.loads(subprocess.run(
+        ['curl', '-s', '--max-time', '30', '-H', 'Content-Type: application/json',
+         '-d', body, RPC], capture_output=True, text=True).stdout)
+    if 'error' in out: raise SystemExit('rpc error: ' + str(out['error']))
+    return out['result']
+
+def block(n):
+    return rpc('eth_getBlockByNumber', (hex(n) if isinstance(n, int) else n, False))
+
+# ---- the cut-off: the first block with timestamp >= CLOSE_TS ----
+latest = block('latest')
+if int(latest['timestamp'], 16) < CLOSE_TS:
+    left = time.strftime('%H hours %M min', time.gmtime(CLOSE_TS - time.time()))
+    print(f'\nThe book is still open ({left} to go). Showing the signatures so far.\n')
+    head = int(latest['number'], 16)
+else:
+    lo, hi = int(FROM_BLOCK, 16), int(latest['number'], 16)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if int(block(mid)['timestamp'], 16) >= CLOSE_TS: hi = mid
+        else: lo = mid + 1
+    print(f'close block {lo}: only signatures in earlier blocks count\n')
+    head = lo - 1
+
+# ---- signers, in mint order ----
+# free nodes cap log queries (drpc free: 100 blocks per query in practice), so walk the range in chunks
+logs, b = [], int(FROM_BLOCK, 16)
+while b <= head:
+    e = min(head, b + 99)
+    logs += rpc('eth_getLogs', [{'address': CA, 'topics': [TOPIC, ID_TOPIC], 'fromBlock': hex(b), 'toBlock': hex(e)}])
+    b = e + 1
+signers = []
+for l in logs:
+    w = '0x' + l['topics'][2][26:].lower()
+    if w not in signers:
+        signers.append(w)
+print(f'{len(signers)} signers in the book')
+for i, w in enumerate(signers):
+    print(f'  {i + 1:3d}  {w}')
