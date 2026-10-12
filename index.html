@@ -2087,9 +2087,9 @@ const SHOW = {
   // read the clock so one deploy covers before and after doors, no showtime push.
   // Flip per night: Thu = '06' + 2026-10-09, Fri = '02' + 2026-10-10.
   doors: Date.parse('2026-10-10T00:00:00Z'),
-  // the run's last close as an absolute instant, set by hand when the book is closed
-  // (Andrew's window was held open past Mon 8pm ET). null = the show is still on.
-  ends: null,
+  // the run's last close as an absolute instant, set by hand once the book is closed:
+  // the block of Andrew's closeEdition(1), tx 0x11e5…e9df. null = the show is still on.
+  ends: Date.parse('2026-10-12T23:56:23Z'),
   auction: { '04': 'https://www.transient.xyz/nfts/ethereum/0x14a86a11151977ecf7f87618972d650fffaa8c70/8', '06': 'https://www.transient.xyz/nfts/ethereum/0x9dd8ae4960d531a6d13dc1c14d70c06b4c2e28f9/8' },   // the artists' own auction pages, when they send them
   // Price display hook: stays null until a TRUTHFUL reader exists for
   // wherever the auctions actually run (their contract or API). At show
